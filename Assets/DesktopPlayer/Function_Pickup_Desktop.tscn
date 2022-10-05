@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Assets/DesktopPlayer/Function_Pickup_Desktop.gd" type="Script" id=1]
+
+[node name="Function_Pickup" type="Spatial"]
+script = ExtResource( 1 )
+grab_distance = 0.0
+grab_collision_mask = 4
+ranged_collision_mask = 4

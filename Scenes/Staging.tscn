@@ -1,0 +1,37 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
+[ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/Stuff/MyPickableDummyObject.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Assets/Stuff/Ground.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Assets/Stuff/NetworkStation.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/Stuff/TimedGrabableEliminationArea.tscn" type="PackedScene" id=6]
+[ext_resource path="res://Assets/DL/DLManager.tscn" type="PackedScene" id=7]
+
+[node name="Staging" type="Spatial"]
+script = ExtResource( 1 )
+
+[node name="Player" type="Spatial" parent="."]
+
+[node name="Environment" type="Spatial" parent="."]
+
+[node name="ImageShelf" parent="Environment" instance=ExtResource( 2 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.478539, 0, 0 )
+
+[node name="Ground" parent="Environment" instance=ExtResource( 4 )]
+
+[node name="NetworkStation" parent="Environment" instance=ExtResource( 5 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.316916, 0, -0.528754 )
+
+[node name="TimedGrabableEliminationArea" parent="Environment" instance=ExtResource( 6 )]
+
+[node name="MyPickableDummyObject" parent="Environment" instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.607898, 1.11342, -0.531195 )
+
+[node name="DLManager" parent="." instance=ExtResource( 7 )]
+
+[node name="DatasetManager" parent="DLManager" index="0"]
+spawn_position_node_paths = NodePath("../../Environment/ImageShelf/SpawnPositionNodes")
+
+[editable path="Environment/ImageShelf"]
+[editable path="DLManager"]

@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://Assets/DesktopPlayer/camera.gd" type="Script" id=1]
+[ext_resource path="res://Assets/DesktopPlayer/Function_Pickup_Desktop.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/DesktopPlayer/Crosshair.png" type="Texture" id=3]
+
+[node name="DesktopPlayer" type="Spatial"]
+
+[node name="Camera" type="Camera" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0 )
+script = ExtResource( 1 )
+
+[node name="TextureRect" type="TextureRect" parent="Camera"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+rect_pivot_offset = Vector2( 32, 32 )
+texture = ExtResource( 3 )
+
+[node name="Function_Pickup" parent="Camera" instance=ExtResource( 2 )]
+_hand = NodePath("../Hand")
+ranged_angle = 10.0
+impulse_factor = 2.0
+
+[node name="Hand" type="Spatial" parent="Camera"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.05, -0.2 )

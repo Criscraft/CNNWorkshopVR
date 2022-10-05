@@ -1,0 +1,16 @@
+Before running the application you will need to install Python locally into the directory Python/PythonInstallation
+
+Recommended procedure:
+
+First install conda.
+
+Then run in shell:
+conda create -p Python/PythonInstallation python
+Move to the installation folder.
+cd Python/PythonInstallation
+Upgrade pip.
+python -m pip install --upgrade pip
+Install required packages. 
+pip install torch, torchvision, torchgeometry, websockets, opencv-python
+
+The code is not tested, yet.
