@@ -8,6 +8,9 @@ var mouse_mask = 0
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	call_deferred("_post_ready")
+	
+func _post_ready():
 	vp = get_node("../Viewport")
 
 # Convert intersection point to screen coordinate

@@ -9,7 +9,7 @@ import enum
 from typing import Type, Any, Callable, Union, List, Tuple, Optional
 
 from torch.nn.modules import module
-from ActivationTracker import ActivationTracker, TrackerModule, TrackerModuleType, TrackerModuleGroup, TrackerModuleGroupType
+from Scripts.ActivationTracker import ActivationTracker, TrackerModule, TrackerModuleType, TrackerModuleGroup, TrackerModuleGroupType
 
 # Working Group Convolution and shuffeling of input channels in HFModule. Also added new modes: UnevenPosOnly and EvenPosOnly.
 

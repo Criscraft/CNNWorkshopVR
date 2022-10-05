@@ -57,6 +57,8 @@ func _ready():
 	
 	_hand = get_node(_hand)
 	
+	var _errorcode # irrelevant
+	
 	# Skip if running in the editor
 	if Engine.editor_hint:
 		return
@@ -73,10 +75,10 @@ func _ready():
 	_grab_area.collision_layer = 0
 	_grab_area.collision_mask = grab_collision_mask
 	_grab_area.add_child(_grab_collision)
-	_grab_area.connect("area_entered", self, "_on_grab_entered")
-	_grab_area.connect("body_entered", self, "_on_grab_entered")
-	_grab_area.connect("area_exited", self, "_on_grab_exited")
-	_grab_area.connect("body_exited", self, "_on_grab_exited")
+	_errorcode = _grab_area.connect("area_entered", self, "_on_grab_entered")
+	_errorcode = _grab_area.connect("body_entered", self, "_on_grab_entered")
+	_errorcode = _grab_area.connect("area_exited", self, "_on_grab_exited")
+	_errorcode = _grab_area.connect("body_exited", self, "_on_grab_exited")
 	add_child(_grab_area)
 
 	# Create the ranged collision shape
@@ -91,10 +93,10 @@ func _ready():
 	_ranged_area.collision_layer = 0
 	_ranged_area.collision_mask = ranged_collision_mask
 	_ranged_area.add_child(_ranged_collision)
-	_ranged_area.connect("area_entered", self, "_on_ranged_entered")
-	_ranged_area.connect("body_entered", self, "_on_ranged_entered")
-	_ranged_area.connect("area_exited", self, "_on_ranged_exited")
-	_ranged_area.connect("body_exited", self, "_on_ranged_exited")
+	_errorcode = _ranged_area.connect("area_entered", self, "_on_ranged_entered")
+	_errorcode = _ranged_area.connect("body_entered", self, "_on_ranged_entered")
+	_errorcode = _ranged_area.connect("area_exited", self, "_on_ranged_exited")
+	_errorcode = _ranged_area.connect("body_exited", self, "_on_ranged_exited")
 	add_child(_ranged_area)
 
 	# Update the colliders

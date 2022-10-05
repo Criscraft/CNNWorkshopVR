@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
@@ -7,6 +7,9 @@
 [ext_resource path="res://Assets/Stuff/NetworkStation.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/TimedGrabableEliminationArea.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/DL/DLManager.tscn" type="PackedScene" id=7]
+[ext_resource path="res://Assets/Stuff/keyboard_test_screen.tscn" type="PackedScene" id=8]
+[ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=9]
+[ext_resource path="res://addons/godot-xr-tools/objects/Virtual_Keyboard.tscn" type="PackedScene" id=10]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -27,6 +30,14 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.316916, 0, -0.528754 )
 
 [node name="MyPickableDummyObject" parent="Environment" instance=ExtResource( 3 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.607898, 1.11342, -0.531195 )
+
+[node name="Viewport2Din3D" parent="Environment" instance=ExtResource( 9 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65552, -1.48309 )
+scene = ExtResource( 8 )
+collision_layer = 15
+
+[node name="Virtual_Keyboard" parent="Environment" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.26758, -1.39168 )
 
 [node name="DLManager" parent="." instance=ExtResource( 7 )]
 

@@ -3,9 +3,11 @@ extends "res://addons/godot-xr-tools/objects/Object_pickable.gd"
 func copy_pickable_to(new_parent) -> Spatial:
 	# copy the pickable object
 	var instance_new = duplicate(7)
+	"""
 	for property in get_property_list():
 		if(property.usage == PROPERTY_USAGE_SCRIPT_VARIABLE):
 			instance_new[property.name] = self[property.name]
+	"""
 	# The collision information was not copied, because the rigidbody is in static mode and the collision layer and mask are 0. We correct this manually.
 	instance_new.collision_layer = original_collision_layer
 	instance_new.collision_mask = original_collision_mask
@@ -18,6 +20,7 @@ func copy_pickable_to(new_parent) -> Spatial:
 #	var instance_new = package.instance(PackedScene.GEN_EDIT_STATE_INSTANCE)
 	
 	# copy the remote transform of the pickable_object
+	"""
 	if hold_method == HoldMethod.REMOTE_TRANSFORM:
 		var remote_transform_new = _remote_transform.duplicate()
 		remote_transform_new.name = remote_transform_new.name + "_copy"
@@ -26,6 +29,7 @@ func copy_pickable_to(new_parent) -> Spatial:
 		instance_new._remote_transform = remote_transform_new
 	else:
 		push_error("Grabable has no HoldMethod.REMOTE_TRANSFORM")
+	"""
 	return instance_new
 
 
