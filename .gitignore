@@ -10,8 +10,6 @@ export_presets.cfg
 .mono/
 data_*/
 
-PythonInstallation/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
