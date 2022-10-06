@@ -1,0 +1,11 @@
+[gd_scene format=2]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Label" type="Label" parent="."]
+margin_right = 200.0
+margin_bottom = 40.0
+text = "Label"
+align = 1
+valign = 1
+clip_text = true

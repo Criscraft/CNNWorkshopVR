@@ -18,4 +18,4 @@ func update_image() -> void:
 	$Image.set_surface_material(0, material)
 	
 func update_label() -> void:
-	pass
+	$Label.get_scene_instance().get_node("Label").text = image_resource.label

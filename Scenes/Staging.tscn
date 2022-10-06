@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
@@ -10,6 +10,8 @@
 [ext_resource path="res://Assets/Stuff/keyboard_test_screen.tscn" type="PackedScene" id=8]
 [ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=9]
 [ext_resource path="res://addons/godot-xr-tools/objects/Virtual_Keyboard.tscn" type="PackedScene" id=10]
+[ext_resource path="res://Assets/Stuff/Viewport_2D_in_3D_Static.tscn" type="PackedScene" id=11]
+[ext_resource path="res://Assets/Tmp/hallo.tscn" type="PackedScene" id=12]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -38,6 +40,10 @@ collision_layer = 15
 
 [node name="Virtual_Keyboard" parent="Environment" instance=ExtResource( 10 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.26758, -1.39168 )
+
+[node name="Viewport2Din3DStatic" parent="Environment" instance=ExtResource( 11 )]
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -0.89482, 2.798, 0.66289 )
+scene = ExtResource( 12 )
 
 [node name="DLManager" parent="." instance=ExtResource( 7 )]
 
