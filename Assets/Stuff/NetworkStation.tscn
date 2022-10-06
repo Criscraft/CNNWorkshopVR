@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/Stuff/MySnapTray.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/DL/NetworkOutputScreen.tscn" type="PackedScene" id=3]
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 1, 1, 0.5 )
@@ -20,11 +21,14 @@ material/0 = ExtResource( 1 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
-[node name="MySnapTray" parent="." instance=ExtResource( 2 )]
+[node name="NetworkInputTray" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.206, 1.009, 0 )
 
-[node name="Snap_Zone" parent="MySnapTray" index="1"]
+[node name="Snap_Zone" parent="NetworkInputTray" index="1"]
 copies_on_pick_up = false
 
-[editable path="MySnapTray"]
-[editable path="MySnapTray/Snap_Zone"]
+[node name="NetworkOutputScreen" parent="." instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.261211, 1.28657, -0.246209 )
+
+[editable path="NetworkInputTray"]
+[editable path="NetworkInputTray/Snap_Zone"]
