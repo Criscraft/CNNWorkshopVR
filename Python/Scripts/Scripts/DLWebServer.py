@@ -32,31 +32,81 @@ def prepare_dl_objects(source):
 
 async def handler(websocket):
     async for message in websocket:
+        response = ""
         event = json.loads(message)
         
-        if event["resource"] == "get_dataset_images":
-            response = get_dataset_images(event)
+        if event["resource"] == "request_dataset_images":
+            response = request_dataset_images(event)
+        elif event["resource"] == "request_forward_pass":
+            response = request_forward_pass(event)
         
-        await websocket.send(response)
+        if response:
+            await websocket.send(response)
 
 
-def get_dataset_images(event):
+def request_dataset_images(event):
     image_resources = []
-    ids = event["ids"]
-    for id in ids:
-        if id >= len(dataset):
-            continue
-        tensor, label = dataset.get_data_item(id, False)
-        image_resources.append(ImageResource(
-            id=id,
-            data=utils.tensor_to_string(tensor),
-            label=dataset.class_names[label],
-            mode=ImageResource.Mode.DATASET,
-        ).__dict__)
-    response = {"resource" : "send_dataset_images", "image_resources" : image_resources}
+    n = event["n"]
+    if n > 0:
+        rand_inds = np.random.randint(len(dataset), size=n)
+        for rand_ind in rand_inds:
+            tensor, label = dataset.get_data_item(rand_ind, False)
+            image_resources.append(ImageResource(
+                id=int(rand_ind),
+                data=utils.tensor_to_string(tensor),
+                label=dataset.class_names[label],
+                mode=ImageResource.Mode.DATASET,
+            ).__dict__)
+    response = {"resource" : "request_dataset_images", "image_resources" : image_resources}
     response = json.dumps(response, indent=1, ensure_ascii=True)
+    print("send: " + "request_dataset_images")
     return response
 
+
+def request_forward_pass(event):
+    # Create image resource
+    image_resource_dict = event["image_resource"]
+    image_resource = ImageResource(
+        id = image_resource_dict["id"],
+        module_id = image_resource_dict["module_id"],
+        channel_id = image_resource_dict["channel_id"],
+        mode = ImageResource.Mode(image_resource_dict["mode"]),
+    )
+
+    # Create image for the image resource
+    image = None
+    if image_resource.mode == ImageResource.Mode.DATASET and image_resource.id >= 0:
+        image, label = dataset.get_data_item(image_resource.id, False)
+        image_resource.label = dataset.class_names[label]
+    elif image_resource.mode == ImageResource.Mode.FEATURE_VISUALIZATION:
+        image = network.try_load_feature_visualization(image_resource.module_id)
+        if image is not None:
+            image = image[image_resource.channel_id]
+        else:
+            raise RuntimeError
+    elif image_resource.mode == ImageResource.Mode.NOISE:
+        image = noise_generator.get_noise_image()
+    elif image_resource.mode == ImageResource.Mode.ACTIVATION:
+        raise RuntimeError
+    else:
+        image = torch.zeros(dataset.get_data_item(0, True)[0].shape)
+    image_resource.data = image
+
+    # Perform the forward pass
+    network.forward_pass(image_resource)
+    
+    # Get network results and make response.
+    posteriors, class_indices = network.get_classification_result()
+    response = ""
+    if posteriors is not None:
+        response = {
+            "class_names" : [dataset.class_names[ind] for ind in class_indices],
+            "confidence_values" : [f"{item:.2f}" for item in posteriors],
+        }
+        response = {"resource" : "request_forward_pass", "results" : response}
+        response = json.dumps(response, indent=1, ensure_ascii=False)
+    print("send: " + "request_forward_pass")
+    return response
 
 async def main():
     async with websockets.serve(handler, "", 8000):
@@ -94,7 +144,7 @@ class NetworkArchitectureResource:
         print("send NetworkArchitectureResource for network {networkid}")
 
 
-class NetworkActivationImageResource:
+class NetworkImageResourceResource:
 
     def on_get(self, req, resp, networkid : int, moduleid : int):
         network = networks[networkid]
@@ -118,7 +168,7 @@ class NetworkActivationImageResource:
             "mode" : "Activation",
             }
         resp.text = json.dumps(out, indent=1, ensure_ascii=False)
-        print(f"send NetworkActivationImageResource for network {networkid} layer {moduleid}")
+        print(f"send NetworkImageResourceResource for network {networkid} layer {moduleid}")
 
 
 class NetworkFeatureVisualizationResource:
@@ -144,29 +194,29 @@ class NetworkForwardPassResource:
 
     def on_put(self, req, resp, networkid : int):
         jsonfile = json.load(req.stream)
-        image_resource = ActivationImage(
+        image_resource = ImageResource(
             network_ID = jsonfile["networkID"],
             dataset_ID = jsonfile["datasetID"],
             image_ID = jsonfile["imageID"],
             module_ID = jsonfile["moduleID"],
             channel_ID = jsonfile["channelID"],
             noise_generator_ID = jsonfile["noiseGeneratorID"],
-            mode = ActivationImage.Mode(jsonfile["mode"]))
+            mode = ImageResource.Mode(jsonfile["mode"]))
         
         network = networks[networkid]
 
         image = None
-        if image_resource.mode == ActivationImage.Mode.DatasetImage and image_resource.image_ID >= 0:
+        if image_resource.mode == ImageResource.Mode.DatasetImage and image_resource.image_ID >= 0:
             image = datasets[image_resource.dataset_ID].get_data_item(image_resource.image_ID, True)[0]
-        elif image_resource.mode == ActivationImage.Mode.FeatureVisualization:
+        elif image_resource.mode == ImageResource.Mode.FeatureVisualization:
             image = networks[image_resource.network_ID].try_load_feature_visualization(image_resource.layer_ID)
             if image is not None:
                 image = image[image_resource.channel_ID]
             else:
                 raise falcon.HTTPBadRequest(title="Feature Visualization is not yet produced.")
-        elif image_resource.mode == ActivationImage.Mode.NoiseImage:
+        elif image_resource.mode == ImageResource.Mode.NoiseImage:
             image = noise_generators[image_resource.noise_generator_ID].get_noise_image()
-        elif image_resource.mode == ActivationImage.Mode.Activation:
+        elif image_resource.mode == ImageResource.Mode.Activation:
             raise falcon.HTTPBadRequest(title="You cannot load an activation")
         else:
             image = torch.zeros(datasets[network.corresponding_dataset_id].get_data_item(0, True)[0].shape)
@@ -299,14 +349,14 @@ class NetworkExportLayerResource:
 
     def on_put(self, req, resp, networkid : int):
         jsonfile = json.load(req.stream)
-        image_resource = ActivationImage(
+        image_resource = ImageResource(
             network_ID = jsonfile["networkID"],
             dataset_ID = jsonfile["datasetID"],
             image_ID = jsonfile["imageID"],
             layer_ID = jsonfile["layerID"],
             channel_ID = jsonfile["channelID"],
             noise_generator_ID = jsonfile["noiseGeneratorID"],
-            mode = ActivationImage.Mode(jsonfile["mode"]))
+            mode = ImageResource.Mode(jsonfile["mode"]))
         
         network = networks[networkid]
         network.export(image_resource)

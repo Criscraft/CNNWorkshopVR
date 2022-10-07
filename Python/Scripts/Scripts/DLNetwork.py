@@ -19,7 +19,7 @@ class FeatureVisualizationMode(Enum):
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, network_id, corresponding_dataset_id=0, softmax=True):
+    def __init__(self, model, device, classification, input_size, network_id, corresponding_dataset_id=0, softmax=False):
         super().__init__()
         
         self.device = device
@@ -171,8 +171,10 @@ class DLNetwork(object):
         if not self.classification:
             return None, None
         out = self.get_activation(self.output_tracker_module_id)
+        out = out.flatten(1)
         if self.softmax:
-            out = F.softmax(out, 1) * 100.
+            out = F.softmax(out, 1)
+        out = out * 100.
         out = out[0].cpu().numpy()
         indices_tmp = np.argsort(-out)
         indices_tmp = indices_tmp[:10]

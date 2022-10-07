@@ -1,10 +1,13 @@
-[gd_scene format=2]
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Assets/ThemesAndFonts/my_theme.tres" type="Theme" id=1]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="Label" type="Label" parent="."]
 margin_right = 200.0
 margin_bottom = 40.0
+theme = ExtResource( 1 )
 text = "Label"
 align = 1
 valign = 1

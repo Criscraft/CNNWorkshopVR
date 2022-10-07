@@ -1,16 +1,18 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/Stuff/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/DL/NetworkOutputScreen.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Assets/DL/NetworkInputOutputManager.gd" type="Script" id=4]
 
 [sub_resource type="CubeMesh" id=1]
-size = Vector3( 1, 1, 0.5 )
+size = Vector3( 0.5, 1, 0.5 )
 
 [sub_resource type="BoxShape" id=2]
-extents = Vector3( 0.5, 0.5, 0.25 )
+extents = Vector3( 0.25, 0.5, 0.25 )
 
 [node name="NetworkStation" type="StaticBody"]
+script = ExtResource( 4 )
 
 [node name="MeshInstance" type="MeshInstance" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
@@ -22,13 +24,15 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
 [node name="NetworkInputTray" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.206, 1.009, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.009, 0 )
 
 [node name="Snap_Zone" parent="NetworkInputTray" index="1"]
 copies_on_pick_up = false
 
 [node name="NetworkOutputScreen" parent="." instance=ExtResource( 3 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.261211, 1.28657, -0.246209 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38363, -0.244909 )
+
+[connection signal="has_picked_up" from="NetworkInputTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 
 [editable path="NetworkInputTray"]
 [editable path="NetworkInputTray/Snap_Zone"]

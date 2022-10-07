@@ -9,8 +9,6 @@ from Scripts.DLData import DLData
 from Scripts.DLNetwork import DLNetwork
 from Scripts.NoiseGenerator import NoiseGenerator
 
-
-N_IMAGES = 16
 N_CLASSES = 10
 SEED = 42
 IMAGE_SHAPE = (1, 28, 28)
@@ -70,7 +68,7 @@ def get_dataset():
     dataset_to_tensor.prepare({'transform_to_tensor' : transform_to_tensor})
 
     np.random.seed(SEED)
-    data_indices = np.random.randint(len(dataset), size=N_IMAGES)
+    data_indices = None
 
     dldata = DLData(dataset, dataset_to_tensor, data_indices, dataset.class_names, N_CLASSES)
     

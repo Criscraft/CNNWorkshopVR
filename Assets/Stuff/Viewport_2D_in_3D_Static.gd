@@ -50,6 +50,11 @@ func get_scene():
 
 func get_scene_instance():
 	return scene_node
+	
+func connect_scene_signal(which, on, callback):
+	if scene_node:
+		var _error
+		_error = scene_node.connect(which, on, callback)
 
 # Called when the node enters the scene tree for the first time.
 func _ready():

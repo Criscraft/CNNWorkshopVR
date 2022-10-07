@@ -6,6 +6,6 @@
 [node name="NetworkOutputScreen" type="Spatial"]
 
 [node name="Viewport2Din3DStatic" parent="." instance=ExtResource( 1 )]
-screen_size = Vector2( 0.3, 0.55 )
-viewport_size = Vector2( 300, 550 )
+screen_size = Vector2( 0.5, 0.75 )
+viewport_size = Vector2( 500, 750 )
 scene = ExtResource( 2 )

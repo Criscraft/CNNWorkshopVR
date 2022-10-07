@@ -1,18 +1,10 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://Assets/DL/DLManager.gd" type="Script" id=1]
-[ext_resource path="res://Assets/DL/DatasetManager.gd" type="Script" id=2]
 [ext_resource path="res://Assets/DL/MyThreadPoolManager.gd" type="Script" id=3]
 
 [node name="DLManager" type="Spatial"]
 script = ExtResource( 1 )
 
-[node name="DatasetManager" type="Spatial" parent="."]
-script = ExtResource( 2 )
-
 [node name="MyThreadPoolManager" type="Node" parent="."]
 script = ExtResource( 3 )
-
-[connection signal="on_connected" from="." to="DatasetManager" method="_on_DLManager_on_connected"]
-[connection signal="receive_dataset_images" from="." to="DatasetManager" method="_on_DLManager_receive_dataset_images"]
-[connection signal="get_dataset_images" from="DatasetManager" to="." method="_on_DatasetManager_get_dataset_images"]

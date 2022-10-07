@@ -10,15 +10,21 @@ class DLData(object):
     
     
     def __len__(self):
-        return len(self.dataset)
-
+        
+        if self.data_indices:
+            return len(self.data_indices)
+        else:
+            return len(self.dataset)
     
     def get_data_item(self, idx: int, transformed=True):
         if transformed:
             dataset = self.dataset
         else:
             dataset = self.dataset_to_tensor
-        item = dataset[self.data_indices[idx]]
+        if self.data_indices:
+            item = dataset[self.data_indices[idx]]
+        else:
+            item = dataset[idx]
         return item['data'], item['label']
 
     

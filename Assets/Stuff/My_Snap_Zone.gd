@@ -21,3 +21,13 @@ func drop_object() -> void:
 		picked_up_object = null
 		emit_signal("highlight_updated", self, true)
 
+func destroy_held_item() -> void:
+	if not is_instance_valid(picked_up_object):
+		return
+	
+	picked_up_object.let_go(Vector3.ZERO, Vector3.ZERO)
+	emit_signal("has_dropped")
+	picked_up_object.queue_free()
+	picked_up_object = null
+	emit_signal("highlight_updated", self, true)
+

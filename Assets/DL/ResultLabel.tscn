@@ -2,10 +2,10 @@
 
 [ext_resource path="res://Assets/ThemesAndFonts/my_theme.tres" type="Theme" id=1]
 
-[node name="Header" type="Label"]
-margin_right = 300.0
+[node name="TextLine" type="Label"]
+margin_right = 500.0
 margin_bottom = 40.0
 theme = ExtResource( 1 )
 text = "Result - 100%"
-align = 1
 valign = 1
+clip_text = true

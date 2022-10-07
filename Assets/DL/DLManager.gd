@@ -9,6 +9,7 @@ var _client = WebSocketClient.new()
 onready var my_thread_pool_manager = $MyThreadPoolManager
 
 signal receive_dataset_images(image_resources)
+signal receive_classification_results(results)
 signal on_connected()
 
 func _ready():
@@ -44,6 +45,8 @@ func _connected(proto = ""):
 	# _client.get_peer(1).put_packet("Test packet".to_utf8())
 	emit_signal("on_connected")
 
+# Receiving data
+
 func _on_data():
 	# Print the received packet, you MUST always use get_peer(1).get_packet
 	# to receive data from server, and not get_packet directly when not
@@ -53,10 +56,19 @@ func _on_data():
 	data = JSON.parse(data).result
 	match data["resource"]:
 		
-		"send_dataset_images":
+		"request_dataset_images":
 			print("DLManager reveived dataset images.")
 			my_thread_pool_manager.submit_task(self, "preprocess_dataset_images", data["image_resources"], "preprocess_dataset_images")
+			
+		"request_forward_pass":
+			print("DLManager reveived classification results.")
+			emit_signal("receive_classification_results", data["results"])
+			
+		_:
+			print("No match in DLManager.")
 
+
+# Tasks after data was received.
 
 func preprocess_dataset_images(image_resource_data):
 	var image_resources = []
@@ -64,19 +76,30 @@ func preprocess_dataset_images(image_resource_data):
 		image_resources.append(dict_to_image_resource(item))
 	return image_resources
 
+# What appens after the DL thread is finished with a task?
 
 func _on_task_completed(task):
 	match task.tag:
 		
 		"preprocess_dataset_images":
 			call_deferred("emit_signal", "receive_dataset_images", task.result)
-		
 
-func _on_DatasetManager_get_dataset_images(ids):
-	var message = {"resource" : "get_dataset_images", "ids" : ids}
+# Requests for sending
+
+func _on_ImageShelf_request_dataset_images(n):
+	var message = {"resource" : "request_dataset_images", "n" : n}
 	message = JSON.print(message)
 	print(message)
 	_client.get_peer(1).put_packet(message.to_utf8())
+
+
+func _on_NetworkStation_request_forward_pass(image_resource):
+	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
+	message = JSON.print(message)
+	print(message)
+	_client.get_peer(1).put_packet(message.to_utf8())
+	
+# Helpers
 
 func dict_to_image_resource(dick : Dictionary):
 	var image_resource = DLImageResource.new()
@@ -89,8 +112,14 @@ func dict_to_image_resource(dick : Dictionary):
 	image_resource.label = dick["label"]
 	return image_resource
 
+
 func _process(_delta):
 	# Call this in _process or _physics_process. Data transfer, and signals
 	# emission will only happen when calling this function.
 	_client.poll()
+
+
+
+
+
 
