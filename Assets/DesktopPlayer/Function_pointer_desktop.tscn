@@ -11,7 +11,7 @@ subdivide_depth = 20
 [node name="Function_pointer" instance=ExtResource( 1 )]
 script = ExtResource( 2 )
 y_offset = 0.0
-collision_mask = 15
+collision_mask = 12
 
 [node name="RayCast" parent="." index="0"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 )

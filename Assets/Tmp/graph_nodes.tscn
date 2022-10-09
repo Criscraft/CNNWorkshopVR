@@ -1,0 +1,16 @@
+[gd_scene format=2]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="GraphEdit" type="GraphEdit" parent="."]
+margin_right = 880.0
+margin_bottom = 499.0
+scroll_offset = Vector2( -40, -40 )
+minimap_enabled = false
+
+[node name="GraphNode" type="GraphNode" parent="GraphEdit"]
+margin_left = 102.0
+margin_top = 114.0
+margin_right = 203.0
+margin_bottom = 194.0
+mouse_filter = 1

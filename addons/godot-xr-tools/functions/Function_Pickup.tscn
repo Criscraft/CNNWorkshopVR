@@ -4,3 +4,5 @@
 
 [node name="Function_Pickup" type="Spatial"]
 script = ExtResource( 1 )
+grab_collision_mask = 4
+ranged_collision_mask = 4

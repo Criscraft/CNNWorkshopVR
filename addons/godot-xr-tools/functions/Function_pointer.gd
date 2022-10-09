@@ -143,39 +143,41 @@ func _process(delta):
 	if enabled and $RayCast.is_colliding():
 		var new_at = $RayCast.get_collision_point()
 		
-		if is_instance_valid(target):
-			# if target is set our mouse must be down, we keep "focus" on our target
-			if new_at != last_collided_at:
-				if target.has_signal("pointer_moved"):
-					target.emit_signal("pointer_moved", last_collided_at, new_at)
-				elif target.has_method("pointer_moved"):
-					target.pointer_moved(last_collided_at, new_at)
+#		if is_instance_valid(target):
+#			# if target is set our mouse must be down, we keep "focus" on our target
+#			if new_at != last_collided_at:
+#				if target.has_signal("pointer_moved"):
+#					target.emit_signal("pointer_moved", last_collided_at, new_at)
+#				elif target.has_method("pointer_moved"):
+#					target.pointer_moved(last_collided_at, new_at)
+		#else:
+		var new_target = $RayCast.get_collider()
+
+		# are we pointing to a new target?
+		if new_target != last_target:
+			# exit the old
+			if is_instance_valid(last_target):
+				if last_target.has_signal("pointer_exited"):
+					last_target.emit_signal("pointer_exited")
+				elif last_target.has_method("pointer_exited"):
+					last_target.pointer_exited()
+
+			# enter the new
+			if is_instance_valid(new_target):
+				if new_target.has_signal("pointer_entered"):
+					new_target.emit_signal("pointer_entered")
+				elif new_target.has_method("pointer_entered"):
+					new_target.pointer_entered()
+
+			last_target = new_target
+			
 		else:
-			var new_target = $RayCast.get_collider()
-
-			# are we pointing to a new target?
-			if new_target != last_target:
-				# exit the old
-				if is_instance_valid(last_target):
-					if last_target.has_signal("pointer_exited"):
-						last_target.emit_signal("pointer_exited")
-					elif last_target.has_method("pointer_exited"):
-						last_target.pointer_exited()
-
-				# enter the new
-				if is_instance_valid(new_target):
-					if new_target.has_signal("pointer_entered"):
-						new_target.emit_signal("pointer_entered")
-					elif new_target.has_method("pointer_entered"):
-						new_target.pointer_entered()
-
-				last_target = new_target
-
 			if new_at != last_collided_at:
 				if new_target.has_signal("pointer_moved"):
 					new_target.emit_signal("pointer_moved", last_collided_at, new_at)
 				elif new_target.has_method("pointer_moved"):
 					new_target.pointer_moved(last_collided_at, new_at)
+		# this was the end of the else I commented out
 
 		if last_target and show_target:
 			$Target.global_transform.origin = last_collided_at

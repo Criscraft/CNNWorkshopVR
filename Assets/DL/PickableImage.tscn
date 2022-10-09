@@ -23,6 +23,7 @@ size = Vector3( 0.1, 0.02, 0.001 )
 size = Vector2( 0.1, 0.1 )
 
 [node name="PickableImage" instance=ExtResource( 1 )]
+collision_mask = 5
 
 [node name="CollisionShape" parent="." index="1"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0424042, 0 )

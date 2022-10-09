@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://Assets/DL/NetworkGroup.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/CameraDragFunction.gd" type="Script" id=2]
+[ext_resource path="res://Assets/Stuff/Scene2DIn3D.gd" type="Script" id=3]
+
+[sub_resource type="StyleBoxFlat" id=1]
+bg_color = Color( 0, 0, 0, 1 )
+
+[node name="NetworkOverviewScreen2D" type="Node2D"]
+script = ExtResource( 3 )
+
+[node name="Panel" type="Panel" parent="."]
+margin_left = -50000.0
+margin_top = -50000.0
+margin_right = 50000.0
+margin_bottom = 50000.0
+custom_styles/panel = SubResource( 1 )
+script = ExtResource( 2 )
+
+[node name="Camera2D" type="Camera2D" parent="Panel"]
+position = Vector2( 50516, 50306 )
+current = true
+
+[node name="NetworkGroup" parent="." instance=ExtResource( 1 )]
+margin_left = 40.0
+margin_top = 40.0
+margin_right = 314.0
+margin_bottom = 152.0
+
+[node name="NetworkGroup2" parent="." instance=ExtResource( 1 )]
+margin_left = 383.0
+margin_top = 126.0
+margin_right = 657.0
+margin_bottom = 238.0
+
+[connection signal="pointer_entered" from="." to="Panel" method="_on_pointer_entered"]
+[connection signal="pointer_exited" from="." to="Panel" method="_on_pointer_exited"]

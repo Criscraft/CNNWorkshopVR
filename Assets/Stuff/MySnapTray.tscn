@@ -18,7 +18,10 @@ mesh = SubResource( 1 )
 
 [node name="Snap_Zone" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0 )
-grab_distance = 0.15
+grab_distance = 0.1
+
+[node name="CollisionShape" parent="Snap_Zone" index="0"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0517953, 0 )
 
 [node name="XRTHighlightRing" parent="Snap_Zone" instance=ExtResource( 1 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0 )

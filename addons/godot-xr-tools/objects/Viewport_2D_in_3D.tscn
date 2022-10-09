@@ -13,6 +13,8 @@ size = Vector2( 3, 2 )
 resource_local_to_scene = true
 flags_transparent = true
 flags_unshaded = true
+flags_do_not_receive_shadows = true
+flags_disable_ambient_light = true
 params_cull_mode = 2
 albedo_texture = SubResource( 5 )
 
@@ -26,10 +28,11 @@ collision_layer = 1023
 
 [node name="Screen" type="MeshInstance" parent="."]
 mesh = SubResource( 1 )
+skeleton = NodePath("")
 material/0 = SubResource( 3 )
 
 [node name="StaticBody" type="StaticBody" parent="."]
-collision_layer = 1023
+collision_layer = 8
 collision_mask = 0
 script = ExtResource( 2 )
 viewport_size = Vector2( 300, 200 )
