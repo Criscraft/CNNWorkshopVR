@@ -114,6 +114,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Assets/Stuff/My_Snap_Zone.gd"
 }, {
+"base": "Resource",
+"class": "NetworkGroupResource",
+"language": "GDScript",
+"path": "res://Assets/DL/NetworkGroupResource.gd"
+}, {
 "base": "Spatial",
 "class": "Object_climbable",
 "language": "GDScript",
@@ -226,6 +231,7 @@ _global_script_class_icons={
 "GroundPhysicsSettings": "",
 "MovementProvider": "",
 "MyXRTSnapZone": "",
+"NetworkGroupResource": "",
 "Object_climbable": "",
 "PlayerBody": "",
 "Scene2DIn3D": "",
@@ -251,6 +257,10 @@ _global_script_class_icons={
 config/name="CNNWorkshopVR"
 run/main_scene="res://Scenes/Staging.tscn"
 config/icon="res://icon.png"
+
+[autoload]
+
+THREADPOOL="*res://Assets/Stuff/MyThreadPoolManager.gd"
 
 [editor]
 
@@ -294,6 +304,14 @@ Trigger={
 3d_physics/layer_2="Player"
 3d_physics/layer_3="Grabbing"
 3d_physics/layer_4="Pointing"
+
+[network]
+
+limits/packet_peer_stream/max_buffer_po2=30
+limits/websocket_client/max_in_buffer_kb=1048576
+limits/websocket_client/max_out_buffer_kb=1048576
+limits/websocket_server/max_in_buffer_kb=1048576
+limits/websocket_server/max_out_buffer_kb=1048576
 
 [physics]
 

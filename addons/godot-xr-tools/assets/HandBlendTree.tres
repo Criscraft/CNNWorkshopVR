@@ -18,7 +18,7 @@ filter_enabled = true
 filters = [ "Armature_Left/Skeleton:index_distal", "Armature_Left/Skeleton:index_middle", "Armature_Left/Skeleton:index_proximal" ]
 
 [resource]
-graph_offset = Vector2( 232.37, 34.5087 )
+graph_offset = Vector2( -46.75, -32.4907 )
 nodes/Default/node = SubResource( 3 )
 nodes/Default/position = Vector2( 220, 60 )
 nodes/Fist/node = SubResource( 1 )

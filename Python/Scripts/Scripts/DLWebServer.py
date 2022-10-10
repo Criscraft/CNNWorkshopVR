@@ -39,6 +39,8 @@ async def handler(websocket):
             response = request_dataset_images(event)
         elif event["resource"] == "request_forward_pass":
             response = request_forward_pass(event)
+        elif event["resource"] == "request_architecture":
+            response = request_architecture(event)
         
         if response:
             await websocket.send(response)
@@ -108,8 +110,16 @@ def request_forward_pass(event):
     print("send: " + "request_forward_pass")
     return response
 
+
+def request_architecture(event):
+    architecture_dict = network.get_architecture()
+    response = {"resource" : "request_architecture", "architecture" : architecture_dict}
+    response = json.dumps(response, indent=1, ensure_ascii=False)
+    print("send: " + "request_architecture")
+    return response
+
 async def main():
-    async with websockets.serve(handler, "", 8000):
+    async with websockets.serve(handler, "", 8000, max_size=2**30, read_limit=2**30, write_limit=2**30):
         await asyncio.Future()  # run forever
 
 

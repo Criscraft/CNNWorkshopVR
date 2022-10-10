@@ -5,30 +5,30 @@ from collections import defaultdict
 from enum import Enum
 
 class TrackerModuleGroupType(Enum):
-    INPUT = 1
-    OUTPUT = 2
-    GROUPCONV = 3
-    HFModule = 5
-    REWIRE = 6
-    COPY = 7 # induces a split in the computational graph, where channels are copied
-    ADD = 8
-    POOL = 9
-    SUM = 10
-    SIMPLEGROUP = 11
+    INPUT = "INPUT"
+    OUTPUT = "OUTPUT"
+    GROUPCONV = "GROUPCONV"
+    HFModule = "HFModule"
+    REWIRE = "REWIRE"
+    COPY = "COPY" # induces a split in the computational graph, where channels are copied
+    ADD = "ADD"
+    POOL = "POOL"
+    SUM = "SUM"
+    SIMPLEGROUP = "SIMPLEGROUP"
 
 class TrackerModuleType(Enum):
-    INPUT = 1 # allows muting
-    OUTPUT = 2
-    GROUPCONV = 3 # connections inside group only, editable weights
-    SIMPLENODE = 4 # show activations
-    REWIRE = 5 # input - output rewiring
-    COPY = 6
-    ADD = 7 # merge two branches
-    POOL = 8
-    RELU = 9
-    CONV = 10
-    HFCONV = 11 # shows kernel and output, when f>1 one input is linked to several kernels
-    NORM = 12
+    INPUT = "INPUT" # allows muting
+    OUTPUT = "OUTPUT"
+    GROUPCONV = "GROUPCONV" # connections inside group only, editable weights
+    SIMPLENODE = "SIMPLENODE" # show activations
+    REWIRE = "REWIRE" # input - output rewiring
+    COPY = "COPY"
+    ADD = "ADD" # merge two branches
+    POOL = "POOL"
+    RELU = "RELU"
+    CONV = "CONV"
+    HFCONV = "HFCONV" # shows kernel and output, when f>1 one input is linked to several kernels
+    NORM = "NORM"
 
 
 class TrackerModuleGroup(object):

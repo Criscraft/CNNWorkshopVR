@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from enum import Enum
 import cv2
+import copy
 import Scripts.utils as utils
 from Scripts.FeatureVisualizerRobust import FeatureVisualizer
 from Scripts.ImageResource import ImageResource
@@ -100,11 +101,11 @@ class DLNetwork(object):
         if not self.module_dict:
             raise ValueError("You have to prepare the input first")
         # get group information
-        group_dict = self.model.tracker_module_groups_info
+        group_dict = copy.deepcopy(self.model.tracker_module_groups_info)
         for group in group_dict.values():
             group['tracker_module_group_type'] = group['tracker_module_group_type'].name
         # get tracker_module information
-        out_module_dict = {module_id : {key : module_info[key] for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in self.module_dict.items()}
+        out_module_dict = {module_id : {key : module_info[key] for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in copy.deepcopy(self.module_dict).items()}
         
         for module_id, module_info in out_module_dict.items():
             # convert enum to string

@@ -6,11 +6,13 @@ export var websocket_url = "ws://localhost:8000/"
 # Our WebSocketClient instance
 var _client = WebSocketClient.new()
 
-onready var my_thread_pool_manager = $MyThreadPoolManager
-
-signal receive_dataset_images(image_resources)
-signal receive_classification_results(results)
 signal on_connected()
+
+"""
+#################################
+Establish connection.
+#################################
+"""
 
 func _ready():
 	# Connect base signals to get notified of connection open, close, and errors.
@@ -27,14 +29,14 @@ func _ready():
 	if err != OK:
 		print("Unable to connect")
 		set_process(false)
-		
-	$MyThreadPoolManager.pool.connect("task_completed", self, "_on_task_completed")
+
 
 func _closed(was_clean = false):
 	# was_clean will tell you if the disconnection was correctly notified
 	# by the remote peer before closing the socket.
 	print("Closed, clean: ", was_clean)
 	set_process(false)
+
 
 func _connected(proto = ""):
 	# This is called on connection, "proto" will be the selected WebSocket
@@ -44,8 +46,20 @@ func _connected(proto = ""):
 	# and not put_packet directly when not using the MultiplayerAPI.
 	# _client.get_peer(1).put_packet("Test packet".to_utf8())
 	emit_signal("on_connected")
+	request_architecture()
+	
+	
+func _process(_delta):
+	# Call this in _process or _physics_process. Data transfer, and signals
+	# emission will only happen when calling this function.
+	_client.poll()
+	
 
-# Receiving data
+"""
+#################################
+Receive data
+#################################
+"""
 
 func _on_data():
 	# Print the received packet, you MUST always use get_peer(1).get_packet
@@ -58,66 +72,45 @@ func _on_data():
 		
 		"request_dataset_images":
 			print("DLManager reveived dataset images.")
-			my_thread_pool_manager.submit_task(self, "preprocess_dataset_images", data["image_resources"], "preprocess_dataset_images")
+			get_tree().call_group("on_receive_dataset_images", "receive_dataset_images", data["image_resources"])
 			
 		"request_forward_pass":
 			print("DLManager reveived classification results.")
-			emit_signal("receive_classification_results", data["results"])
+			get_tree().call_group("on_receive_classification_results", "receive_classification_results", data["results"])
+			
+		"request_architecture":
+			print("DLManager reveived architecture.")
+			get_tree().call_group("on_architecture_change", "receive_architecture", data["architecture"])
 			
 		_:
 			print("No match in DLManager.")
 
 
-# Tasks after data was received.
-
-func preprocess_dataset_images(image_resource_data):
-	var image_resources = []
-	for item in image_resource_data:
-		image_resources.append(dict_to_image_resource(item))
-	return image_resources
-
-# What appens after the DL thread is finished with a task?
-
-func _on_task_completed(task):
-	match task.tag:
-		
-		"preprocess_dataset_images":
-			call_deferred("emit_signal", "receive_dataset_images", task.result)
-
-# Requests for sending
+"""
+#################################
+Request data
+#################################
+"""
 
 func _on_ImageShelf_request_dataset_images(n):
 	var message = {"resource" : "request_dataset_images", "n" : n}
-	message = JSON.print(message)
-	print(message)
-	_client.get_peer(1).put_packet(message.to_utf8())
-
-
-func _on_NetworkStation_request_forward_pass(image_resource):
-	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
-	message = JSON.print(message)
-	print(message)
-	_client.get_peer(1).put_packet(message.to_utf8())
+	send_request(message)
 	
-# Helpers
 
-func dict_to_image_resource(dick : Dictionary):
-	var image_resource = DLImageResource.new()
-	image_resource.mode = DLImageResource.MODE[dick["mode"]]
-	#var pool_byte_array = Marshalls.base64_to_raw(dick["data"])
-	var image = Image.new()
-	image.load_png_from_buffer(Marshalls.base64_to_raw(dick["data"]))
-	image_resource.image = image
-	image_resource.id = dick["id"]
-	image_resource.label = dick["label"]
-	return image_resource
+func request_forward_pass(image_resource):
+	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
+	send_request(message)
+	
 
-
-func _process(_delta):
-	# Call this in _process or _physics_process. Data transfer, and signals
-	# emission will only happen when calling this function.
-	_client.poll()
-
+func request_architecture():
+	var message = {"resource" : "request_architecture"}
+	send_request(message)
+	
+	
+func send_request(request_dictionary : Dictionary):
+	var message = JSON.print(request_dictionary)
+	print(message)
+	_client.get_peer(1).put_packet(message.to_utf8())
 
 
 

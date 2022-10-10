@@ -21,7 +21,7 @@ size = Vector3( 0.04, 0.15, 1 )
 [sub_resource type="BoxShape" id=6]
 extents = Vector3( 0.02, 0.075, 0.5 )
 
-[node name="ImageShelf" type="StaticBody"]
+[node name="ImageShelf" type="StaticBody" groups=["on_receive_dataset_images"]]
 collision_mask = 0
 script = ExtResource( 2 )
 

@@ -22,7 +22,40 @@ func _on_DLManager_on_connected():
 	emit_signal("request_dataset_images", $SpawnPositionNodes.get_child_count())
 	
 	
-func _on_DLManager_receive_dataset_images(image_resources):
+func dict_to_image_resource(dick : Dictionary):
+	var image_resource = DLImageResource.new()
+	image_resource.mode = DLImageResource.MODE[dick["mode"]]
+	#var pool_byte_array = Marshalls.base64_to_raw(dick["data"])
+	var image = Image.new()
+	image.load_png_from_buffer(Marshalls.base64_to_raw(dick["data"]))
+	image_resource.image = image
+	image_resource.id = dick["id"]
+	image_resource.label = dick["label"]
+	return image_resource
+	
+	
+func preprocess_dataset_images(image_resource_data):
+	var image_resources = []
+	for item in image_resource_data:
+		image_resources.append(dict_to_image_resource(item))
+	return image_resources
+	
+
+# Called by DLManager via Group
+func receive_dataset_images(image_resource_data):
+	add_to_group("on_pool_task_completed")
+	THREADPOOL.submit_task(self, "preprocess_dataset_images", image_resource_data, "preprocess_dataset_images")
+
+
+# Called by THREADPOOL via Group
+func on_pool_task_completed(task):
+	if task.tag == "preprocess_dataset_images":
+		# Remove from THREADPOOL group. We assume that we use THREADPOOL sparsely and that we have no two running tasks at the same time.
+		remove_from_group("on_pool_task_completed")
+		call_deferred("on_finished_preprocess_dataset_images", task.result)
+
+
+func on_finished_preprocess_dataset_images(image_resources):
 	var snap_tray
 	var instance
 	var i = 0

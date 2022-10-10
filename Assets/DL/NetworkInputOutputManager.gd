@@ -29,7 +29,8 @@ func set_current_image_resource(new_value):
 	emit_signal("request_forward_pass", current_image_resource)
 
 
-func _on_DLManager_receive_classification_results(results):
+# Called by DLManager via group.
+func receive_classification_results(results):
 	var class_names = results["class_names"]
 	var confidence_values = results["confidence_values"]
 	for i in range(class_names.size()):

@@ -12,13 +12,16 @@ var default_priority: int = 100
 # initialization phase
 func _ready():
 	__start_pool()
+	pool.connect("task_completed", self, "on_task_completed")
+
+func on_task_completed(task):
+	get_tree().call_group("on_pool_task_completed", "on_pool_task_completed", task)
 
 func __start_pool():
 	pool.__thread_count = thread_count
 	pool.no_timer_thread = no_timer_thread
 	pool.__pool = pool.__create_pool()
 	
-
 # post initialization phase
 func join(identifier, by: String = "task"):
 	return pool.join(identifier, by)
@@ -59,3 +62,4 @@ func submit_task_as_only_parameter(instance: Object, method: String ,task_tag : 
 
 func submit_task_unparameterized_if_no_parameter(instance: Object, method: String, task_tag : String,parameter = null, time_limit : float = task_time_limit, priority:int = default_priority):
 	return pool.submit_task_unparameterized_if_no_parameter(instance, method, parameter ,task_tag, time_limit, priority)
+

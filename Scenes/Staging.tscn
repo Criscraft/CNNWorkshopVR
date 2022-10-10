@@ -45,9 +45,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.06242, -0.558793 )
 visible = false
 
 [connection signal="request_dataset_images" from="Environment/ImageShelf" to="DLManager" method="_on_ImageShelf_request_dataset_images"]
-[connection signal="request_forward_pass" from="Environment/NetworkStation" to="DLManager" method="_on_NetworkStation_request_forward_pass"]
+[connection signal="request_forward_pass" from="Environment/NetworkStation" to="DLManager" method="request_forward_pass"]
 [connection signal="on_connected" from="DLManager" to="Environment/ImageShelf" method="_on_DLManager_on_connected"]
-[connection signal="receive_classification_results" from="DLManager" to="Environment/NetworkStation" method="_on_DLManager_receive_classification_results"]
-[connection signal="receive_dataset_images" from="DLManager" to="Environment/ImageShelf" method="_on_DLManager_receive_dataset_images"]
 
 [editable path="DLManager"]
