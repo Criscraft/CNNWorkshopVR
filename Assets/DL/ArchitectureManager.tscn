@@ -2,5 +2,5 @@
 
 [ext_resource path="res://Assets/DL/ArchitectureManager.gd" type="Script" id=1]
 
-[node name="ArchitectureManager" type="Node2D" groups=["on_architecture_change"]]
+[node name="ArchitectureManager" type="Node2D" groups=["on_receive_architecture"]]
 script = ExtResource( 1 )

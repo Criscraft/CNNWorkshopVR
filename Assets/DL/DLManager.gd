@@ -80,7 +80,7 @@ func _on_data():
 			
 		"request_architecture":
 			print("DLManager reveived architecture.")
-			get_tree().call_group("on_architecture_change", "receive_architecture", data["architecture"])
+			get_tree().call_group("on_receive_architecture", "receive_architecture", data["architecture"])
 			
 		_:
 			print("No match in DLManager.")
