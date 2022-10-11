@@ -19,7 +19,9 @@ func receive_architecture(architecture_dict):
 		network_group_resource.label = value["label"]
 		# Create GroupNode
 		group_node_instance = network_group_scene.instance()
-		add_child(group_node_instance)
+		$CustomGraphEdit.add_child(group_node_instance)
 		group_node_instance.network_group_resource = network_group_resource
+		
+	$CustomGraphEdit.arrange_nodes()
 		
 		

@@ -389,9 +389,13 @@ class DoubleHandcraftedFilterModule(nn.Module):
             shuffle_conv_groups=shuffle_conv_groups,
             )
 
+        # Skip
+        TRACKERMODULEGROUPCOUNTER += 1
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[summand_index], label="Skip"))
+
         # Sum
         TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[TRACKERMODULEGROUPCOUNTER - 1, summand_index], label="Sum"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[TRACKERMODULEGROUPCOUNTER - 2, summand_index], label="Sum"))
         TRACKERMODULECOUNTER += 1
         self.tracker_sum_summand1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Summand 1")
         TRACKERMODULECOUNTER += 1

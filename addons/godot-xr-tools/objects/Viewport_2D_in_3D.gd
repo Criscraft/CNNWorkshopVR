@@ -87,11 +87,9 @@ func _ready():
 	set_process_input(true)
 
 func _on_pointer_entered():
-	print("entered")
 	emit_signal("pointer_entered")
 	
 func _on_pointer_exited():
-	print("exitet")
 	emit_signal("pointer_exited")
 	
 	

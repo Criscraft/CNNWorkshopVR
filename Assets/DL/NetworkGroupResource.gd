@@ -5,8 +5,9 @@ enum TYPE {INPUT, OUTPUT, GROUPCONV, HFModule, REWIRE, COPY, ADD, POOL, SUM, SIM
 
 export var id : int = -1
 export var tracker_module_group_type : int = -1
-export var precursors : Array
+export var precursors : Array = []
 export var label : String = ""
+	
 
 func get_dict():
 	var out = {
