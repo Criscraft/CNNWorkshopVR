@@ -3,6 +3,7 @@ extends Node2D
 export var network_group_scene : PackedScene
 
 # Called by DLManager via group.
+# The method could be run in a separate thread. However, it might not be necessary because usually it is called once at startup.
 func receive_architecture(architecture_dict):
 	var group_dict = architecture_dict["group_dict"]
 	var value
@@ -27,6 +28,5 @@ func receive_architecture(architecture_dict):
 		$CustomGraphEdit.add_child(group_node_instance)
 		group_node_instance.network_group_resource = network_group_resource
 		
-	$CustomGraphEdit.arrange_nodes()
-		
-		
+	$CustomGraphEdit.call_deferred("arrange_nodes")
+	#$CenterOfGraph.position = 

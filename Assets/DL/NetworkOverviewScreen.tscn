@@ -58,7 +58,6 @@ mesh = SubResource( 4 )
 material/0 = SubResource( 5 )
 
 [node name="StaticBody" parent="Viewport2Din3D" index="1"]
-collision_layer = 1023
 screen_size = Vector2( 1.28, 0.72 )
 viewport_size = Vector2( 1280, 720 )
 

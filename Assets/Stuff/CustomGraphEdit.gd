@@ -124,7 +124,9 @@ func draw_edges():
 	var precursor_node
 	var curve
 	var target_socket
+	var target_position
 	var precursor_right_socket
+	var precursor_right_socket_position
 	var new_drawn_path_szene
 	var in_curve
 	var epsilon = y_margin * 0.5
@@ -134,19 +136,23 @@ func draw_edges():
 			precursor_node = id_to_child_dict[precursor_node_id]
 			# if the precursor node has smaller y, we will use the top socket
 			if precursor_node.rect_position.y < node.rect_position.y - epsilon:
-				target_socket = node.get_node("TopSocket")
+				target_socket = node.get_node("GridContainer/Top/Socket")
+				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(0, -y_margin * 0.5)
 			elif precursor_node.rect_position.y > node.rect_position.y + epsilon:
-				target_socket = node.get_node("BottomSocket")
+				target_socket = node.get_node("GridContainer/Bottom/Socket")
+				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(0, y_margin * 0.5)
 			else:
-				target_socket = node.get_node("LeftSocket")
+				target_socket = node.get_node("GridContainer/Left/Socket")
+				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(-x_margin, 0)
 			
-			precursor_right_socket = id_to_child_dict[precursor_node_id].get_node("RightSocket")
+			precursor_right_socket = id_to_child_dict[precursor_node_id].get_node("GridContainer/Right/Socket")
+			precursor_right_socket_position = precursor_right_socket.get_global_rect().position
 			curve = Curve2D.new()
-			curve.add_point(Vector2(precursor_right_socket.get_global_rect().position), Vector2(0, 0), Vector2(x_margin, 0))
-			curve.add_point(Vector2(target_socket.get_global_rect().position), in_curve, Vector2(0, 0))
+			curve.add_point(Vector2(precursor_right_socket_position), Vector2(0, 0), Vector2(x_margin, 0))
+			curve.add_point(Vector2(target_position), in_curve, Vector2(0, 0))
 			
 			new_drawn_path_szene = drawn_path_szene.instance()
 			add_child(new_drawn_path_szene)

@@ -1,30 +1,54 @@
 [gd_scene load_steps=6 format=2]
 
-[ext_resource path="res://Assets/DL/NetworkGroup.tscn" type="PackedScene" id=1]
-[ext_resource path="res://Assets/DL/CameraDragFunction.gd" type="Script" id=2]
+[ext_resource path="res://Assets/DL/NetworkOverview.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Assets/Stuff/Scene2DIn3D.gd" type="Script" id=3]
-[ext_resource path="res://Assets/DL/ArchitectureManager.tscn" type="PackedScene" id=5]
-
-[sub_resource type="StyleBoxFlat" id=1]
-bg_color = Color( 0, 0, 0, 1 )
+[ext_resource path="res://Assets/Stuff/MinimapQuickscroll.gd" type="Script" id=4]
+[ext_resource path="res://Assets/Stuff/SplitScreenInputHandler.gd" type="Script" id=6]
+[ext_resource path="res://Assets/Stuff/MinimapViewportManagement.gd" type="Script" id=7]
 
 [node name="NetworkOverviewScreen2D" type="Node2D"]
 script = ExtResource( 3 )
 
-[node name="Panel" type="Panel" parent="."]
-margin_left = -50000.0
-margin_top = -50000.0
-margin_right = 50000.0
-margin_bottom = 50000.0
-custom_styles/panel = SubResource( 1 )
-script = ExtResource( 2 )
+[node name="Viewports" type="Node2D" parent="."]
+script = ExtResource( 7 )
+viewport_minimap_path = NodePath("VBoxContainer/ViewportContainerMinimap/ViewportMinimap")
+camera_minimap_path = NodePath("VBoxContainer/ViewportContainerWorld/MainViewport/NetworkOverview/CameraMinimap")
+viewport_main_path = NodePath("VBoxContainer/ViewportContainerWorld/MainViewport")
 
-[node name="Camera2D" type="Camera2D" parent="Panel"]
-position = Vector2( 50477, 50048 )
-current = true
+[node name="VBoxContainer" type="VBoxContainer" parent="Viewports"]
+script = ExtResource( 6 )
+view_port_main_path = NodePath("ViewportContainerWorld/MainViewport")
+view_port_minimap_path = NodePath("ViewportContainerMinimap/ViewportMinimap")
 
-[node name="ArchitectureManager" parent="." instance=ExtResource( 5 )]
-network_group_scene = ExtResource( 1 )
+[node name="ViewportContainerWorld" type="ViewportContainer" parent="Viewports/VBoxContainer"]
+margin_right = 1280.0
+margin_bottom = 520.0
+mouse_filter = 1
 
-[connection signal="pointer_entered" from="." to="Panel" method="_on_pointer_entered"]
-[connection signal="pointer_exited" from="." to="Panel" method="_on_pointer_exited"]
+[node name="MainViewport" type="Viewport" parent="Viewports/VBoxContainer/ViewportContainerWorld"]
+size = Vector2( 1280, 520 )
+handle_input_locally = false
+hdr = false
+usage = 0
+render_target_update_mode = 3
+
+[node name="NetworkOverview" parent="Viewports/VBoxContainer/ViewportContainerWorld/MainViewport" instance=ExtResource( 1 )]
+
+[node name="ViewportContainerMinimap" type="ViewportContainer" parent="Viewports/VBoxContainer"]
+margin_top = 524.0
+margin_right = 1280.0
+margin_bottom = 724.0
+mouse_filter = 1
+
+[node name="ViewportMinimap" type="Viewport" parent="Viewports/VBoxContainer/ViewportContainerMinimap"]
+size = Vector2( 1280, 200 )
+handle_input_locally = false
+hdr = false
+usage = 0
+render_target_update_mode = 3
+
+[node name="MinimapQuickscroll" type="ReferenceRect" parent="Viewports/VBoxContainer/ViewportContainerMinimap/ViewportMinimap"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+script = ExtResource( 4 )

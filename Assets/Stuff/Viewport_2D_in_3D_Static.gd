@@ -21,6 +21,9 @@ func set_viewport_size(new_size: Vector2):
 	if is_ready:
 		$Viewport.size = new_size
 		var material : SpatialMaterial = $Screen.get_surface_material(0)
+		# When the viewport is just created, it will have no valid texture just yet.
+		# Wait a frame.
+		yield(VisualServer, "frame_post_draw")
 		material.albedo_texture = $Viewport.get_texture()
 
 
