@@ -15,7 +15,7 @@ func drop_object() -> void:
 	
 	if copies_on_pick_up:
 		# Make a deep copy of the object.
-		var picked_up_object_new = picked_up_object.copy_pickable_to(picked_up_object.get_parent())
+		var _picked_up_object_new = picked_up_object.copy_pickable_to(picked_up_object.get_parent())
 		picked_up_object = null
 	else:
 		picked_up_object = null

@@ -8,14 +8,19 @@ func receive_architecture(architecture_dict):
 	var value
 	var network_group_resource
 	var group_node_instance
+	var precursors
 	
 	for id in group_dict:
 		# Create NetworkGroupResource
 		value = group_dict[id]
 		network_group_resource = NetworkGroupResource.new()
-		network_group_resource.id = id
+		network_group_resource.id = int(id)
 		network_group_resource.tracker_module_group_type = NetworkGroupResource.TYPE[value["tracker_module_group_type"]]
-		network_group_resource.precursors = value["precursors"]
+		# For some reason the json to dict conversion made precursors a float array. Correct that!
+		precursors = []
+		for v in value["precursors"]:
+			precursors.append(int(v))
+		network_group_resource.precursors = precursors
 		network_group_resource.label = value["label"]
 		# Create GroupNode
 		group_node_instance = network_group_scene.instance()

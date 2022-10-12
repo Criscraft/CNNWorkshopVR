@@ -395,7 +395,7 @@ class DoubleHandcraftedFilterModule(nn.Module):
 
         # Sum
         TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[TRACKERMODULEGROUPCOUNTER - 2, summand_index], label="Sum"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[TRACKERMODULEGROUPCOUNTER - 2, TRACKERMODULEGROUPCOUNTER - 1], label="Sum"))
         TRACKERMODULECOUNTER += 1
         self.tracker_sum_summand1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Summand 1")
         TRACKERMODULECOUNTER += 1

@@ -18,22 +18,46 @@ script = ExtResource( 2 )
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 margin_right = 234.0
-margin_bottom = 111.0
+margin_bottom = 91.0
 mouse_filter = 2
-custom_constants/margin_right = 20
-custom_constants/margin_top = 20
-custom_constants/margin_left = 20
-custom_constants/margin_bottom = 20
+custom_constants/margin_right = 10
+custom_constants/margin_top = 10
+custom_constants/margin_left = 10
+custom_constants/margin_bottom = 10
 
 [node name="Titel" type="Label" parent="MarginContainer"]
-margin_left = 20.0
-margin_top = 20.0
-margin_right = 214.0
-margin_bottom = 91.0
-rect_min_size = Vector2( 150, 50 )
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 224.0
+margin_bottom = 81.0
+rect_min_size = Vector2( 200, 50 )
 size_flags_vertical = 1
 theme = ExtResource( 1 )
 text = "Network Group"
 align = 1
 valign = 1
 autowrap = true
+
+[node name="LeftSocket" type="Control" parent="."]
+anchor_left = 0.05
+anchor_top = 0.5
+anchor_right = 0.05
+anchor_bottom = 0.5
+
+[node name="RightSocket" type="Control" parent="."]
+anchor_left = 0.95
+anchor_top = 0.5
+anchor_right = 0.95
+anchor_bottom = 0.5
+
+[node name="TopSocket" type="Control" parent="."]
+anchor_left = 0.5
+anchor_top = 0.05
+anchor_right = 0.5
+anchor_bottom = 0.05
+
+[node name="BottomSocket" type="Control" parent="."]
+anchor_left = 0.5
+anchor_top = 0.95
+anchor_right = 0.5
+anchor_bottom = 0.95

@@ -89,7 +89,7 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/ThreadPool++/future_thread_pool.gd"
 }, {
-"base": "",
+"base": "EditorVCSInterface",
 "class": "GitAPI",
 "language": "NativeScript",
 "path": "res://addons/godot-git-plugin/git_api.gdns"
@@ -313,6 +313,7 @@ debug_action={
 [network]
 
 limits/packet_peer_stream/max_buffer_po2=30
+limits/debugger_stdout/max_chars_per_second=4096
 limits/websocket_client/max_in_buffer_kb=1048576
 limits/websocket_client/max_out_buffer_kb=1048576
 limits/websocket_server/max_in_buffer_kb=1048576

@@ -1,22 +1,12 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.gd" type="Script" id=1]
 [ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D_body.gd" type="Script" id=2]
+[ext_resource path="res://Assets/Materials/BlankDummyTexture.tres" type="Material" id=3]
 
 [sub_resource type="QuadMesh" id=1]
 resource_local_to_scene = true
 size = Vector2( 3, 2 )
-
-[sub_resource type="ViewportTexture" id=5]
-
-[sub_resource type="SpatialMaterial" id=3]
-resource_local_to_scene = true
-flags_transparent = true
-flags_unshaded = true
-flags_do_not_receive_shadows = true
-flags_disable_ambient_light = true
-params_cull_mode = 2
-albedo_texture = SubResource( 5 )
 
 [sub_resource type="BoxShape" id=4]
 resource_local_to_scene = true
@@ -29,10 +19,10 @@ collision_layer = 1023
 [node name="Screen" type="MeshInstance" parent="."]
 mesh = SubResource( 1 )
 skeleton = NodePath("")
-material/0 = SubResource( 3 )
+material/0 = ExtResource( 3 )
 
 [node name="StaticBody" type="StaticBody" parent="."]
-collision_layer = 8
+collision_layer = 1023
 collision_mask = 0
 script = ExtResource( 2 )
 viewport_size = Vector2( 300, 200 )
