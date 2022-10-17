@@ -64,6 +64,7 @@ func set_scene(new_scene: PackedScene):
 			if scene_node is Scene2DIn3D:
 				connect("pointer_exited", scene_node, "_on_vp_pointer_exited")
 				connect("pointer_entered", scene_node, "_on_vp_pointer_entered")
+		$Viewport.set_process_input(true)
 
 func get_scene():
 	return scene
@@ -93,9 +94,9 @@ func _on_pointer_entered():
 func _on_pointer_exited():
 	emit_signal("pointer_exited")
 	
-	
 func _input(event):
 	# Block mouse input because we want the mouse input to be emulated by the body.
 	if event is InputEventMouseMotion or event is InputEventMouseButton:
 		return
 	$Viewport.input(event)
+	print("sent")

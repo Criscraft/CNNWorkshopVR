@@ -13,4 +13,13 @@ func _ready():
 	viewport_minimap.world_2d = viewport_main.world_2d
 	camera_minimap.custom_viewport = viewport_minimap
 	camera_minimap.current = true
+#	viewport_main.set_process_input(true)
+#	viewport_main.set_process_unhandled_input(true)
+#	viewport_minimap.set_process_input(true)
+#	viewport_minimap.set_process_unhandled_input(true)
 	
+func _input(event):
+	print("event_debug_manager")
+	
+func _unhandled_input(event):
+	print("event_unhandled_debug_manager")

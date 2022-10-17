@@ -4,7 +4,7 @@ export var screen_size = Vector2(3.0, 2.0)
 export var viewport_size = Vector2(100.0, 100.0)
 
 var vp = null
-var mouse_mask = 1
+var mouse_mask = 0
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -37,6 +37,7 @@ func _on_pointer_moved(from, to):
 	
 	if vp:
 		vp.input(event)
+		print("created")
 
 func _on_pointer_pressed(at):
 	var local_at = global_to_viewport(at)
@@ -52,6 +53,7 @@ func _on_pointer_pressed(at):
 	
 	if vp:
 		vp.input(event)
+		print("created")
 
 func _on_pointer_released(at):
 	var local_at = global_to_viewport(at)
@@ -67,4 +69,5 @@ func _on_pointer_released(at):
 	
 	if vp:
 		vp.input(event)
+		print("created")
 

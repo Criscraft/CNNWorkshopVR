@@ -12,6 +12,7 @@ size = Vector2( 1.28, 0.72 )
 
 [sub_resource type="SpatialMaterial" id=5]
 resource_local_to_scene = true
+flags_transparent = true
 flags_unshaded = true
 flags_do_not_receive_shadows = true
 flags_disable_ambient_light = true
@@ -50,14 +51,15 @@ extents = Vector3( 0.64, 0.001, 0.36 )
 transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 1.12111, 0.00406689 )
 screen_size = Vector2( 1.28, 0.72 )
 viewport_size = Vector2( 1280, 720 )
-transparent = false
 scene = ExtResource( 2 )
+collision_layer = 9
 
 [node name="Screen" parent="Viewport2Din3D" index="0"]
 mesh = SubResource( 4 )
 material/0 = SubResource( 5 )
 
 [node name="StaticBody" parent="Viewport2Din3D" index="1"]
+collision_layer = 9
 screen_size = Vector2( 1.28, 0.72 )
 viewport_size = Vector2( 1280, 720 )
 
@@ -66,7 +68,6 @@ shape = SubResource( 6 )
 
 [node name="Viewport" parent="Viewport2Din3D" index="2"]
 size = Vector2( 1280, 720 )
-transparent_bg = false
 
 [node name="StaticBody" type="StaticBody" parent="."]
 
@@ -100,7 +101,7 @@ material/0 = ExtResource( 3 )
 transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 1.12, 0 )
 shape = SubResource( 10 )
 
-[connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Panel" method="_on_pointer_entered"]
-[connection signal="pointer_exited" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Panel" method="_on_pointer_exited"]
+[connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/ViewportRect/MainViewport/NetworkOverview/Camera2D" method="_on_pointer_entered"]
+[connection signal="pointer_exited" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/ViewportRect/MainViewport/NetworkOverview/Camera2D" method="_on_pointer_exited"]
 
 [editable path="Viewport2Din3D"]
