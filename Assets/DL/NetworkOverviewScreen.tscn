@@ -101,7 +101,7 @@ material/0 = ExtResource( 3 )
 transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 1.12, 0 )
 shape = SubResource( 10 )
 
-[connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/ViewportRect/MainViewport/NetworkOverview/Camera2D" method="_on_pointer_entered"]
-[connection signal="pointer_exited" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/ViewportRect/MainViewport/NetworkOverview/Camera2D" method="_on_pointer_exited"]
+[connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_entered"]
+[connection signal="pointer_exited" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_exited"]
 
 [editable path="Viewport2Din3D"]

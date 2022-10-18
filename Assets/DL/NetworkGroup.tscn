@@ -22,8 +22,18 @@ margin_bottom = 109.0
 mouse_filter = 2
 columns = 3
 
+[node name="MarginContainer" type="MarginContainer" parent="GridContainer"]
+margin_right = 10.0
+margin_bottom = 10.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
 [node name="Top" type="MarginContainer" parent="GridContainer"]
-margin_right = 210.0
+margin_left = 14.0
+margin_right = 224.0
 margin_bottom = 10.0
 mouse_filter = 2
 custom_constants/margin_right = 5
@@ -40,17 +50,7 @@ mouse_filter = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="MarginContainer3" type="MarginContainer" parent="GridContainer"]
-margin_left = 214.0
-margin_right = 224.0
-margin_bottom = 10.0
-mouse_filter = 2
-custom_constants/margin_right = 5
-custom_constants/margin_top = 5
-custom_constants/margin_left = 5
-custom_constants/margin_bottom = 5
-
-[node name="Left" type="MarginContainer" parent="GridContainer"]
+[node name="MarginContainer2" type="MarginContainer" parent="GridContainer"]
 margin_left = 228.0
 margin_right = 238.0
 margin_bottom = 10.0
@@ -60,18 +60,29 @@ custom_constants/margin_top = 5
 custom_constants/margin_left = 5
 custom_constants/margin_bottom = 5
 
+[node name="Left" type="MarginContainer" parent="GridContainer"]
+margin_top = 14.0
+margin_right = 10.0
+margin_bottom = 95.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
 [node name="Socket" type="Control" parent="GridContainer/Left"]
 margin_left = 5.0
-margin_top = 5.0
+margin_top = 40.0
 margin_right = 5.0
-margin_bottom = 5.0
+margin_bottom = 40.0
 mouse_filter = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
 [node name="Titel" type="MarginContainer" parent="GridContainer"]
+margin_left = 14.0
 margin_top = 14.0
-margin_right = 210.0
+margin_right = 224.0
 margin_bottom = 95.0
 mouse_filter = 2
 custom_constants/margin_right = 5
@@ -87,15 +98,15 @@ margin_bottom = 76.0
 rect_min_size = Vector2( 200, 50 )
 size_flags_vertical = 1
 theme = ExtResource( 1 )
-text = "Network Group"
+text = "Network group"
 align = 1
 valign = 1
 autowrap = true
 
 [node name="Right" type="MarginContainer" parent="GridContainer"]
-margin_left = 214.0
+margin_left = 228.0
 margin_top = 14.0
-margin_right = 224.0
+margin_right = 238.0
 margin_bottom = 95.0
 mouse_filter = 2
 custom_constants/margin_right = 5
@@ -112,11 +123,10 @@ mouse_filter = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="MarginContainer7" type="MarginContainer" parent="GridContainer"]
-margin_left = 228.0
-margin_top = 14.0
-margin_right = 238.0
-margin_bottom = 95.0
+[node name="MarginContainer3" type="MarginContainer" parent="GridContainer"]
+margin_top = 99.0
+margin_right = 10.0
+margin_bottom = 109.0
 mouse_filter = 2
 custom_constants/margin_right = 5
 custom_constants/margin_top = 5
@@ -124,8 +134,9 @@ custom_constants/margin_left = 5
 custom_constants/margin_bottom = 5
 
 [node name="Bottom" type="MarginContainer" parent="GridContainer"]
+margin_left = 14.0
 margin_top = 99.0
-margin_right = 210.0
+margin_right = 224.0
 margin_bottom = 109.0
 mouse_filter = 2
 custom_constants/margin_right = 5
@@ -142,10 +153,10 @@ mouse_filter = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="MarginContainer9" type="MarginContainer" parent="GridContainer"]
-margin_left = 214.0
+[node name="MarginContainer4" type="MarginContainer" parent="GridContainer"]
+margin_left = 228.0
 margin_top = 99.0
-margin_right = 224.0
+margin_right = 238.0
 margin_bottom = 109.0
 mouse_filter = 2
 custom_constants/margin_right = 5

@@ -3,8 +3,8 @@ extends Node2D
 export var x_margin : int = 50
 export var y_margin : int = 100
 export var drawn_path_szene : PackedScene = preload("res://Assets/Stuff/DrawnPath2D.tscn")
-var id_to_child_dict = {} # Is not updated automatically
-var layering = [] # Is not updated automatically
+var id_to_child_dict = {} # Maps group ids to nodes. Is not updated automatically
+var layering = [] # Contains for each layer a list with group node ids. Is not updated automatically.
 #func _process(delta):
 #	if Input.is_action_just_pressed("debug_action"):
 #		arrange_nodes()
@@ -22,9 +22,8 @@ func arrange_nodes():
 	layering = get_layering(id_to_child_dict.keys(), precursors)
 	layering = cross_minimization(layering)
 	position_nodes()
-	#get_viewport().update_worlds()
-	#call_deferred("draw_edges")
 	draw_edges()
+	update_size()
 	
 
 func get_layering(node_ids, precursors):
@@ -148,7 +147,7 @@ func draw_edges():
 				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(-x_margin, 0)
 			
-			precursor_right_socket = id_to_child_dict[precursor_node_id].get_node("GridContainer/Right/Socket")
+			precursor_right_socket = precursor_node.get_node("GridContainer/Right/Socket")
 			precursor_right_socket_position = precursor_right_socket.get_global_rect().position
 			curve = Curve2D.new()
 			curve.add_point(Vector2(precursor_right_socket_position), Vector2(0, 0), Vector2(x_margin, 0))
@@ -157,6 +156,16 @@ func draw_edges():
 			new_drawn_path_szene = drawn_path_szene.instance()
 			add_child(new_drawn_path_szene)
 			new_drawn_path_szene.set_curve(curve)
+			
+			
+func update_size():
+	var node
+	node = id_to_child_dict[layering[0][0]]
+	var x_min = node.get_rect().position.x
+	node = id_to_child_dict[layering[-1][0]]
+	var x_max = node.get_rect().position.x
+	get_node("../CenterOfGraph").position.x = (x_min + x_max) / 2.0
+	get_node("../CenterOfGraph/CameraMinimap").zoom = Vector2(x_max / 1280.0, x_max / 1280.0)
 	
 	
 class SetOperations:

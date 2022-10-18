@@ -37,7 +37,6 @@ func _on_pointer_moved(from, to):
 	
 	if vp:
 		vp.input(event)
-		print("created")
 
 func _on_pointer_pressed(at):
 	var local_at = global_to_viewport(at)
@@ -53,7 +52,6 @@ func _on_pointer_pressed(at):
 	
 	if vp:
 		vp.input(event)
-		print("created")
 
 func _on_pointer_released(at):
 	var local_at = global_to_viewport(at)
@@ -69,5 +67,4 @@ func _on_pointer_released(at):
 	
 	if vp:
 		vp.input(event)
-		print("created")
 

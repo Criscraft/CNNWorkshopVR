@@ -1,13 +1,13 @@
 [gd_scene load_steps=4 format=2]
 
-[ext_resource path="res://Assets/DL/CameraDragFunction.gd" type="Script" id=1]
+[ext_resource path="res://Assets/Stuff/CameraDragFunction.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ArchitectureManager.tscn" type="PackedScene" id=2]
-[ext_resource path="res://Assets/DL/NetworkGroup.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Assets/Stuff/Set2DPosition.gd" type="Script" id=5]
 
 [node name="NetworkOverview" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
+mouse_filter = 1
 
 [node name="TextureRect" type="ColorRect" parent="."]
 anchor_left = -100.0
@@ -18,17 +18,28 @@ mouse_filter = 2
 color = Color( 0, 0, 0, 1 )
 
 [node name="ArchitectureManager" parent="." instance=ExtResource( 2 )]
-network_group_scene = ExtResource( 4 )
 
-[node name="CameraMinimap" type="Camera2D" parent="."]
-position = Vector2( -50477, -50048 )
-
-[node name="RemoteTransform2D" type="RemoteTransform2D" parent="CameraMinimap"]
-remote_path = NodePath("../../ArchitectureManager/CenterOfGraph")
-update_rotation = false
-update_scale = false
+[node name="CameraDragFunction" type="ReferenceRect" parent="."]
+anchor_left = -100.0
+anchor_top = -100.0
+anchor_right = 100.0
+anchor_bottom = 100.0
+margin_right = 40.0
+margin_bottom = 40.0
+script = ExtResource( 1 )
+camera_path = NodePath("../Camera2D")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2( 512, 300 )
 current = true
-script = ExtResource( 1 )
+script = ExtResource( 5 )
+
+[node name="CameraFrame" type="ReferenceRect" parent="Camera2D"]
+margin_left = -660.0
+margin_top = -380.0
+margin_right = 660.0
+margin_bottom = 380.0
+rect_min_size = Vector2( 1320, 760 )
+mouse_filter = 2
+border_color = Color( 1, 0.560784, 0, 1 )
+border_width = 20.0
+editor_only = false

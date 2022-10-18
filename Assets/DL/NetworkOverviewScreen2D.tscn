@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://Assets/DL/NetworkOverview.tscn" type="PackedScene" id=1]
-[ext_resource path="res://Assets/Debug/PrintOnInputEvent.gd" type="Script" id=2]
+[ext_resource path="res://Assets/Stuff/MinimapQuickscroll.gd" type="Script" id=2]
 [ext_resource path="res://Assets/Stuff/Scene2DIn3D.gd" type="Script" id=3]
 [ext_resource path="res://Assets/Stuff/ForwardInputToChild.gd" type="Script" id=6]
 [ext_resource path="res://Assets/Stuff/MinimapViewportManagement.gd" type="Script" id=7]
@@ -12,11 +12,11 @@ script = ExtResource( 3 )
 [node name="Viewports" type="Node2D" parent="."]
 script = ExtResource( 7 )
 viewport_minimap_path = NodePath("VBoxContainer/ViewportRectMinimap/Viewport")
-camera_minimap_path = NodePath("VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraMinimap")
+camera_minimap_path = NodePath("VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager/CenterOfGraph/CameraMinimap")
 viewport_main_path = NodePath("VBoxContainer/MainViewportContainer/Viewport")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Viewports"]
-mouse_filter = 2
+mouse_filter = 0
 
 [node name="MainViewportContainer" type="ViewportContainer" parent="Viewports/VBoxContainer"]
 margin_right = 1280.0
@@ -26,19 +26,15 @@ script = ExtResource( 6 )
 
 [node name="Viewport" type="Viewport" parent="Viewports/VBoxContainer/MainViewportContainer"]
 size = Vector2( 1280, 520 )
+transparent_bg = true
 handle_input_locally = false
 hdr = false
 usage = 0
 render_target_update_mode = 3
 
 [node name="NetworkOverview" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport" instance=ExtResource( 1 )]
-mouse_filter = 1
 
-[node name="TextureRect" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview" index="0"]
-script = ExtResource( 2 )
-prefix = "TextureRect"
-
-[node name="CameraMinimap" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview" index="2"]
+[node name="CameraMinimap" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager/CenterOfGraph" index="0"]
 current = true
 
 [node name="ViewportRectMinimap" type="ViewportContainer" parent="Viewports/VBoxContainer"]
@@ -50,18 +46,22 @@ script = ExtResource( 6 )
 
 [node name="Viewport" type="Viewport" parent="Viewports/VBoxContainer/ViewportRectMinimap"]
 size = Vector2( 1280, 200 )
+transparent_bg = true
 handle_input_locally = false
 hdr = false
 usage = 0
 render_target_update_mode = 3
 
 [node name="MinimapQuickscroll" type="ReferenceRect" parent="Viewports/VBoxContainer/ViewportRectMinimap/Viewport"]
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_left = -100.0
+anchor_top = -100.0
+anchor_right = 100.0
+anchor_bottom = 100.0
 script = ExtResource( 2 )
-prefix = "minimap"
 
-[connection signal="pointer_entered" from="." to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" method="_on_pointer_entered"]
-[connection signal="pointer_exited" from="." to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" method="_on_pointer_exited"]
+[connection signal="pointer_entered" from="." to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_entered"]
+[connection signal="pointer_exited" from="." to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_exited"]
+[connection signal="minimap_quickscroll" from="Viewports/VBoxContainer/ViewportRectMinimap/Viewport/MinimapQuickscroll" to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" method="on_position_signal"]
 
 [editable path="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview"]
+[editable path="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager"]

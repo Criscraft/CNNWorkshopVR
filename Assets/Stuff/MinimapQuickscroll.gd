@@ -1,10 +1,10 @@
 extends Control
 
-func _input(event):
-	print("event_mini")
+signal minimap_quickscroll(position)
 	
 func _gui_input(event):
-	print("gui_event_mini")
-	
-func _unhandled_input(event):
-	print("gui_event_unhandled_mini")
+	if event is InputEventMouseButton and event.is_pressed():
+		# The event position seems to be recalculated to match the local coordinate system. 
+		# We want to set the viewport camera using global coordinates. 
+		# So we correct this by adding the position.
+		emit_signal("minimap_quickscroll", event.position + get_rect().position)

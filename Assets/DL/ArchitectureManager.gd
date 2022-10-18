@@ -27,6 +27,7 @@ func receive_architecture(architecture_dict):
 		group_node_instance = network_group_scene.instance()
 		$CustomGraphEdit.add_child(group_node_instance)
 		group_node_instance.network_group_resource = network_group_resource
-		
+	
+	# Wait one frame to give the boxes time to resize.
+	yield(get_tree(), "idle_frame")
 	$CustomGraphEdit.call_deferred("arrange_nodes")
-	#$CenterOfGraph.position = 
