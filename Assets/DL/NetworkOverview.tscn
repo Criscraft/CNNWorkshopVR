@@ -1,8 +1,13 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://Assets/Stuff/CameraDragFunction.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ArchitectureManager.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/Materials/circle.png" type="Texture" id=3]
+[ext_resource path="res://Assets/DL/NetworkGroupSelector.gd" type="Script" id=4]
 [ext_resource path="res://Assets/Stuff/Set2DPosition.gd" type="Script" id=5]
+
+[sub_resource type="CircleShape2D" id=1]
+radius = 100.0
 
 [node name="NetworkOverview" type="Control"]
 anchor_right = 1.0
@@ -17,20 +22,7 @@ anchor_bottom = 100.0
 mouse_filter = 2
 color = Color( 0, 0, 0, 1 )
 
-[node name="ArchitectureManager" parent="." instance=ExtResource( 2 )]
-
-[node name="CameraDragFunction" type="ReferenceRect" parent="."]
-anchor_left = -100.0
-anchor_top = -100.0
-anchor_right = 100.0
-anchor_bottom = 100.0
-margin_right = 40.0
-margin_bottom = 40.0
-script = ExtResource( 1 )
-camera_path = NodePath("../Camera2D")
-
 [node name="Camera2D" type="Camera2D" parent="."]
-current = true
 script = ExtResource( 5 )
 
 [node name="CameraFrame" type="ReferenceRect" parent="Camera2D"]
@@ -43,3 +35,41 @@ mouse_filter = 2
 border_color = Color( 1, 0.560784, 0, 1 )
 border_width = 20.0
 editor_only = false
+
+[node name="Selector" type="Node2D" parent="Camera2D"]
+
+[node name="SelectorImage" type="TextureRect" parent="Camera2D/Selector"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_right = 500.0
+margin_bottom = 500.0
+rect_scale = Vector2( 0.5, 0.5 )
+rect_pivot_offset = Vector2( -250, -250 )
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource( 3 )
+stretch_mode = 4
+
+[node name="Selector" type="Area2D" parent="Camera2D/Selector"]
+script = ExtResource( 4 )
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Camera2D/Selector/Selector"]
+shape = SubResource( 1 )
+
+[node name="CameraDragFunction" type="ReferenceRect" parent="."]
+anchor_left = -100.0
+anchor_top = -100.0
+anchor_right = 100.0
+anchor_bottom = 100.0
+margin_right = 40.0
+margin_bottom = 40.0
+script = ExtResource( 1 )
+camera_path = NodePath("../Camera2D")
+
+[node name="ArchitectureManager" parent="." instance=ExtResource( 2 )]
+
+[connection signal="body_entered" from="Camera2D/Selector/Selector" to="Camera2D/Selector/Selector" method="_on_Selector_body_entered"]
+[connection signal="body_exited" from="Camera2D/Selector/Selector" to="Camera2D/Selector/Selector" method="_on_Selector_body_exited"]

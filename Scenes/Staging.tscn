@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
@@ -7,6 +7,7 @@
 [ext_resource path="res://Assets/DL/NetworkStation.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/TimedGrabableEliminationArea.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/DL/DLManager.tscn" type="PackedScene" id=7]
+[ext_resource path="res://Assets/DL/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -27,6 +28,9 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5 )
 
 [node name="NetworkOverviewScreen" parent="Environment" instance=ExtResource( 3 )]
 transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.572024, 0, 0 )
+
+[node name="NetworkGroupDetailsScreen" parent="Environment" instance=ExtResource( 8 )]
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.827016, 1.51334, -0.0115621 )
 
 [node name="DLManager" parent="." instance=ExtResource( 7 )]
 

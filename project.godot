@@ -305,6 +305,7 @@ debug_action={
 
 [layer_names]
 
+2d_physics/layer_1="GroupnodeSelection"
 3d_physics/layer_1="Static"
 3d_physics/layer_2="Player"
 3d_physics/layer_3="Grabbing"

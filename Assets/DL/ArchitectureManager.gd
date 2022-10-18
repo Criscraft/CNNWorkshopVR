@@ -2,6 +2,8 @@ extends Node2D
 
 export var network_group_scene : PackedScene
 
+onready var graph_edit = get_node("CustomGraphEdit")
+
 # Called by DLManager via group.
 # The method could be run in a separate thread. However, it might not be necessary because usually it is called once at startup.
 func receive_architecture(architecture_dict):
@@ -25,9 +27,9 @@ func receive_architecture(architecture_dict):
 		network_group_resource.label = value["label"]
 		# Create GroupNode
 		group_node_instance = network_group_scene.instance()
-		$CustomGraphEdit.add_child(group_node_instance)
+		graph_edit.add_child(group_node_instance)
 		group_node_instance.network_group_resource = network_group_resource
 	
 	# Wait one frame to give the boxes time to resize.
 	yield(get_tree(), "idle_frame")
-	$CustomGraphEdit.call_deferred("arrange_nodes")
+	graph_edit.call_deferred("arrange_nodes")

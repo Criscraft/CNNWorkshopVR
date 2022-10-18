@@ -14,3 +14,4 @@ script = ExtResource( 3 )
 [node name="CenterOfGraph" type="Node2D" parent="."]
 
 [node name="CameraMinimap" type="Camera2D" parent="CenterOfGraph"]
+current = true
