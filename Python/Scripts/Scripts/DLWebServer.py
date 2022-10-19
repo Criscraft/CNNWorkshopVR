@@ -18,10 +18,12 @@ dataset = None
 noise_generator = None
 
 def prepare_dl_objects(source):
-    global network
-    network = source.get_network()
     global dataset
     dataset = source.get_dataset()
+    global network
+    network = source.get_network()
+    # Set the class names for the network. This is important if class names should be displayed for some channels.
+    network.class_names = dataset.class_names
     global noise_generator
     noise_generator = source.get_noise_generator()
 

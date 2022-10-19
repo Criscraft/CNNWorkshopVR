@@ -20,14 +20,14 @@ class FeatureVisualizationMode(Enum):
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, network_id, corresponding_dataset_id=0, softmax=False):
+    def __init__(self, model, device, classification, input_size, softmax=False, class_names=[], cache_path=os.path.join("cache", "network")):
         super().__init__()
         
         self.device = device
-        self.network_id = network_id
-        self.corresponding_dataset_id = corresponding_dataset_id
         self.classification = classification
         self.softmax = softmax #whether to apply softmax on the classification result
+        self.class_names = class_names
+        self.cache_path = cache_path
         self.model = model.to(self.device)
         for param in self.model.parameters():
             param.requires_grad = False
@@ -41,7 +41,6 @@ class DLNetwork(object):
         self.output_tracker_module_id = ""
         self.input_tracker_module_id = ""
 
-        self.cache_path = f"cache/network{self.network_id}"
         if not os.path.exists(self.cache_path): os.makedirs(self.cache_path)
 
         self.feature_visualization_path = os.path.join(self.cache_path, 'FeatureVisualizations')
@@ -110,6 +109,9 @@ class DLNetwork(object):
         for module_id, module_info in out_module_dict.items():
             # convert enum to string
             module_info['tracker_module_type'] = module_info['tracker_module_type'].name
+            # Add channel labels if necessary
+            if module_info['channel_labels'] == "classes":
+                module_info['channel_labels'] = self.class_names
             # add information to special cases
             if module_info['tracker_module_type'] == "GROUPCONV":
                 module_info['weights'] = self.module_dict[module_id]['tracked_module'].weight.data.cpu().numpy().tolist()

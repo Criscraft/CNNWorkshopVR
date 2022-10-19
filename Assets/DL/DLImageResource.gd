@@ -11,12 +11,12 @@ export var label : String = ""
 export var image : Image = null
 
 func get_dict(get_image=false):
+	# Export only data that can be used to identify the image
 	var out = {
 		"id" : id,
 		"module_id" : module_id,
 		"channel_id" : channel_id,
 		"mode" : MODE.keys()[mode],
-		"label" : label,
 	}
 	if get_image:
 		pass

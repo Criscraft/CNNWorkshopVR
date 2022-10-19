@@ -49,7 +49,7 @@ def get_network():
         #statedict='hfnet_blocks_2_2_2_2_shallow.pt',
     )
         
-    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, 0, softmax=False)
+    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
     for param in model.embedded_model.parameters():
         param.requires_grad = False
     

@@ -1,0 +1,175 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://Assets/ThemesAndFonts/NetworkGroupTheme.tres" type="Theme" id=1]
+[ext_resource path="res://Assets/GraphHandling/MyGraphNode.gd" type="Script" id=2]
+
+[sub_resource type="StyleBoxFlat" id=1]
+bg_color = Color( 0.294118, 0.294118, 0.686275, 1 )
+
+[sub_resource type="RectangleShape2D" id=2]
+extents = Vector2( 1, 1 )
+
+[node name="MyGraphNode" type="PanelContainer"]
+margin_right = 234.0
+margin_bottom = 72.0
+mouse_filter = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme = ExtResource( 1 )
+custom_styles/panel = SubResource( 1 )
+script = ExtResource( 2 )
+highlighted_color = Color( 0, 0.835294, 1, 1 )
+
+[node name="GridContainer" type="GridContainer" parent="."]
+margin_right = 238.0
+margin_bottom = 109.0
+mouse_filter = 2
+columns = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="GridContainer"]
+margin_right = 10.0
+margin_bottom = 10.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Top" type="MarginContainer" parent="GridContainer"]
+margin_left = 14.0
+margin_right = 224.0
+margin_bottom = 10.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Socket" type="Control" parent="GridContainer/Top"]
+margin_left = 105.0
+margin_top = 5.0
+margin_right = 105.0
+margin_bottom = 5.0
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="MarginContainer2" type="MarginContainer" parent="GridContainer"]
+margin_left = 228.0
+margin_right = 238.0
+margin_bottom = 10.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Left" type="MarginContainer" parent="GridContainer"]
+margin_top = 14.0
+margin_right = 10.0
+margin_bottom = 95.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Socket" type="Control" parent="GridContainer/Left"]
+margin_left = 5.0
+margin_top = 40.0
+margin_right = 5.0
+margin_bottom = 40.0
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Titel" type="MarginContainer" parent="GridContainer"]
+margin_left = 14.0
+margin_top = 14.0
+margin_right = 224.0
+margin_bottom = 95.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Titel" type="Label" parent="GridContainer/Titel"]
+margin_left = 5.0
+margin_top = 5.0
+margin_right = 205.0
+margin_bottom = 76.0
+rect_min_size = Vector2( 200, 50 )
+size_flags_vertical = 1
+theme = ExtResource( 1 )
+text = "Network group"
+align = 1
+valign = 1
+autowrap = true
+
+[node name="Right" type="MarginContainer" parent="GridContainer"]
+margin_left = 228.0
+margin_top = 14.0
+margin_right = 238.0
+margin_bottom = 95.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Socket" type="Control" parent="GridContainer/Right"]
+margin_left = 5.0
+margin_top = 40.0
+margin_right = 5.0
+margin_bottom = 40.0
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="MarginContainer3" type="MarginContainer" parent="GridContainer"]
+margin_top = 99.0
+margin_right = 10.0
+margin_bottom = 109.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Bottom" type="MarginContainer" parent="GridContainer"]
+margin_left = 14.0
+margin_top = 99.0
+margin_right = 224.0
+margin_bottom = 109.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="Socket" type="Control" parent="GridContainer/Bottom"]
+margin_left = 105.0
+margin_top = 5.0
+margin_right = 105.0
+margin_bottom = 5.0
+mouse_filter = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="MarginContainer4" type="MarginContainer" parent="GridContainer"]
+margin_left = 228.0
+margin_top = 99.0
+margin_right = 238.0
+margin_bottom = 109.0
+mouse_filter = 2
+custom_constants/margin_right = 5
+custom_constants/margin_top = 5
+custom_constants/margin_left = 5
+custom_constants/margin_bottom = 5
+
+[node name="SelectionBody" type="StaticBody2D" parent="."]
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SelectionBody"]
+shape = SubResource( 2 )

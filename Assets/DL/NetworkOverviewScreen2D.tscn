@@ -6,13 +6,16 @@
 [ext_resource path="res://Assets/Stuff/ForwardInputToChild.gd" type="Script" id=6]
 [ext_resource path="res://Assets/Stuff/MinimapViewportManagement.gd" type="Script" id=7]
 
-[node name="NetworkOverviewScreen2D" type="Node2D"]
+[node name="NetworkOverviewScreen2D" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+rect_min_size = Vector2( 1280, 720 )
 script = ExtResource( 3 )
 
 [node name="Viewports" type="Node2D" parent="."]
 script = ExtResource( 7 )
 viewport_minimap_path = NodePath("VBoxContainer/ViewportRectMinimap/Viewport")
-camera_minimap_path = NodePath("VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager/CenterOfGraph/CameraMinimap")
+camera_minimap_path = NodePath("VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager/CustomGraphEdit/CenterOfGraph/CameraCenterOfGraph")
 viewport_main_path = NodePath("VBoxContainer/MainViewportContainer/Viewport")
 camera_main_path = NodePath("VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D")
 
@@ -66,4 +69,5 @@ script = ExtResource( 2 )
 [connection signal="minimap_quickscroll" from="Viewports/VBoxContainer/ViewportRectMinimap/Viewport/MinimapQuickscroll" to="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" method="on_position_signal"]
 
 [editable path="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview"]
+[editable path="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D/NodeSelector"]
 [editable path="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/ArchitectureManager"]

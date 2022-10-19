@@ -99,4 +99,3 @@ func _input(event):
 	if event is InputEventMouseMotion or event is InputEventMouseButton:
 		return
 	$Viewport.input(event)
-	print("sent")

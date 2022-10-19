@@ -109,6 +109,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/godot-xr-tools/functions/MovementProvider.gd"
 }, {
+"base": "PanelContainer",
+"class": "MyGraphNode",
+"language": "GDScript",
+"path": "res://Assets/GraphHandling/MyGraphNode.gd"
+}, {
 "base": "XRTSnapZone",
 "class": "MyXRTSnapZone",
 "language": "GDScript",
@@ -118,6 +123,11 @@ _global_script_classes=[ {
 "class": "NetworkGroupResource",
 "language": "GDScript",
 "path": "res://Assets/DL/NetworkGroupResource.gd"
+}, {
+"base": "Resource",
+"class": "NetworkModuleResource",
+"language": "GDScript",
+"path": "res://Assets/DL/NetworkModuleResource.gd"
 }, {
 "base": "Spatial",
 "class": "Object_climbable",
@@ -129,7 +139,7 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/godot-xr-tools/assets/PlayerBody.gd"
 }, {
-"base": "Node2D",
+"base": "Node",
 "class": "Scene2DIn3D",
 "language": "GDScript",
 "path": "res://Assets/Stuff/Scene2DIn3D.gd"
@@ -230,8 +240,10 @@ _global_script_class_icons={
 "GroundPhysics": "",
 "GroundPhysicsSettings": "",
 "MovementProvider": "",
+"MyGraphNode": "",
 "MyXRTSnapZone": "",
 "NetworkGroupResource": "",
+"NetworkModuleResource": "",
 "Object_climbable": "",
 "PlayerBody": "",
 "Scene2DIn3D": "",

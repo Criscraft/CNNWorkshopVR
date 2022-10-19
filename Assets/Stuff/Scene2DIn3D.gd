@@ -1,4 +1,4 @@
-extends Node2D
+extends Node
 class_name Scene2DIn3D
 
 signal pointer_entered

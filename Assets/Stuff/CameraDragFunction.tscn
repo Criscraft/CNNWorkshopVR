@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Assets/Stuff/CameraDragFunction.gd" type="Script" id=1]
+
+[node name="CameraDragFunction" type="ReferenceRect"]
+anchor_left = -100.0
+anchor_top = -100.0
+anchor_right = 100.0
+anchor_bottom = 100.0
+margin_right = 40.0
+margin_bottom = 40.0
+script = ExtResource( 1 )
+camera_path = NodePath("../Camera2D")

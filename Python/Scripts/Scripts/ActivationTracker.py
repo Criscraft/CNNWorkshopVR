@@ -43,7 +43,7 @@ class TrackerModuleGroup(object):
 
 class TrackerModule(nn.Identity):
 
-    def __init__(self, id, tracker_module_type, group_id, label="", precursors=[], tracked_module=None, ignore_activation=False, channel_labels=""):
+    def __init__(self, id, tracker_module_type, group_id, label="", precursors=[], tracked_module=None, ignore_activation=False, channel_labels=[]):
         super().__init__()
         self.meta = {
             'module_id' : id,

@@ -17,7 +17,7 @@ func receive_architecture(architecture_dict):
 		# Create NetworkGroupResource
 		value = group_dict[id]
 		network_group_resource = NetworkGroupResource.new()
-		network_group_resource.id = int(id)
+		network_group_resource.group_id = int(id)
 		network_group_resource.tracker_module_group_type = NetworkGroupResource.TYPE[value["tracker_module_group_type"]]
 		# For some reason the json to dict conversion made precursors a float array. Correct that!
 		precursors = []
@@ -27,7 +27,9 @@ func receive_architecture(architecture_dict):
 		network_group_resource.label = value["label"]
 		# Create GroupNode
 		group_node_instance = network_group_scene.instance()
-		graph_edit.add_child(group_node_instance)
+		group_node_instance.id = network_group_resource.group_id
+		group_node_instance.precursors = network_group_resource.precursors
+		graph_edit.get_node("MyGraphNodes").add_child(group_node_instance)
 		group_node_instance.network_group_resource = network_group_resource
 	
 	# Wait one frame to give the boxes time to resize.

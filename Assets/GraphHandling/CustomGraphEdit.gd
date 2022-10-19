@@ -2,9 +2,13 @@ extends Node2D
 
 export var x_margin : int = 50
 export var y_margin : int = 100
-export var drawn_path_szene : PackedScene = preload("res://Assets/Stuff/DrawnPath2D.tscn")
+export var drawn_path_szene : PackedScene = preload("res://Assets/GraphHandling/DrawnPath2D.tscn")
+export var edge_color : Color = Color("4b4baf")
+export var reset_camera_position_on_arrangement_of_nodes : bool = false
+
 var id_to_child_dict = {} # Maps group ids to nodes. Is not updated automatically
 var layering = [] # Contains for each layer a list with group node ids. Is not updated automatically.
+
 #func _process(delta):
 #	if Input.is_action_just_pressed("debug_action"):
 #		arrange_nodes()
@@ -12,10 +16,10 @@ var layering = [] # Contains for each layer a list with group node ids. Is not u
 func arrange_nodes():
 	var precursors = {}
 	id_to_child_dict = {}
-	for node in get_children():
-		if "network_group_resource" in node:
-			precursors[node.network_group_resource.id] = node.network_group_resource.precursors
-			id_to_child_dict[node.network_group_resource.id] = node
+	for node in $MyGraphNodes.get_children():
+		if node is MyGraphNode:
+			precursors[node.id] = node.precursors
+			id_to_child_dict[node.id] = node
 	if not id_to_child_dict:
 		return
 	
@@ -131,7 +135,7 @@ func draw_edges():
 	var epsilon = y_margin * 0.5
 	
 	for node in id_to_child_dict.values():
-		for precursor_node_id in node.network_group_resource.precursors:
+		for precursor_node_id in node.precursors:
 			precursor_node = id_to_child_dict[precursor_node_id]
 			# if the precursor node has smaller y, we will use the top socket
 			if precursor_node.rect_position.y < node.rect_position.y - epsilon:
@@ -154,7 +158,8 @@ func draw_edges():
 			curve.add_point(Vector2(target_position), in_curve, Vector2(0, 0))
 			
 			new_drawn_path_szene = drawn_path_szene.instance()
-			add_child(new_drawn_path_szene)
+			new_drawn_path_szene.get_node("Line2D").default_color = edge_color
+			$MyGraphNodes.add_child(new_drawn_path_szene)
 			new_drawn_path_szene.set_curve(curve)
 			
 			
@@ -164,8 +169,12 @@ func update_size():
 	var x_min = node.get_rect().position.x
 	node = id_to_child_dict[layering[-1][0]]
 	var x_max = node.get_rect().position.x
-	get_node("../CenterOfGraph").position.x = (x_min + x_max) / 2.0
-	get_node("../CenterOfGraph/CameraMinimap").zoom = Vector2(x_max / 1280.0, x_max / 1280.0)
+	get_node("CenterOfGraph").position.x = (x_min + x_max) / 2.0
+	var resolution_x = get_viewport().size.x
+	var extra_margin = resolution_x / 2
+	get_node("CenterOfGraph/CameraCenterOfGraph").zoom = Vector2((x_max + extra_margin) / resolution_x, (x_max + extra_margin) / resolution_x)
+	if reset_camera_position_on_arrangement_of_nodes:
+		get_node("CenterOfGraph/CameraCenterOfGraph").position = Vector2.ZERO	
 	
 	
 class SetOperations:

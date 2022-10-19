@@ -344,7 +344,6 @@ class DoubleHandcraftedFilterModule(nn.Module):
             summand_index = TRACKERMODULEGROUPCOUNTER
         else:
             self.copymodule = nn.Identity()
-            self.tracker_permutation_input = nn.Identity()
 
         # First HFModule
         TRACKERMODULEGROUPCOUNTER += 1

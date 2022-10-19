@@ -30,7 +30,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5 )
 transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.572024, 0, 0 )
 
 [node name="NetworkGroupDetailsScreen" parent="Environment" instance=ExtResource( 8 )]
-transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.827016, 1.51334, -0.0115621 )
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.827016, 1.55345, -0.0115621 )
 
 [node name="DLManager" parent="." instance=ExtResource( 7 )]
 
