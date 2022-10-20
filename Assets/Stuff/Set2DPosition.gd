@@ -1,4 +1,5 @@
 extends Node2D
 
-func on_position_signal(position_):
+
+func set_position(position_):
 	position = position_

@@ -11,3 +11,5 @@ script = ExtResource( 1 )
 current = true
 
 [node name="MyGraphNodes" type="Node2D" parent="."]
+
+[node name="Edges" type="Node2D" parent="."]

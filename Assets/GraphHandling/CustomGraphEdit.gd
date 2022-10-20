@@ -8,15 +8,19 @@ export var reset_camera_position_on_arrangement_of_nodes : bool = false
 
 var id_to_child_dict = {} # Maps group ids to nodes. Is not updated automatically
 var layering = [] # Contains for each layer a list with group node ids. Is not updated automatically.
+onready var my_graph_nodes = $MyGraphNodes
+onready var edges = $Edges
 
 #func _process(delta):
 #	if Input.is_action_just_pressed("debug_action"):
 #		arrange_nodes()
 
 func arrange_nodes():
+	remove_child(my_graph_nodes)
+	
 	var precursors = {}
 	id_to_child_dict = {}
-	for node in $MyGraphNodes.get_children():
+	for node in my_graph_nodes.get_children():
 		if node is MyGraphNode:
 			precursors[node.id] = node.precursors
 			id_to_child_dict[node.id] = node
@@ -26,6 +30,9 @@ func arrange_nodes():
 	layering = get_layering(id_to_child_dict.keys(), precursors)
 	layering = cross_minimization(layering)
 	position_nodes()
+	
+	add_child(my_graph_nodes)
+	
 	draw_edges()
 	update_size()
 	
@@ -124,6 +131,9 @@ func position_nodes():
 			
 			
 func draw_edges():
+	for child in edges.get_children():
+		edges.remove_child(child)
+		
 	var precursor_node
 	var curve
 	var target_socket
@@ -159,7 +169,7 @@ func draw_edges():
 			
 			new_drawn_path_szene = drawn_path_szene.instance()
 			new_drawn_path_szene.get_node("Line2D").default_color = edge_color
-			$MyGraphNodes.add_child(new_drawn_path_szene)
+			edges.add_child(new_drawn_path_szene)
 			new_drawn_path_szene.set_curve(curve)
 			
 			

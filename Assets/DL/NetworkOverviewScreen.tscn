@@ -48,7 +48,7 @@ extents = Vector3( 0.64, 0.001, 0.36 )
 [node name="NetworkOverviewScreen" type="Spatial"]
 
 [node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
-transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 1.12111, 0.00406689 )
+transform = Transform( 1, 0, 0, 0, 0.5, 0.866026, 0, -0.866026, 0.5, 0, 1.12111, 0.00406688 )
 screen_size = Vector2( 1.28, 0.72 )
 viewport_size = Vector2( 1280, 720 )
 scene = ExtResource( 2 )
@@ -92,13 +92,13 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.508, 0 )
 shape = SubResource( 9 )
 
 [node name="MeshInstance3" type="MeshInstance" parent="StaticBody"]
-transform = Transform( 0.95, 0, 0, 0, 0.671751, -0.671751, 0, 0.671751, 0.671751, 0, 1.12, 0 )
+transform = Transform( 0.95, 0, 0, 0, 0.822724, -0.475, 0, 0.475, 0.822724, 0, 1.12, 0 )
 mesh = SubResource( 3 )
 skeleton = NodePath("../MeshInstance2")
 material/0 = ExtResource( 3 )
 
 [node name="MeshInstance6" type="CollisionShape" parent="StaticBody"]
-transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 1.12, 0 )
+transform = Transform( 1, 0, 0, 0, 0.866026, -0.5, 0, 0.5, 0.866026, 0, 1.12, 0 )
 shape = SubResource( 10 )
 
 [connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_entered"]

@@ -1,8 +1,8 @@
 extends Spatial
 
-export var image_resource : Resource setget setFunction
+export var image_resource : Resource setget set_image_resource
 
-func setFunction(image_resource_):
+func set_image_resource(image_resource_):
 	image_resource = image_resource_
 	# Update the displayed image and the label. If this node is being duplicated and the copy is not yet added to the scene tree, we skip.
 	if is_inside_tree():

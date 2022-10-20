@@ -9,7 +9,6 @@ var current_group_id : int = -1
 # The method could be run in a separate thread.
 func network_group_selected_by_overvie_screen(network_group):
 	var group_id = network_group.network_group_resource.group_id
-	print("Selected " + network_group.network_group_resource.label)
 	
 	if current_group_id == group_id:
 		return

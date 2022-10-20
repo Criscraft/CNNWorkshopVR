@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://Assets/ThemesAndFonts/AzeretMono-Medium.ttf" type="DynamicFontData" id=1]
+[ext_resource path="res://Assets/Stuff/ImageLogic2D.gd" type="Script" id=2]
+
+[sub_resource type="DynamicFont" id=1]
+font_data = ExtResource( 1 )
+
+[node name="ImageTile" type="VBoxContainer"]
+script = ExtResource( 2 )
+
+[node name="Image" type="TextureRect" parent="."]
+margin_right = 256.0
+margin_bottom = 256.0
+rect_min_size = Vector2( 256, 256 )
+expand = true
+stretch_mode = 1
+
+[node name="Label" type="Label" parent="."]
+visible = false
+margin_top = 4.0
+margin_right = 256.0
+margin_bottom = 44.0
+rect_min_size = Vector2( 256, 40 )
+custom_fonts/font = SubResource( 1 )
+text = "Class name"
+clip_text = true

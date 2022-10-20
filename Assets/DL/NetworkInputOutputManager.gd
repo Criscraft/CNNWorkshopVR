@@ -10,6 +10,7 @@ func _ready():
 	var _error
 	_error = connect("clear_results", $NetworkOutputScreen/Viewport2Din3DStatic.get_scene_instance(), "clear_results")
 	_error = connect("add_result_line", $NetworkOutputScreen/Viewport2Din3DStatic.get_scene_instance(), "add_result_line")
+	_error = connect("request_forward_pass", DLManager, "on_request_forward_pass")
 	
 	
 func _on_Snap_Zone_has_picked_up(what):

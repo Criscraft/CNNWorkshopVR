@@ -20,7 +20,7 @@ func update_selection():
 	var new_distance
 	
 	for body in bodies:
-		if not "highlighted" in body.get_parent():
+		if not body.is_inside_tree() or not "highlighted" in body.get_parent():
 			continue
 		new_distance = body.global_position.distance_to(global_position)
 		if new_distance < closest_distance:
@@ -32,6 +32,5 @@ func update_selection():
 			last_selected_node.highlighted = false
 		last_selected_node = closest_body.get_parent()
 		last_selected_node.highlighted = true
-		#get_tree().call_group("on_network_group_selected_by_overvie_screen", "network_group_selected_by_overvie_screen", network_group_resource)
 		get_tree().call_group(target_group, method_to_be_called_in_group, last_selected_node)
 		

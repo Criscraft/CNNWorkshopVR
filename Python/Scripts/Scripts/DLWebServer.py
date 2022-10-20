@@ -43,6 +43,8 @@ async def handler(websocket):
             response = request_forward_pass(event)
         elif event["resource"] == "request_architecture":
             response = request_architecture(event)
+        elif event["resource"] == "request_image_data":
+            response = request_image_data(event)
         
         if response:
             await websocket.send(response)
@@ -119,6 +121,29 @@ def request_architecture(event):
     response = json.dumps(response, indent=1, ensure_ascii=False)
     print("send: " + "request_architecture")
     return response
+
+
+def request_image_data(event):
+    image_resources = []
+    module_resources = event["network_module_resource"]
+    mode = event["mode"]
+    if mode == "activation":
+        module_id = module_resources["module_id"]
+        activations = network.get_activation(module_id)[0]
+        has_module_class_names = network.has_module_class_names(module_id)
+        for channel_id, activation in enumerate(activations):
+            image_resources.append(ImageResource(
+                module_id=module_id,
+                channel_id=channel_id,
+                mode=ImageResource.Mode.ACTIVATION,
+                label=dataset.class_names[channel_id] if has_module_class_names else "",
+                data=utils.tensor_to_string(activation.unsqueeze(0)),
+            ).__dict__)
+    response = {"resource" : "request_image_data", "image_resources" : image_resources}
+    response = json.dumps(response, indent=1, ensure_ascii=True)
+    print("send: " + "request_image_data")
+    return response
+
 
 async def main():
     async with websockets.serve(handler, "", 8000, max_size=2**30, read_limit=2**30, write_limit=2**30):

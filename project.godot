@@ -104,6 +104,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/godot-xr-tools/overrides/GroundPhysicsSettings.gd"
 }, {
+"base": "Script",
+"class": "ImageProcessing",
+"language": "GDScript",
+"path": "res://Assets/DL/ImageProcessing.gd"
+}, {
 "base": "Node",
 "class": "MovementProvider",
 "language": "GDScript",
@@ -239,6 +244,7 @@ _global_script_class_icons={
 "GitAPI": "",
 "GroundPhysics": "",
 "GroundPhysicsSettings": "",
+"ImageProcessing": "",
 "MovementProvider": "",
 "MyGraphNode": "",
 "MyXRTSnapZone": "",
@@ -273,6 +279,7 @@ config/icon="res://icon.png"
 [autoload]
 
 THREADPOOL="*res://Assets/Stuff/MyThreadPoolManager.gd"
+DLManager="*res://Assets/DL/DLManager.gd"
 
 [editor]
 

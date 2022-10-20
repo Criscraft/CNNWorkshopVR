@@ -6,8 +6,8 @@
 [ext_resource path="res://Assets/Stuff/Ground.tscn" type="PackedScene" id=4]
 [ext_resource path="res://Assets/DL/NetworkStation.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/TimedGrabableEliminationArea.tscn" type="PackedScene" id=6]
-[ext_resource path="res://Assets/DL/DLManager.tscn" type="PackedScene" id=7]
 [ext_resource path="res://Assets/DL/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
+[ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -27,17 +27,12 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5 )
 [node name="TimedGrabableEliminationArea" parent="Environment" instance=ExtResource( 6 )]
 
 [node name="NetworkOverviewScreen" parent="Environment" instance=ExtResource( 3 )]
-transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.572024, 0, 0 )
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.710725, 0, 0 )
 
 [node name="NetworkGroupDetailsScreen" parent="Environment" instance=ExtResource( 8 )]
-transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.827016, 1.55345, -0.0115621 )
+transform = Transform( -4.2222e-08, 0.258819, -0.965926, 1.13133e-08, 0.965926, 0.258819, 1, 0, -4.37114e-08, 1.07429, 1.46819, -0.0028299 )
 
-[node name="DLManager" parent="." instance=ExtResource( 7 )]
+[node name="NetworkModuleDetailsScreen" parent="Environment" instance=ExtResource( 9 )]
+transform = Transform( -3.78552e-08, -0.5, -0.866025, -2.18557e-08, 0.866025, -0.5, 1, 0, -4.37114e-08, 0.778691, 2.21987, 0 )
 
 [node name="SpawnedItems" type="Spatial" parent="."]
-
-[connection signal="request_dataset_images" from="Environment/ImageShelf" to="DLManager" method="_on_ImageShelf_request_dataset_images"]
-[connection signal="request_forward_pass" from="Environment/NetworkStation" to="DLManager" method="request_forward_pass"]
-[connection signal="on_connected" from="DLManager" to="Environment/ImageShelf" method="_on_DLManager_on_connected"]
-
-[editable path="DLManager"]

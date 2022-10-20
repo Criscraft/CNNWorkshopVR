@@ -222,3 +222,7 @@ class DLNetwork(object):
             cv2.imwrite(os.path.join(path, f"{i}.png"), image)
 
 
+    def has_module_class_names(self, module_id):
+        return self.module_dict[module_id]['channel_labels'] == "class_names"
+
+

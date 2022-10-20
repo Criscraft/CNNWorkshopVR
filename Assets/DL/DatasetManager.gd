@@ -15,29 +15,22 @@ func _ready():
 		# Create snap tray
 		instance = snap_tray_scene.instance()
 		child.add_child(instance)
-	#yield(get_tree(), "idle_frame") # Wait to just before _process is called. Otherwise we cannot add the following pickable images to the Staging node
+	
+	var _error
+	# When the DLManager connects we request the dataset images.
+	_error = DLManager.connect("on_connected", self, "_on_DLManager_connected")
+	# When we request the dataset images, we want to send a signal to the DLManager
+	_error = connect("request_dataset_images", DLManager, "on_request_dataset_images")
 
 
-func _on_DLManager_on_connected():
+func _on_DLManager_connected():
 	emit_signal("request_dataset_images", $SpawnPositionNodes.get_child_count())
-	
-	
-func dict_to_image_resource(dick : Dictionary):
-	var image_resource = DLImageResource.new()
-	image_resource.mode = DLImageResource.MODE[dick["mode"]]
-	#var pool_byte_array = Marshalls.base64_to_raw(dick["data"])
-	var image = Image.new()
-	image.load_png_from_buffer(Marshalls.base64_to_raw(dick["data"]))
-	image_resource.image = image
-	image_resource.id = dick["id"]
-	image_resource.label = dick["label"]
-	return image_resource
 	
 	
 func preprocess_dataset_images(image_resource_data):
 	var image_resources = []
 	for item in image_resource_data:
-		image_resources.append(dict_to_image_resource(item))
+		image_resources.append(ImageProcessing.dict_to_image_resource(item))
 	return image_resources
 	
 

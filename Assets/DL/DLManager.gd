@@ -46,7 +46,7 @@ func _connected(proto = ""):
 	# and not put_packet directly when not using the MultiplayerAPI.
 	# _client.get_peer(1).put_packet("Test packet".to_utf8())
 	emit_signal("on_connected")
-	request_architecture()
+	on_request_architecture()
 	
 	
 func _process(_delta):
@@ -82,6 +82,10 @@ func _on_data():
 			print("DLManager reveived architecture.")
 			get_tree().call_group("on_receive_architecture", "receive_architecture", data["architecture"])
 			
+		"request_image_data":
+			print("DLManager reveived image data.")
+			get_tree().call_group("on_receive_image_data", "receive_image_data", data["image_resources"])
+			
 		_:
 			print("No match in DLManager.")
 
@@ -92,18 +96,25 @@ Request data
 #################################
 """
 
-func _on_ImageShelf_request_dataset_images(n):
+# called by signal from Image Shelf
+func on_request_dataset_images(n):
 	var message = {"resource" : "request_dataset_images", "n" : n}
 	send_request(message)
 	
-
-func request_forward_pass(image_resource):
+# called by signal from Network Station
+func on_request_forward_pass(image_resource):
 	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
 	send_request(message)
 	
-
-func request_architecture():
+# Called in _ready()
+func on_request_architecture():
 	var message = {"resource" : "request_architecture"}
+	send_request(message)
+	
+# Called by signal from NetworkModuleDetailsManager
+func on_request_image_data(network_module_resource : NetworkModuleResource, mode="activation"):
+	var message = {"resource" : "request_image_data", "network_module_resource" : network_module_resource.get_dict()}
+	message["mode"] = mode
 	send_request(message)
 	
 	

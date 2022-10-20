@@ -4,6 +4,8 @@ export var network_group_scene : PackedScene
 
 onready var graph_edit = get_node("CustomGraphEdit")
 
+signal set_camera_position(position)
+
 # Called by DLManager via group.
 # The method could be run in a separate thread. However, it might not be necessary because usually it is called once at startup.
 func receive_architecture(architecture_dict):
@@ -35,3 +37,5 @@ func receive_architecture(architecture_dict):
 	# Wait one frame to give the boxes time to resize.
 	yield(get_tree(), "idle_frame")
 	graph_edit.call_deferred("arrange_nodes")
+	# We have to move the camera together with its Selector node such that the Area updates its collisions.
+	emit_signal("set_camera_position", Vector2.ZERO)

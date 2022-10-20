@@ -37,7 +37,6 @@ func get_dict():
 	# Export only data that can be used to identify the module
 	var out = {
 		"module_id" : module_id,
-		"tracker_module_type" : TYPE.keys()[tracker_module_type],
 		"group_id" : group_id,
 	}
 	return out
