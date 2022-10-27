@@ -6,7 +6,7 @@
 [node name="NetworkModuleDetailsScreen" type="Spatial"]
 
 [node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
-screen_size = Vector2( 1.28, 1.28 )
+screen_size = Vector2( 1, 1 )
 viewport_size = Vector2( 1280, 1280 )
 scene = ExtResource( 2 )
 collision_layer = 8

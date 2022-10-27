@@ -6,7 +6,7 @@
 [node name="NetworkGroupDetailsScreen" type="Spatial"]
 
 [node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
-screen_size = Vector2( 1.28, 0.3 )
+screen_size = Vector2( 1, 0.234 )
 viewport_size = Vector2( 1280, 300 )
 scene = ExtResource( 2 )
 collision_layer = 8

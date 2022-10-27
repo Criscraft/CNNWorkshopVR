@@ -81,6 +81,13 @@ class DLNetwork(object):
                     'has_data' : has_data,
                     'size' : size,
                 }
+            for module_info in module_dict.values():
+                # Add channel labels if necessary
+                if module_info['channel_labels'] == "classes":
+                    module_info['channel_labels'] = self.class_names
+                else:
+                    module_info['channel_labels'] = []
+
             self.module_dict = module_dict
 
 
@@ -109,10 +116,8 @@ class DLNetwork(object):
         for module_id, module_info in out_module_dict.items():
             # convert enum to string
             module_info['tracker_module_type'] = module_info['tracker_module_type'].name
-            # Add channel labels if necessary
-            if module_info['channel_labels'] == "classes":
-                module_info['channel_labels'] = self.class_names
-            # add information to special cases
+            
+            # Add information to special cases
             if module_info['tracker_module_type'] == "GROUPCONV":
                 module_info['weights'] = self.module_dict[module_id]['tracked_module'].weight.data.cpu().numpy().tolist()
             elif module_info['tracker_module_type'] == "REWIRE":
@@ -222,7 +227,7 @@ class DLNetwork(object):
             cv2.imwrite(os.path.join(path, f"{i}.png"), image)
 
 
-    def has_module_class_names(self, module_id):
-        return self.module_dict[module_id]['channel_labels'] == "class_names"
+    def get_channel_labels(self, module_id):
+        return self.module_dict[module_id]['channel_labels']
 
 

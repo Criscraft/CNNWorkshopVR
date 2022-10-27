@@ -127,13 +127,13 @@ def request_image_data(event):
         module_id = module_resources["module_id"]
         activations = network.get_activation(module_id)[0]
         activations, minimum, maximum = utils.normalize(activations)
-        has_module_class_names = network.has_module_class_names(module_id)
+        channel_labels = network.get_channel_labels(module_id)
         for channel_id, activation in enumerate(activations):
             image_resources.append(ImageResource(
                 module_id=module_id,
                 channel_id=channel_id,
                 mode=ImageResource.Mode.ACTIVATION,
-                label=dataset.class_names[channel_id] if has_module_class_names else "",
+                label=channel_labels[channel_id] if channel_labels else "",
                 data=utils.tensor_to_string(activation.unsqueeze(0)),
                 value_zero_decoded=minimum.item(),
                 value_255_decoded=maximum.item(),

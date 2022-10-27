@@ -6,10 +6,10 @@
 [ext_resource path="res://Assets/DL/NetworkInputOutputManager.gd" type="Script" id=4]
 
 [sub_resource type="CubeMesh" id=1]
-size = Vector3( 0.5, 1, 0.5 )
+size = Vector3( 0.5, 1, 0.2 )
 
 [sub_resource type="BoxShape" id=2]
-extents = Vector3( 0.25, 0.5, 0.25 )
+extents = Vector3( 0.25, 0.5, 0.1 )
 
 [node name="NetworkStation" type="StaticBody" groups=["on_receive_classification_results"]]
 script = ExtResource( 4 )
@@ -30,7 +30,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.009, 0 )
 copies_on_pick_up = false
 
 [node name="NetworkOutputScreen" parent="." instance=ExtResource( 3 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.38363, -0.244909 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.384, -0.097182 )
 
 [connection signal="has_picked_up" from="NetworkInputTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 
