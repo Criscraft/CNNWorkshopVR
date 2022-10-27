@@ -15,6 +15,8 @@ class ImageResource(object):
         mode : Mode = None,
         label : str = "",
         data = None,
+        value_zero_decoded : float = -1.,
+        value_255_decoded : float = -1.,
         ):
         
         self.id = id
@@ -23,4 +25,6 @@ class ImageResource(object):
         self.mode = mode
         self.data = data
         self.label = label
+        self.value_zero_decoded = value_zero_decoded
+        self.value_255_decoded = value_255_decoded
     

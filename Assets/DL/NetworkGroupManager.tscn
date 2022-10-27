@@ -4,7 +4,7 @@
 [ext_resource path="res://Assets/DL/NetworkGroupManager.gd" type="Script" id=2]
 [ext_resource path="res://Assets/DL/NetworkModule.tscn" type="PackedScene" id=3]
 
-[node name="NetworkGroupManager" type="Node2D" groups=["on_network_group_selected_by_overvie_screen", "on_receive_architecture"]]
+[node name="NetworkGroupManager" type="Node2D" groups=["on_network_group_selected_by_overview_screen", "on_receive_architecture"]]
 script = ExtResource( 2 )
 network_module_scene = ExtResource( 3 )
 

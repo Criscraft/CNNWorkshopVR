@@ -65,3 +65,11 @@ def get_module(module_path):
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def normalize(activations):
+    # Normalize such that the values are between 0 and 1
+    minimum = activations.min()
+    maximum = activations.max()
+    activations = (activations - minimum) / (maximum - minimum + 1e-8)
+    return activations, minimum, maximum

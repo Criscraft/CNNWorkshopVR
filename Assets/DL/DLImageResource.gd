@@ -9,6 +9,8 @@ export var channel_id : int = -1
 export var mode : int = -1
 export var label : String = ""
 export var image : Image = null
+export var value_zero_decoded : float = -1.0
+export var value_255_decoded : float = -1.0
 
 func get_dict(get_image=false):
 	# Export only data that can be used to identify the image

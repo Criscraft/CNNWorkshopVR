@@ -1,7 +1,7 @@
 extends Node2D
 
 onready var results = $Panel/VBoxContainer/Results
-var result_label_scene : PackedScene = preload("res://Assets/DL/ResultLabel.tscn")
+var result_label_scene : PackedScene = preload("res://Assets/Stuff/TextLine.tscn")
 
 
 func _ready():

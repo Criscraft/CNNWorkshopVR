@@ -1,11 +1,17 @@
 extends Control
 
-onready var module_notes_container = get_node("HSplitContainer/Panel/ModuleNotes")
-onready var image_grid_container = get_node("HSplitContainer/Panel2/ScrollContainer/ImageGrid")
-export var text_scene_path : String = "res://Assets/DL/ResultLabel.tscn"
+onready var module_notes_container = $HSplitContainer/ModuleNotesPanel/VBoxContainer/ModuleNotes
+onready var image_grid_container = $HSplitContainer/ImagePanel/VBoxContainer/ScrollContainer/ImageGrid
+onready var image_panel = $HSplitContainer/ImagePanel
+onready var legend = $HSplitContainer/ImagePanel/VBoxContainer/Legend
+onready var value_zero_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItemZero/value_zero_decoded
+onready var value_127_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItem127/value_127_decoded
+onready var value_255_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItem255/value_255_decoded
+export var text_scene_path : String = "res://Assets/Stuff/TextLine.tscn"
 onready var text_scene : PackedScene = load(text_scene_path)
 export var image_tile_scene_path : String = "res://Assets/DL/ImageTile.tscn"
 onready var image_tile_scene : PackedScene = load(image_tile_scene_path)
+onready var image_scale_bar = $HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar
 var n_cols : int setget set_n_cols
 export var n_cols_inspector : int = 3
 
@@ -34,6 +40,12 @@ func update_network_module_resource():
 	update_text()
 	emit_signal("request_image_data", network_module_resource, "activation")
 	
+# Called by DLManager via group
+func receive_classification_results(_results):
+	# When a new forward pass was performed, we need to update the image data.
+	$UpdateModuleSelection.stop()
+	$UpdateModuleSelection.start()
+	emit_signal("request_image_data", network_module_resource, "activation")
 	
 func update_text():
 	for child in module_notes_container.get_children():
@@ -98,21 +110,52 @@ func on_pool_task_completed(task):
 		
 
 func on_finished_process_module_image_resources(results_dict):
+	# Remove old image tiles
 	for image_tile in image_grid_container.get_children():
 		image_grid_container.remove_child(image_tile)
+	
+	# Add new image tiles 
 	var image_tiles = results_dict["image_tiles"]
 	var image_resources = results_dict["image_resources"]
 	var image_tile
-	var image_resource
+	var image_resource : DLImageResource
 	for i in range(image_resources.size()):
 		image_tile = image_tiles[i]
 		image_resource = image_resources[i]
 		image_grid_container.add_child(image_tile)
 		image_tile.image_resource = image_resource
+		
+	# Update the legend
+	if image_resource.value_zero_decoded != -1.0:
+		value_zero_decoded_label.text = String(image_resource.value_zero_decoded)
+		value_127_decoded_label.text = String((image_resource.value_zero_decoded + image_resource.value_255_decoded) / 2)
+		value_255_decoded_label.text = String(image_resource.value_255_decoded)
+		legend.visible = true
+		
+	else:
+		legend.visible = false
 
+	# Reset the scale bar
+	image_scale_bar.value = 1.0
 
 func set_n_cols(n_cols_):
 	if not is_inside_tree():
 		pass
 	n_cols = n_cols_
-	$HSplitContainer/Panel2/ScrollContainer/ImageGrid.columns = n_cols
+	image_grid_container.columns = n_cols
+
+
+func _on_image_scale_changed():
+	# Change scale of image tiles.
+	var scale_new = image_scale_bar.value
+	var image_size = 256 * scale_new
+	for child in image_grid_container.get_children():
+		child.set_size_of_children(image_size)
+	
+	# Change number of rows.
+	var width_of_image_grid = image_panel.rect_size.x
+	var h_separation = image_grid_container.get("custom_constants/hseparation")
+	var columns = int(width_of_image_grid / (image_size + h_separation))
+	image_grid_container.columns = columns
+	
+	

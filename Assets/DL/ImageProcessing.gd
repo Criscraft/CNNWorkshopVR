@@ -10,4 +10,6 @@ static func dict_to_image_resource(dick : Dictionary):
 	image_resource.image = image
 	image_resource.id = dick["id"]
 	image_resource.label = dick["label"]
+	image_resource.value_zero_decoded = dick["value_zero_decoded"]
+	image_resource.value_255_decoded = dick["value_255_decoded"]
 	return image_resource

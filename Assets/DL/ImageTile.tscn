@@ -7,21 +7,26 @@
 font_data = ExtResource( 1 )
 
 [node name="ImageTile" type="VBoxContainer"]
+margin_right = 256.0
+margin_bottom = 256.0
 script = ExtResource( 2 )
 
 [node name="Image" type="TextureRect" parent="."]
 margin_right = 256.0
 margin_bottom = 256.0
 rect_min_size = Vector2( 256, 256 )
+size_flags_horizontal = 6
+size_flags_vertical = 6
 expand = true
-stretch_mode = 1
 
 [node name="Label" type="Label" parent="."]
 visible = false
 margin_top = 4.0
 margin_right = 256.0
 margin_bottom = 44.0
-rect_min_size = Vector2( 256, 40 )
+size_flags_horizontal = 6
+size_flags_vertical = 6
 custom_fonts/font = SubResource( 1 )
 text = "Class name"
+align = 1
 clip_text = true

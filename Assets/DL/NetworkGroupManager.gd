@@ -7,7 +7,7 @@ var current_group_id : int = -1
 
 # Called on selection by network overview screen via group.
 # The method could be run in a separate thread.
-func network_group_selected_by_overvie_screen(network_group):
+func network_group_selected_by_overview_screen(network_group):
 	var group_id = network_group.network_group_resource.group_id
 	
 	if current_group_id == group_id:

@@ -1,15 +1,11 @@
 import asyncio
-from tkinter import Image
 from Scripts.ImageResource import ImageResource
 import websockets
 import json
 import os
-import sys
-import time
 import torch
 import numpy as np
 import Scripts.utils as utils
-from Scripts.DLNetwork import FeatureVisualizationMode
 from Scripts.utils import get_module
 
 # Create global variables. They will be filled inplace.
@@ -130,6 +126,7 @@ def request_image_data(event):
     if mode == "activation":
         module_id = module_resources["module_id"]
         activations = network.get_activation(module_id)[0]
+        activations, minimum, maximum = utils.normalize(activations)
         has_module_class_names = network.has_module_class_names(module_id)
         for channel_id, activation in enumerate(activations):
             image_resources.append(ImageResource(
@@ -138,6 +135,8 @@ def request_image_data(event):
                 mode=ImageResource.Mode.ACTIVATION,
                 label=dataset.class_names[channel_id] if has_module_class_names else "",
                 data=utils.tensor_to_string(activation.unsqueeze(0)),
+                value_zero_decoded=minimum.item(),
+                value_255_decoded=maximum.item(),
             ).__dict__)
     response = {"resource" : "request_image_data", "image_resources" : image_resources}
     response = json.dumps(response, indent=1, ensure_ascii=True)
@@ -154,6 +153,7 @@ if __name__ == "__main__":
     source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", "HFNetMNIST", "get_dl_objects.py")
     get_dl_objects_module = get_module(source_path)
     prepare_dl_objects(get_dl_objects_module)
+    print("server starts")
     asyncio.run(main())
 
 

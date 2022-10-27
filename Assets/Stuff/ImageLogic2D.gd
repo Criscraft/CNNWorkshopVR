@@ -17,3 +17,7 @@ func update_image() -> void:
 	
 func update_label() -> void:
 	label.text = image_resource.label
+
+func set_size_of_children(size_new):
+	$Image.rect_min_size = Vector2(size_new, size_new)
+	$Label.rect_min_size = Vector2(size_new, 40)

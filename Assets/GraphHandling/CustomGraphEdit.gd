@@ -24,12 +24,10 @@ func arrange_nodes():
 		if node is MyGraphNode:
 			precursors[node.id] = node.precursors
 			id_to_child_dict[node.id] = node
-	if not id_to_child_dict:
-		return
-	
-	layering = get_layering(id_to_child_dict.keys(), precursors)
-	layering = cross_minimization(layering)
-	position_nodes()
+	if id_to_child_dict:
+		layering = get_layering(id_to_child_dict.keys(), precursors)
+		layering = cross_minimization(layering)
+		position_nodes()
 	
 	add_child(my_graph_nodes)
 	
@@ -174,6 +172,8 @@ func draw_edges():
 			
 			
 func update_size():
+	if not id_to_child_dict:
+		return
 	var node
 	node = id_to_child_dict[layering[0][0]]
 	var x_min = node.get_rect().position.x
