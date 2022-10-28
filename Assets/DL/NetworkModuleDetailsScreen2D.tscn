@@ -40,7 +40,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 1 )
 
-[node name="NetworkModuleDetailsManager" type="Control" parent="." groups=["on_network_module_selected_by_detail_screen", "on_receive_classification_results", "on_receive_image_data"]]
+[node name="NetworkModuleDetailsManager" type="Control" parent="." groups=["on_receive_classification_results", "on_receive_image_data"]]
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 2 )

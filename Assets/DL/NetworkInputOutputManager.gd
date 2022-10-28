@@ -15,14 +15,15 @@ func _ready():
 	
 func _on_Snap_Zone_has_picked_up(what):
 	# Check if held object has image content.
+	if not what.has_node("ImageLogic"):
+		return
 	var image_logic = what.get_node("ImageLogic")
-	if image_logic != null:
-		var image_resource = image_logic.image_resource
-		emit_signal("clear_results")
-		if image_resource.mode == DLImageResource.MODE.ACTIVATION:
-			emit_signal("add_result_line", "A feature map is not a valid input for the network.")
-		else:
-			set_current_image_resource(image_resource)
+	var image_resource = image_logic.image_resource
+	emit_signal("clear_results")
+	if image_resource.mode == DLImageResource.MODE.ACTIVATION:
+		emit_signal("add_result_line", "A feature map is not a valid input for the network.")
+	else:
+		set_current_image_resource(image_resource)
 
 
 func set_current_image_resource(new_value):

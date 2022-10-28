@@ -15,27 +15,35 @@ onready var image_scale_bar = $HSplitContainer/ModuleNotesPanel/VBoxContainer/Im
 var n_cols : int setget set_n_cols
 export var n_cols_inspector : int = 3
 var network_module_resource : NetworkModuleResource
+var activation_mode : bool = true
 
 signal request_image_data(network_module_resource, mode)
+
 
 func _ready():
 	var _error
 	_error = connect("request_image_data", DLManager, "on_request_image_data")
 	set_n_cols(n_cols_inspector)
 
-# Called by NetworkGroupSelector via group method
+# Called by NetworkGroupSelector via group method. 
+# By default, this node is not in this group.
 func network_module_selected_by_detail_screen(network_module):
 	var new_network_module_resource = network_module.network_module_resource
-	if new_network_module_resource == network_module_resource:
-		return
+	if new_network_module_resource != network_module_resource:
+		set_network_module_resource(new_network_module_resource)
+	
+
+func set_network_module_resource(new_network_module_resource):
 	network_module_resource = new_network_module_resource
 	update_text()
 	emit_signal("request_image_data", network_module_resource, "activation")
+	
 	
 # Called by DLManager via group
 func receive_classification_results(_results):
 	# When a new forward pass was performed, we need to update the image data.
 	emit_signal("request_image_data", network_module_resource, "activation")
+	
 	
 func update_text():
 	for child in module_notes_container.get_children():
@@ -73,8 +81,16 @@ func add_text(text):
 	new_text.text = text
 	module_notes_container.add_child(new_text)
 
-
+# Called by DLManager when image data is received.
 func receive_image_data(image_resource_data):
+	if image_resource_data[0].module_id != network_module_resource.module_id:
+		return
+	var mode = DLImageResource.MODE[image_resource_data[0]["mode"]]
+	if activation_mode and mode != DLImageResource.MODE.ACTIVATION:
+		return
+	if not activation_mode and mode != DLImageResource.MODE.FEATURE_VISUALIZATION:
+		return
+	
 	add_to_group("on_pool_task_completed")
 	#THREADPOOL.submit_task(self, "process_module_image_resources", image_resource_data, "process_module_image_resources")
 	var results = process_module_image_resources(image_resource_data)

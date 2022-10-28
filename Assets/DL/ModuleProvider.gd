@@ -6,7 +6,7 @@ onready var snap_zone = $ModuleProviderTray/Snap_Zone
 # Called by NetworkGroupSelector via group method
 func network_module_selected_by_detail_screen(network_module):
 	snap_zone.destroy_held_item()
-	create_portable_module(network_module.network_module_resource)
+	create_portable_module(network_module.network_module_resource.duplicate())
 	
 func create_portable_module(network_module_resource):
 	var pickable_module = pickable_module_scene.instance()
