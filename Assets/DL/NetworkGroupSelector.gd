@@ -3,15 +3,19 @@ extends Area2D
 var last_selected_node
 export var target_group : String
 export var method_to_be_called_in_group : String
-
+var change_in_overlapping_bodies : bool = false
 
 func _on_Selector_body_entered(_body):
-	update_selection()
+	change_in_overlapping_bodies = true
 
 func _on_Selector_body_exited(_body):
-	update_selection()
+	change_in_overlapping_bodies = true
 
 func update_selection():
+	if not change_in_overlapping_bodies:
+		return
+	change_in_overlapping_bodies = false
+	
 	var bodies = get_overlapping_bodies()
 	if not bodies:
 		return

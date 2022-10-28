@@ -14,8 +14,6 @@ onready var image_tile_scene : PackedScene = load(image_tile_scene_path)
 onready var image_scale_bar = $HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar
 var n_cols : int setget set_n_cols
 export var n_cols_inspector : int = 3
-
-var new_network_resource_candidate : NetworkModuleResource
 var network_module_resource : NetworkModuleResource
 
 signal request_image_data(network_module_resource, mode)
@@ -25,26 +23,18 @@ func _ready():
 	_error = connect("request_image_data", DLManager, "on_request_image_data")
 	set_n_cols(n_cols_inspector)
 
+# Called by NetworkGroupSelector via group method
 func network_module_selected_by_detail_screen(network_module):
-	if "network_module_resource" in network_module and network_module.network_module_resource != network_module_resource:
-		new_network_resource_candidate = network_module.network_module_resource
-	
-
-func _on_UpdateModuleSelection_timeout():
-	if new_network_resource_candidate != network_module_resource:
-		update_network_module_resource()
-
-
-func update_network_module_resource():
-	network_module_resource = new_network_resource_candidate
+	var new_network_module_resource = network_module.network_module_resource
+	if new_network_module_resource == network_module_resource:
+		return
+	network_module_resource = new_network_module_resource
 	update_text()
 	emit_signal("request_image_data", network_module_resource, "activation")
 	
 # Called by DLManager via group
 func receive_classification_results(_results):
 	# When a new forward pass was performed, we need to update the image data.
-	$UpdateModuleSelection.stop()
-	$UpdateModuleSelection.start()
 	emit_signal("request_image_data", network_module_resource, "activation")
 	
 func update_text():

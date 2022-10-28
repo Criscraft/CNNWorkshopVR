@@ -1,15 +1,12 @@
 extends "res://addons/godot-xr-tools/objects/Object_pickable.gd"
 
-export var scene : String = "res://Assets/DL/PickableImage.tscn"
 
-func copy_pickable_to(new_parent) -> Spatial:
-	var instance_new = load(scene).instance()
+func add_duplicate_to(new_parent) -> Spatial:
+	var scene = load("res://Assets/Stuff/MyPickableObject.tscn")
+	var instance_new = scene.instance()
 	instance_new.global_transform = global_transform
 	new_parent.add_child(instance_new)
-	# set image resource (only possible after being added to scene tree)
-	instance_new.get_node("ImageLogic").image_resource = get_node("ImageLogic").image_resource
 	return instance_new
-
 
 
 func _on_MyPickableObject_picked_up(_pickable):

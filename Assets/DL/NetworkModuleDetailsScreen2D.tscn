@@ -45,9 +45,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 2 )
 
-[node name="UpdateModuleSelection" type="Timer" parent="NetworkModuleDetailsManager"]
-autostart = true
-
 [node name="HSplitContainer" type="HSplitContainer" parent="NetworkModuleDetailsManager"]
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -206,6 +203,5 @@ rect_min_size = Vector2( 0, 40 )
 text = "value"
 clip_text = false
 
-[connection signal="timeout" from="NetworkModuleDetailsManager/UpdateModuleSelection" to="NetworkModuleDetailsManager" method="_on_UpdateModuleSelection_timeout"]
 [connection signal="value_changed" from="NetworkModuleDetailsManager/HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar" to="NetworkModuleDetailsManager/HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar/DebouncingTimer" method="_on_trigger"]
 [connection signal="timeout" from="NetworkModuleDetailsManager/HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar/DebouncingTimer" to="NetworkModuleDetailsManager" method="_on_image_scale_changed"]
