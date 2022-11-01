@@ -1,17 +1,17 @@
 extends Control
 
-onready var module_notes_container = $HSplitContainer/ModuleNotesPanel/VBoxContainer/ModuleNotes
-onready var image_grid_container = $HSplitContainer/ImagePanel/VBoxContainer/ScrollContainer/ImageGrid
-onready var image_panel = $HSplitContainer/ImagePanel
-onready var legend = $HSplitContainer/ImagePanel/VBoxContainer/Legend
-onready var value_zero_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItemZero/value_zero_decoded
-onready var value_127_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItem127/value_127_decoded
-onready var value_255_decoded_label = $HSplitContainer/ImagePanel/VBoxContainer/Legend/LegendItem255/value_255_decoded
+onready var module_notes_container = $ModuleNotesPanel/VBoxContainer/ModuleNotes
+onready var image_grid_container = $ImagePanel/VBoxContainer/ScrollContainer/ImageGrid
+onready var image_panel = $ImagePanel
+onready var legend = $ImagePanel/VBoxContainer/Legend
+onready var value_zero_decoded_label = $ImagePanel/VBoxContainer/Legend/LegendItemZero/value_zero_decoded
+onready var value_127_decoded_label = $ImagePanel/VBoxContainer/Legend/LegendItem127/value_127_decoded
+onready var value_255_decoded_label = $ImagePanel/VBoxContainer/Legend/LegendItem255/value_255_decoded
 export var text_scene_path : String = "res://Assets/Stuff/TextLine.tscn"
 onready var text_scene : PackedScene = load(text_scene_path)
 export var image_tile_scene_path : String = "res://Assets/DL/ImageTile.tscn"
 onready var image_tile_scene : PackedScene = load(image_tile_scene_path)
-onready var image_scale_bar = $HSplitContainer/ModuleNotesPanel/VBoxContainer/ImageScaleBar
+onready var image_scale_bar = $ModuleNotesPanel/VBoxContainer/ImageScaleBar
 var n_cols : int setget set_n_cols
 export var n_cols_inspector : int = 3
 var network_module_resource : NetworkModuleResource

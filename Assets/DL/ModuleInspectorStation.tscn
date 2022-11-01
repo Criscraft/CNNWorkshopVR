@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://Assets/DL/ModuleInspectorTable.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Assets/DL/ModuleInspectorStationScreenManager.gd" type="Script" id=2]
+[ext_resource path="res://Assets/DL/NetworkInspectorScreen2D.tscn" type="PackedScene" id=3]
 [ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=5]
 
 [node name="ModuleInspectorStation" type="Spatial"]
@@ -10,9 +11,11 @@
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0, 0 )
 
 [node name="ModuleInspectorTable2" parent="." instance=ExtResource( 1 )]
+screen_position = 1
 
 [node name="ModuleInspectorTable3" parent="." instance=ExtResource( 1 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.36, 0, 0 )
+screen_position = 2
 
 [node name="ModuleInspectorStationScreenManager" type="Spatial" parent="."]
 script = ExtResource( 2 )
@@ -20,7 +23,10 @@ script = ExtResource( 2 )
 [node name="Screen" parent="ModuleInspectorStationScreenManager" instance=ExtResource( 5 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49919, -1.89211 )
 screen_size = Vector2( 5, 3 )
-viewport_size = Vector2( 3840, 1280 )
+viewport_size = Vector2( 2133, 1280 )
+scene = ExtResource( 3 )
 collision_layer = 8
 
 [connection signal="update_scene" from="ModuleInspectorTable1" to="ModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_update_scene"]
+[connection signal="update_scene" from="ModuleInspectorTable2" to="ModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_update_scene"]
+[connection signal="update_scene" from="ModuleInspectorTable3" to="ModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_update_scene"]

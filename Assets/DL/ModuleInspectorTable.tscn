@@ -55,6 +55,7 @@ text = "Feat. maps"
 transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, -0.079 )
 text = "Feat. Vis."
 
+[connection signal="has_dropped" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_dropped"]
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 [connection signal="hinge_moved" from="LeverSwitchLayout/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_layout_status_change"]
 [connection signal="hinge_moved" from="LeverSwitchActivationFV/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_activation_fv_status_change"]
