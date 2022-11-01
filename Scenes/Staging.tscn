@@ -9,7 +9,7 @@
 [ext_resource path="res://Assets/DL/ModuleProvider.tscn" type="PackedScene" id=7]
 [ext_resource path="res://Assets/DL/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
 [ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
-[ext_resource path="res://Assets/DL/ModuleInspector.tscn" type="PackedScene" id=10]
+[ext_resource path="res://Assets/DL/ModuleInspectorStation.tscn" type="PackedScene" id=10]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )

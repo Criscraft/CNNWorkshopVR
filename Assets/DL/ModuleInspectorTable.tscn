@@ -1,20 +1,19 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/Stuff/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/Stuff/LeverSwitch.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/ModuleInspector.gd" type="Script" id=4]
-[ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen2D.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=7]
 
 [sub_resource type="CubeMesh" id=1]
-size = Vector3( 0.75, 1, 0.2 )
+size = Vector3( 0.35, 1, 0.2 )
 
 [sub_resource type="BoxShape" id=2]
-extents = Vector3( 0.375, 0.5, 0.1 )
+extents = Vector3( 0.175, 0.5, 0.1 )
 
-[node name="ModuleInspector" type="StaticBody"]
+[node name="ModuleInspectorTable" type="StaticBody"]
 script = ExtResource( 4 )
 network_module_details_screen_2d_scene = ExtResource( 6 )
 
@@ -29,38 +28,32 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
 [node name="ModuleTray" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.273248, 1.009, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0730973, 1.009, 0 )
 
 [node name="Snap_Zone" parent="ModuleTray" index="1"]
 copies_on_pick_up = false
 
 [node name="LeverSwitchLayout" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, -0.15, 1, 0 )
+transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, 0.0501506, 1, 0 )
 
 [node name="QuickLabel" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.15, 1.006, 0.084 )
-text = "Grid layout"
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.0501506, 1.006, 0.084 )
+text = "Grid"
 
 [node name="QuickLabel2" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.15, 1.006, -0.079 )
-text = "Editor layout"
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.0501506, 1.006, -0.079 )
+text = "Horizontal"
 
 [node name="LeverSwitchActivationFV" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, -0.05, 1, 0 )
+transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, 0.12615, 1, 0 )
 
 [node name="QuickLabel3" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.05, 1.006, 0.084 )
-text = "Activations"
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, 0.084 )
+text = "Feat. maps"
 
 [node name="QuickLabel4" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.05, 1.006, -0.079 )
-text = "Feature Visualization"
-
-[node name="Screen" parent="." instance=ExtResource( 5 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49919, -1.89211 )
-screen_size = Vector2( 3, 3 )
-viewport_size = Vector2( 1280, 1280 )
-collision_layer = 8
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, -0.079 )
+text = "Feat. Vis."
 
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 [connection signal="hinge_moved" from="LeverSwitchLayout/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_layout_status_change"]

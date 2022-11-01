@@ -1,14 +1,13 @@
-extends StaticBody
+extends Spatial
 
 var network_module_resource : Resource
 var lever_switch_layout_status = true
 var lever_switch_activation_fv_status = true
 
 export var network_module_details_screen_2d_scene : PackedScene
+export var screen_position : int = 0
 
-onready var screen = $Screen
-
-signal network_module_resource_updated
+signal update_scene(resource, scene, screen_position)
 
 func _on_Snap_Zone_has_picked_up(pickable_object):
 	var module_logic = pickable_object.get_node("ModuleLogic")
@@ -23,9 +22,7 @@ func update_screen():
 		return
 	if lever_switch_layout_status:
 		if lever_switch_activation_fv_status:
-			screen.scene = network_module_details_screen_2d_scene
-			var manager = screen.get_scene_instance().get_node("NetworkModuleDetailsManager")
-			manager.set_network_module_resource(network_module_resource)
+			emit_signal("update_scene", network_module_resource, network_module_details_screen_2d_scene, screen_position)
 			
 
 func _on_lever_switch_layout_status_change(status_):
