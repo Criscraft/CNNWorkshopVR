@@ -89,7 +89,7 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/ThreadPool++/future_thread_pool.gd"
 }, {
-"base": "EditorVCSInterface",
+"base": "",
 "class": "GitAPI",
 "language": "NativeScript",
 "path": "res://addons/godot-git-plugin/git_api.gdns"
@@ -204,6 +204,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/godot-xr-tools/objects/Interactable_area.gd"
 }, {
+"base": "Area",
+"class": "XRToolsInteractableAreaButton",
+"language": "GDScript",
+"path": "res://Assets/Stuff/interactable_area_button.gd"
+}, {
 "base": "PhysicsBody",
 "class": "XRToolsInteractableBody",
 "language": "GDScript",
@@ -264,6 +269,7 @@ _global_script_class_icons={
 "XRToolsHand": "",
 "XRToolsHandPhysicsBone": "",
 "XRToolsInteractableArea": "",
+"XRToolsInteractableAreaButton": "",
 "XRToolsInteractableBody": "",
 "XRToolsMoveTo": "",
 "XRToolsPhysicsHand": "",

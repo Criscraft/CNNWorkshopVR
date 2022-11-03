@@ -2,7 +2,7 @@
 
 [ext_resource path="res://Assets/Materials/test_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=2]
-[ext_resource path="res://Assets/Stuff/LeverSwitchHandle.gd" type="Script" id=3]
+[ext_resource path="res://Assets/Stuff/PointerPressable.gd" type="Script" id=3]
 [ext_resource path="res://Assets/Stuff/LeverSwitchHinge.gd" type="Script" id=4]
 
 [sub_resource type="BoxShape" id=1]

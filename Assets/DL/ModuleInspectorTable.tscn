@@ -4,7 +4,7 @@
 [ext_resource path="res://Assets/Stuff/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/Stuff/LeverSwitch.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/ModuleInspector.gd" type="Script" id=4]
-[ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen2D.tscn" type="PackedScene" id=6]
+[ext_resource path="res://Assets/Stuff/PointablePushButton.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=7]
 
 [sub_resource type="CubeMesh" id=1]
@@ -15,7 +15,6 @@ extents = Vector3( 0.175, 0.5, 0.1 )
 
 [node name="ModuleInspectorTable" type="StaticBody"]
 script = ExtResource( 4 )
-network_module_details_screen_2d_scene = ExtResource( 6 )
 
 [node name="MeshInstance" type="MeshInstance" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
@@ -55,10 +54,15 @@ text = "Feat. maps"
 transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, -0.079 )
 text = "Feat. Vis."
 
+[node name="ToggleModuleNotesButton" parent="." instance=ExtResource( 5 )]
+transform = Transform( 0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 1.00616, 0.0694866 )
+
 [connection signal="has_dropped" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_dropped"]
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 [connection signal="hinge_moved" from="LeverSwitchLayout/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_layout_status_change"]
 [connection signal="hinge_moved" from="LeverSwitchActivationFV/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_activation_fv_status_change"]
+[connection signal="pointer_pressed" from="ToggleModuleNotesButton/Button" to="." method="_on_ToggleLayout_pressed"]
+[connection signal="button_pressed" from="ToggleModuleNotesButton/InteractableAreaButton" to="." method="_on_ToggleLayout_pressed"]
 
 [editable path="ModuleTray"]
 [editable path="ModuleTray/Snap_Zone"]
@@ -68,3 +72,4 @@ text = "Feat. Vis."
 [editable path="LeverSwitchActivationFV"]
 [editable path="QuickLabel3"]
 [editable path="QuickLabel4"]
+[editable path="ToggleModuleNotesButton"]

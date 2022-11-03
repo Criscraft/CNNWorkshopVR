@@ -1,10 +1,9 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://Assets/ThemesAndFonts/ScrollBarTheme.tres" type="Theme" id=1]
 [ext_resource path="res://Assets/DL/NetworkModuleDetailsManager.gd" type="Script" id=2]
 [ext_resource path="res://Assets/Stuff/TextLine.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/Stuff/DebouncingTimer.gd" type="Script" id=4]
-[ext_resource path="res://Assets/DL/ImageTile.tscn" type="PackedScene" id=6]
 
 [sub_resource type="StyleBoxFlat" id=1]
 bg_color = Color( 0.227451, 0.301961, 0.552941, 1 )
@@ -28,6 +27,7 @@ margin_right = 968.0
 margin_bottom = 534.0
 alignment = 1
 script = ExtResource( 2 )
+channel_scene_path = "res://Assets/DL/Channel.tscn"
 
 [node name="ModuleNotesPanel" type="PanelContainer" parent="NetworkModuleDetailsManager"]
 margin_right = 400.0
@@ -88,16 +88,10 @@ size_flags_vertical = 3
 theme = ExtResource( 1 )
 scroll_horizontal_enabled = false
 
-[node name="ImageGrid" type="GridContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer"]
-margin_right = 256.0
-margin_bottom = 256.0
+[node name="ImageContainer" type="GridContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer"]
 custom_constants/vseparation = 10
 custom_constants/hseparation = 10
 columns = 8
-
-[node name="ImageTile" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer/ImageGrid" instance=ExtResource( 6 )]
-size_flags_horizontal = 0
-size_flags_vertical = 0
 
 [node name="Legend" type="HBoxContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer"]
 margin_top = 494.0
