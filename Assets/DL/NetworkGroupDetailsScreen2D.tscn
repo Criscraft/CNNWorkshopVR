@@ -19,6 +19,9 @@ color = Color( 0, 0, 0, 1 )
 
 [node name="NetworkGroupManager" parent="." instance=ExtResource( 3 )]
 
+[node name="CustomGraphEdit" parent="NetworkGroupManager" index="0"]
+camera_center_of_graph_zoom = Vector2( 1, 1 )
+
 [node name="NodeSelector" parent="NetworkGroupManager/CustomGraphEdit/CenterOfGraph/CameraCenterOfGraph" index="0" instance=ExtResource( 2 )]
 
 [node name="Selector" parent="NetworkGroupManager/CustomGraphEdit/CenterOfGraph/CameraCenterOfGraph/NodeSelector" index="1"]

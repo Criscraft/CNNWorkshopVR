@@ -15,6 +15,7 @@ var n_cols : int setget set_n_cols
 export var n_cols_inspector : int = 3
 var module_notes_panel_visibility = true setget set_module_notes_panel_visibility
 var network_module_resource : NetworkModuleResource setget set_network_module_resource
+var legend_visible = true setget set_legend_visible
 # feature_visualization_mode determines if feature visualizations are shown. 
 # Otherwise activations are shown
 export var feature_visualization_mode : bool = false setget set_feature_visualization_mode
@@ -37,9 +38,11 @@ func set_details_layout(mode : bool):
 	if details_layout:
 		set_n_cols(1)
 		$ImagePanel/VBoxContainer/ScrollContainer.scroll_vertical_enabled = false
+		set_legend_visible(false)
 	else:
 		_on_image_scale_changed() # Set image columns
 		$ImagePanel/VBoxContainer/ScrollContainer.scroll_vertical_enabled = true
+		set_legend_visible(true)
 	update_details_layout()
 		
 
@@ -153,10 +156,11 @@ func update_image_data(image_resources=[]):
 		
 	# Update the legend
 	if image_resource.value_zero_decoded != -1.0:
-		value_zero_decoded_label.text = String(image_resource.value_zero_decoded)
-		value_127_decoded_label.text = String((image_resource.value_zero_decoded + image_resource.value_255_decoded) / 2)
-		value_255_decoded_label.text = String(image_resource.value_255_decoded)
-		legend.visible = true
+		var format_string = "%.*f"
+		value_zero_decoded_label.text = format_string % [2, image_resource.value_zero_decoded]
+		value_127_decoded_label.text = format_string % [2, (image_resource.value_zero_decoded + image_resource.value_255_decoded) / 2]
+		value_255_decoded_label.text = format_string % [2, image_resource.value_255_decoded]
+		set_legend_visible(legend_visible)
 		
 	else:
 		legend.visible = false
@@ -207,3 +211,6 @@ func update_details_layout():
 func set_feature_visualization_mode(feature_visualization_mode_):
 	feature_visualization_mode = feature_visualization_mode_
 	
+func set_legend_visible(mode : bool):
+	legend_visible = mode
+	$ImagePanel/VBoxContainer/Legend.visible = mode

@@ -9,7 +9,23 @@ static func dict_to_image_resource(dick : Dictionary):
 	image.load_png_from_buffer(Marshalls.base64_to_raw(dick["data"]))
 	image_resource.image = image
 	image_resource.id = dick["id"]
+	image_resource.module_id = dick["module_id"]
+	image_resource.channel_id = dick["channel_id"]
 	image_resource.label = dick["label"]
 	image_resource.value_zero_decoded = dick["value_zero_decoded"]
 	image_resource.value_255_decoded = dick["value_255_decoded"]
 	return image_resource
+
+static func array_to_grayscaleimage(array : Array):
+	var image = Image.new()
+	var width = array[0].size()
+	var height = array.size()
+	image.create(width, height, false, 4) 
+	image.lock()
+	var value 
+	for i in range(height):
+		for j in range(width):
+			value = array[i][j]
+			image.set_pixel(j, i, Color(value, 0, -value))
+	image.unlock()
+	return image

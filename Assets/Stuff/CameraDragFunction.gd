@@ -14,7 +14,7 @@ func _gui_input(event):
 	if event is InputEventMouseMotion and is_dragging:
 		camera.translate(-event.relative)
 	else:
-		if event is InputEventMouseButton:
+		if event is InputEventMouseButton and event.button_index == BUTTON_LEFT:
 			is_dragging = event.is_pressed()
 			
 

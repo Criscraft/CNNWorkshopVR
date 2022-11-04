@@ -76,9 +76,9 @@ func _on_button_entered(var item: Spatial) -> void:
 		pressed = true
 
 		# Start the tween to move the button transform to the down position
-		var tmp
-		tmp = _tween.interpolate_property(_button, "transform:origin", null, _button_down, duration, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-		tmp = _tween.start()
+		var _tmp
+		_tmp = _tween.interpolate_property(_button, "transform:origin", null, _button_down, duration, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+		_tmp = _tween.start()
 
 		# Emit the pressed signal
 		emit_signal("button_pressed")
@@ -87,8 +87,8 @@ func _on_button_entered(var item: Spatial) -> void:
 # Called when an area or body exits the button area
 func _on_button_exited(var item: Spatial) -> void:
 	# Remove from the dictionary of triggered items
-	var tmp
-	tmp = _trigger_items.erase(item)
+	var _tmp
+	_tmp = _trigger_items.erase(item)
 
 	# Detect transition to released
 	if pressed and _trigger_items.empty():
@@ -96,8 +96,8 @@ func _on_button_exited(var item: Spatial) -> void:
 		pressed = false
 
 		# Start the tween to move the button transform to the up position
-		tmp = _tween.interpolate_property(_button, "transform:origin", null, _button_up, duration, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
-		tmp = _tween.start()
+		_tmp = _tween.interpolate_property(_button, "transform:origin", null, _button_up, duration, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+		_tmp = _tween.start()
 
 		# Emit the released signal
 		emit_signal("button_released")

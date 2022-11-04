@@ -126,6 +126,7 @@ class DLNetwork(object):
                 module = self.module_dict[module_id]['tracked_module']
                 module_info['kernels'] = module.w.data.cpu().numpy().tolist()
                 module_info['padding'] = module.padding
+                print(module_info['kernels'])
             
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out

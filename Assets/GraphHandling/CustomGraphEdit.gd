@@ -5,6 +5,7 @@ export var y_margin : int = 100
 export var drawn_path_szene : PackedScene = preload("res://Assets/GraphHandling/DrawnPath2D.tscn")
 export var edge_color : Color = Color("4b4baf")
 export var reset_camera_position_on_arrangement_of_nodes : bool = false
+export var camera_center_of_graph_zoom : Vector2 = Vector2.ZERO
 
 var id_to_child_dict = {} # Maps group ids to nodes. Is not updated automatically
 var layering = [] # Contains for each layer a list with group node ids. Is not updated automatically.
@@ -182,7 +183,10 @@ func update_size():
 	get_node("CenterOfGraph").position.x = (x_min + x_max) / 2.0
 	var resolution_x = get_viewport().size.x
 	var extra_margin = resolution_x / 2
-	get_node("CenterOfGraph/CameraCenterOfGraph").zoom = Vector2((x_max + extra_margin) / resolution_x, (x_max + extra_margin) / resolution_x)
+	if camera_center_of_graph_zoom.x > 0:
+		get_node("CenterOfGraph/CameraCenterOfGraph").zoom = camera_center_of_graph_zoom
+	else:
+		get_node("CenterOfGraph/CameraCenterOfGraph").zoom = Vector2((x_max + extra_margin) / resolution_x, (x_max + extra_margin) / resolution_x)
 	if reset_camera_position_on_arrangement_of_nodes:
 		get_node("CenterOfGraph/CameraCenterOfGraph").position = Vector2.ZERO	
 	
