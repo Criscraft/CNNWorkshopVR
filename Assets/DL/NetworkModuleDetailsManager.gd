@@ -113,7 +113,7 @@ func receive_image_data(image_resource_data):
 		return
 	
 	add_to_group("on_pool_task_completed")
-	THREADPOOL.submit_task(self, "process_module_image_resources", image_resource_data, "process_module_image_resources")
+	THREADPOOL.submit_task(self, "process_module_image_resources", image_resource_data, "process_module_image_resources_" + String(network_module_resource.module_id))
 	#var results = process_module_image_resources(image_resource_data)
 	#update_image_data(results)
 
@@ -128,7 +128,7 @@ func process_module_image_resources(image_resource_data):
 
 # Called by THREADPOOL via Group
 func on_pool_task_completed(task):
-	if task.tag == "process_module_image_resources":
+	if task.tag == "process_module_image_resources_" + String(network_module_resource.module_id):
 		# Remove from THREADPOOL group. We assume that we use THREADPOOL sparsely and that we have no two running tasks at the same time.
 		remove_from_group("on_pool_task_completed")
 		call_deferred("update_image_data", task.result)
