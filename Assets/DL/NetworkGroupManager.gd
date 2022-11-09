@@ -59,6 +59,8 @@ func receive_architecture(architecture_dict):
 		network_module_resource.size = value["size"]
 		if "weights" in value:
 			network_module_resource.weights = value["weights"]
+			network_module_resource.weights_min = value["weights_min"]
+			network_module_resource.weights_max = value["weights_max"]
 		if "permutation" in value:
 			network_module_resource.permutation = value["permutation"]
 		if "kernels" in value:

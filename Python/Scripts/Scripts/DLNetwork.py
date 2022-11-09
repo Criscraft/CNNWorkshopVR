@@ -119,14 +119,16 @@ class DLNetwork(object):
             
             # Add information to special cases
             if module_info['tracker_module_type'] == "GROUPCONV":
-                module_info['weights'] = self.module_dict[module_id]['tracked_module'].weight.data.cpu().numpy().tolist()
+                weights = self.module_dict[module_id]['tracked_module'].weight.data.cpu().numpy()
+                module_info['weights'] = weights.tolist()
+                module_info['weights_min'] = float(weights.min())
+                module_info['weights_max'] = float(weights.max())
             elif module_info['tracker_module_type'] == "REWIRE":
                 module_info['permutation'] = self.module_dict[module_id]['tracked_module'].data.cpu().numpy().tolist()
             elif module_info['tracker_module_type'] == "HFCONV":
                 module = self.module_dict[module_id]['tracked_module']
                 module_info['kernels'] = module.w.data.cpu().numpy().tolist()
                 module_info['padding'] = module.padding
-                print(module_info['kernels'])
             
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out
