@@ -234,3 +234,7 @@ class DLNetwork(object):
         return self.module_dict[module_id]['channel_labels']
 
 
+    def set_weights(self, module_id, weights):
+        self.module_dict[module_id]['tracked_module'].weight.data = weights
+
+

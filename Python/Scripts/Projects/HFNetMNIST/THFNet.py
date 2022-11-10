@@ -362,7 +362,7 @@ class DoubleHandcraftedFilterModule(nn.Module):
             handcrafted_filters_require_grad=handcrafted_filters_require_grad,
             shuffle_conv_groups=shuffle_conv_groups,
             )
-        self.relu1 = activation_layer(inplace=True)
+        self.relu1 = activation_layer(inplace=False)
         self.norm1 = LayerNorm()
 
         TRACKERMODULECOUNTER += 1
@@ -403,7 +403,7 @@ class DoubleHandcraftedFilterModule(nn.Module):
         self.tracker_sum = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.SIMPLENODE, TRACKERMODULEGROUPCOUNTER, label="Sum", precursors=[TRACKERMODULECOUNTER - 1, TRACKERMODULECOUNTER - 2])
 
         # relu and norm
-        self.relu2 = activation_layer(inplace=True)
+        self.relu2 = activation_layer(inplace=False)
         self.norm2 = LayerNorm()
 
         TRACKERMODULEGROUPCOUNTER += 1
@@ -519,7 +519,7 @@ class HFNet_(nn.Module):
             handcrafted_filters_require_grad=start_config['handcrafted_filters_require_grad'],
             shuffle_conv_groups=start_config['shuffle_conv_groups'],
         )
-        self.relu1 = activation_layer(inplace=True)
+        self.relu1 = activation_layer(inplace=False)
         self.norm1 = LayerNorm()
 
         TRACKERMODULECOUNTER += 1

@@ -153,6 +153,7 @@ func update_image_data(image_resources=[]):
 		new_instance.set_image_resource(image_resource)
 		if details_layout:
 			new_instance.set_network_module_resource(network_module_resource)
+		new_instance.connect("weight_changed", self, "on_weight_changed")
 		
 	# Update the legend
 	if image_resource.value_zero_decoded != -1.0:
@@ -211,6 +212,13 @@ func update_details_layout():
 func set_feature_visualization_mode(feature_visualization_mode_):
 	feature_visualization_mode = feature_visualization_mode_
 	
+	
 func set_legend_visible(mode : bool):
 	legend_visible = mode
 	$ImagePanel/VBoxContainer/Legend.visible = mode
+
+
+func on_weight_changed(weight, channel_ind, weight_ind):
+	#var group_size = network_module_resource.weights[0].size()
+	network_module_resource.weights[channel_ind][weight_ind][0][0] = weight
+	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)

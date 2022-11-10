@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Assets/Debug/Testbutton.gd" type="Script" id=1]
+
+[node name="TestButton" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+rect_min_size = Vector2( 256, 256 )
+script = ExtResource( 1 )
+
+[node name="Button" type="Button" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_right = 12.0
+margin_bottom = 20.0
+rect_min_size = Vector2( 256, 256 )
+
+[connection signal="button_down" from="Button" to="." method="_on_Button_button_down"]

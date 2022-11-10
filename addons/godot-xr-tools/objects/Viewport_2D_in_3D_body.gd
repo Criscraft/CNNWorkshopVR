@@ -2,6 +2,8 @@ extends XRToolsInteractableBody
 
 export var screen_size = Vector2(3.0, 2.0)
 export var viewport_size = Vector2(100.0, 100.0)
+var last_cursor_position = Vector2.ZERO
+var last_cursor_global_position = Vector2.ZERO
 
 var vp = null
 
@@ -29,6 +31,8 @@ func _on_pointer_moved(from, to):
 	
 	var local_from = global_to_viewport(from)
 	var local_to = global_to_viewport(to)
+	last_cursor_position = local_to
+	last_cursor_global_position = local_to
 	
 	# Let's mimic a mouse
 	var event = InputEventMouseMotion.new()
@@ -53,6 +57,7 @@ func _on_pointer_pressed(at):
 	event.set_global_position(local_at)
 	event.set_button_mask(BUTTON_MASK_LEFT)
 	vp.input(event)
+	
 
 func _on_pointer_released(at):
 	if not vp:

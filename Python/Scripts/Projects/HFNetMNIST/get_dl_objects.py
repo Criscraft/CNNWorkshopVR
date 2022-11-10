@@ -37,7 +37,7 @@ def get_network():
             'filter_mode_1' : 'UnevenPosOnly',
             'filter_mode_2' : 'UnevenPosOnly',
             'n_angles' : 4,
-            'n_blocks' : 2,
+            'n_blocks' : 1,
             'n_channels_in' : 20,
             'n_channels_out' : 20,
             'avgpool' : True if i>0 else False,

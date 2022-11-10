@@ -15,7 +15,7 @@ export (int, LAYERS_3D_PHYSICS) var collision_layer = 15 setget set_collision_la
 
 var is_ready = false
 var scene_node = null
-var is_pointer_entered = false
+export var is_pointer_entered = false
 
 func set_enabled(is_enabled: bool):
 	enabled = is_enabled
@@ -102,9 +102,10 @@ func _input(event):
 		
 	# Forward scroll_wheel action to the viewport.
 	if event is InputEventMouseButton and \
-	event.pressed and \
 	(event.button_index == BUTTON_WHEEL_UP or \
 	event.button_index == BUTTON_WHEEL_DOWN):
+		event.set_position($StaticBody.last_cursor_position)
+		event.set_global_position($StaticBody.last_cursor_global_position)
 		$Viewport.input(event)
 		
 	# Block other mouse input because we want the mouse input to be emulated by the body.

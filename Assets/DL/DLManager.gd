@@ -5,6 +5,7 @@ export var websocket_url = "ws://127.0.0.1:8000/"
 
 # Our WebSocketClient instance
 var _client = WebSocketClient.new()
+var network_module_resources_weights_changed = []
 
 signal on_connected()
 
@@ -23,6 +24,16 @@ func _ready():
 	# a full packet is received.
 	# Alternatively, you could check get_peer(1).get_available_packets() in a loop.
 	_client.connect("data_received", self, "_on_data")
+	
+	# Add debouncing timer for reacting on changes in network weights
+	var timer = Timer.new()
+	timer.name = "NetworkWeightsDebouncingTimer"
+	timer.one_shot = true
+	timer.wait_time = 2
+	timer.set_script(load("res://Assets/Stuff/DebouncingTimer.gd"))
+	add_child(timer)
+	timer.connect("timeout", self, "send_network_weights")
+	add_to_group("on_weight_changed")
 
 	# Initiate connection to the given URL.
 	var err = _client.connect_to_url(websocket_url, []) # No subprotocoll used yet.
@@ -101,29 +112,52 @@ func on_request_dataset_images(n):
 	var message = {"resource" : "request_dataset_images", "n" : n}
 	send_request(message)
 	
+	
 # called by signal from Network Station
 func on_request_forward_pass(image_resource):
 	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
 	send_request(message)
+	
 	
 # Called in _ready()
 func on_request_architecture():
 	var message = {"resource" : "request_architecture"}
 	send_request(message)
 	
+	
 # Called by signal from NetworkModuleDetailsManager
 func on_request_image_data(network_module_resource : NetworkModuleResource, mode="activation"):
 	var message = {"resource" : "request_image_data", "network_module_resource" : network_module_resource.get_dict()}
 	message["mode"] = mode
 	send_request(message)
+
+
+func send_network_weights():
+	if not network_module_resources_weights_changed:
+		return
+	var weight_dicts = {}
+	for network_module_resource in network_module_resources_weights_changed:
+		weight_dicts[network_module_resource.module_id] = network_module_resource.weights
+	var message = {"resource" : "send_network_weights", "weight_dicts" : weight_dicts}
+	network_module_resources_weights_changed = []
+	send_request(message)
 	
 	
 func send_request(request_dictionary : Dictionary):
 	var message = JSON.print(request_dictionary)
-	print(message)
-	_client.get_peer(1).put_packet(message.to_utf8())
+	if message.length() < 100:
+		print(message)
+	_client.get_peer(1).put_packet(message.to_utf8())	
 
 
+"""
+#################################
+Submit changes invoced by client
+#################################
+"""
 
-
-
+# Called by NetworkModuleDetailsManager via group
+func weight_changed(network_module_resource):
+	if not network_module_resource in network_module_resources_weights_changed:
+		network_module_resources_weights_changed.append(network_module_resource)
+	$NetworkWeightsDebouncingTimer._on_trigger()

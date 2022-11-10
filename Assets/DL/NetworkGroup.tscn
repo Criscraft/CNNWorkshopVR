@@ -5,4 +5,3 @@
 
 [node name="NetworkGroup" instance=ExtResource( 1 )]
 script = ExtResource( 2 )
-highlighted_color = Color( 0, 0.835294, 1, 1 )

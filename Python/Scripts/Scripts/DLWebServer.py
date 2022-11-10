@@ -12,6 +12,7 @@ from Scripts.utils import get_module
 network = None
 dataset = None
 noise_generator = None
+current_image_resource = None
 
 def prepare_dl_objects(source):
     global dataset
@@ -41,6 +42,8 @@ async def handler(websocket):
             response = request_architecture(event)
         elif event["resource"] == "request_image_data":
             response = request_image_data(event)
+        elif event["resource"] == "send_network_weights":
+            response = receive_network_weights(event)
         
         if response:
             await websocket.send(response)
@@ -93,7 +96,20 @@ def request_forward_pass(event):
     else:
         image = torch.zeros(dataset.get_data_item(0, True)[0].shape)
     image_resource.data = image
+    response = perform_forward_pass(image_resource)
+    print("send: " + "request_forward_pass")
+    return response
 
+
+def perform_forward_pass(image_resource=None):
+    global current_image_resource
+    if image_resource is None and current_image_resource is not None:
+        image_resource = current_image_resource
+    elif image_resource is not None:
+        current_image_resource = image_resource
+    else:
+        return ""
+    
     # Perform the forward pass
     network.forward_pass(image_resource)
     
@@ -107,7 +123,6 @@ def request_forward_pass(event):
         }
         response = {"resource" : "request_forward_pass", "results" : response}
         response = json.dumps(response, indent=1, ensure_ascii=False)
-    print("send: " + "request_forward_pass")
     return response
 
 
@@ -141,6 +156,15 @@ def request_image_data(event):
     response = {"resource" : "request_image_data", "image_resources" : image_resources}
     response = json.dumps(response, indent=1, ensure_ascii=True)
     print("send: " + "request_image_data")
+    return response
+
+
+def receive_network_weights(event):
+    for module_id, weights in event['weight_dicts'].items():
+        weights = torch.FloatTensor(weights, device=network.device)
+        network.set_weights(int(module_id), weights)
+    response = perform_forward_pass()
+    print("send: " + "request_forward_pass")
     return response
 
 

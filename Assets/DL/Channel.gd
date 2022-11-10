@@ -1,7 +1,14 @@
 extends Control
 
 export var line_scene : PackedScene
+export var weight_edit_scene : PackedScene
 var margin = 10
+var left_weight_limit : float
+var right_weight_limit : float
+var channel_ind : int
+
+signal weight_changed(weight, channel_ind, weight_ind)
+
 
 func set_image_resource(image_resource : DLImageResource):
 	$ChannelImageTile.image_resource = image_resource
@@ -31,44 +38,62 @@ func add_details(network_module_resource):
 		kernel_texture_rect.rect_min_size = Vector2(256, 256)
 		
 	if network_module_resource.permutation:
-		var width = 256
-		var height = 256
-		var channel_ind = $ChannelImageTile.image_resource.channel_id
+		channel_ind = $ChannelImageTile.image_resource.channel_id
 		var perm_ind = network_module_resource.permutation[channel_ind]
 		draw_channel_connection(channel_ind, perm_ind)
 		add_dummy_rect()
 		
 	if network_module_resource.weights:
-		var n_channels = network_module_resource.weights.size()
+		#var n_channels = network_module_resource.weights.size()
 		var group_size = network_module_resource.weights[0].size()
-		var channel_ind = $ChannelImageTile.image_resource.channel_id
-		var group = int(channel_ind / group_size)
-		var group_position = channel_ind % group_size
+		channel_ind = $ChannelImageTile.image_resource.channel_id
+		var group_ind = int(channel_ind / group_size)
+		#var group_position = channel_ind % group_size
 		var color
-		var weight
-		var left_limit = 0.0
-		var right_limit = 0.0
+		var weights = []
+		for weight in network_module_resource.weights[channel_ind]:
+			weights.append(weight[0][0])
+		left_weight_limit = 0.0
+		right_weight_limit = 0.0
 		if network_module_resource.weights_min < 0 and network_module_resource.weights_max < 0:
-			left_limit = network_module_resource.weights_min
+			left_weight_limit = network_module_resource.weights_min
 		elif network_module_resource.weights_min > 0 and network_module_resource.weights_max > 0:
-			right_limit = network_module_resource.weights_max
+			right_weight_limit = network_module_resource.weights_max
 		else:
-			left_limit = - max(-network_module_resource.weights_min, network_module_resource.weights_max)
-			right_limit = - left_limit
-		# Draw channel connections
+			left_weight_limit = - max(-network_module_resource.weights_min, network_module_resource.weights_max)
+			right_weight_limit = - left_weight_limit
+			
+		# Draw weight edit UI
+		var weight_edit = weight_edit_scene.instance()
+		add_child(weight_edit)
+		move_child(weight_edit, 0)
+		weight_edit.set_initial_weights(weights, \
+			left_weight_limit - 0.1 * (right_weight_limit - left_weight_limit), \
+			right_weight_limit + 0.1 * (right_weight_limit - left_weight_limit))
+		
+		# Draw channel connections and colorize
 		for i in range(group_size):
-			weight = network_module_resource.weights[channel_ind][group_position][0][0]
-			if weight < 0:
-				color = Color(0, 0, weight / left_limit)
-			else:
-				color = Color(weight / right_limit, 0, 0)
-			draw_channel_connection(channel_ind, group * group_size + i, color)
+			color = get_weight_color(weights[i])
+			weight_edit.set_color(i, color)
+			draw_channel_connection(channel_ind, group_ind * group_size + i, color, (i + 0.5) / group_size)
+			
+		# Draw dummy rect such that the channel connections have enough space to be shown
 		add_dummy_rect()
 			
-func draw_channel_connection(channel_id, child_channel_id, color=null):
+			
+func get_weight_color(weight):
+	var color : Color
+	if weight < 0:
+		color = Color(0, 0, weight / (left_weight_limit + 1e-6))
+	else:
+		color = Color(weight / (right_weight_limit + 1e-6), 0, 0)
+	return color
+	
+	
+func draw_channel_connection(channel_id, child_channel_id, color=null, relative_shift_right=0.5):
 	var width = 256
 	var height = 256
-	var start_pos = Vector2(width, 0.5 * height)
+	var start_pos = Vector2(width, relative_shift_right * height)
 	var mid_pos = Vector2(0.25 * width, (child_channel_id - channel_id + 0.5) * (height + margin))
 	var end_pos = Vector2(0, (child_channel_id - channel_id + 0.5) * (height + margin))
 	var curve = Curve2D.new()
@@ -92,8 +117,16 @@ func add_dummy_rect():
 	add_child(control)
 	move_child(control, 0)
 
+
 func set_size_of_children(size_new):
 	$ChannelImageTile.set_size_of_children(size_new)
 	var channel_image_tile = get_node_or_null("KernelImage")
 	if is_instance_valid(channel_image_tile):
 		channel_image_tile.rect_min_size = Vector2(size_new, size_new)
+
+
+func on_weight_changed(weight, weight_ind):
+	var color = get_weight_color(weight)
+	$WeightEditContainer.set_color(weight_ind, color)
+	emit_signal("weight_changed", weight, channel_ind, weight_ind)
+	
