@@ -44,17 +44,16 @@ func add_details(network_module_resource):
 		add_dummy_rect()
 		
 	if network_module_resource.weights:
-		#var n_channels = network_module_resource.weights.size()
 		var group_size = network_module_resource.weights[0].size()
 		channel_ind = $ChannelImageTile.image_resource.channel_id
 		var group_ind = int(channel_ind / group_size)
-		#var group_position = channel_ind % group_size
 		var color
 		var weights = []
 		for weight in network_module_resource.weights[channel_ind]:
 			weights.append(weight[0][0])
-		left_weight_limit = 0.0
-		right_weight_limit = 0.0
+		left_weight_limit = -1.0
+		right_weight_limit = 1.0
+		"""
 		if network_module_resource.weights_min < 0 and network_module_resource.weights_max < 0:
 			left_weight_limit = network_module_resource.weights_min
 		elif network_module_resource.weights_min > 0 and network_module_resource.weights_max > 0:
@@ -62,14 +61,13 @@ func add_details(network_module_resource):
 		else:
 			left_weight_limit = - max(-network_module_resource.weights_min, network_module_resource.weights_max)
 			right_weight_limit = - left_weight_limit
-			
+		"""
+		
 		# Draw weight edit UI
 		var weight_edit = weight_edit_scene.instance()
 		add_child(weight_edit)
 		move_child(weight_edit, 0)
-		weight_edit.set_initial_weights(weights, \
-			left_weight_limit - 0.1 * (right_weight_limit - left_weight_limit), \
-			right_weight_limit + 0.1 * (right_weight_limit - left_weight_limit))
+		weight_edit.set_initial_weights(weights, left_weight_limit, right_weight_limit)
 		
 		# Draw channel connections and colorize
 		for i in range(group_size):

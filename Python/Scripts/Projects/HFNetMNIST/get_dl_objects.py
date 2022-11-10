@@ -46,6 +46,7 @@ def get_network():
             'shuffle_conv_groups' : 20 // 4,
             } for i in range(4)],
         avgpool_after_firstlayer=False,
+        init_mode = 'zero',
         #statedict='hfnet_blocks_2_2_2_2_shallow.pt',
     )
         

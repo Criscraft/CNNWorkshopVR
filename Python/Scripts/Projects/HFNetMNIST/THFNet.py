@@ -210,7 +210,6 @@ class HandcraftedFilterModule(nn.Module):
     ) -> None:
         super().__init__()
 
-        # TODO implement shuffeling and store the shuffeling permanently
         self.predev_conv = PredefinedConvnxn(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, requires_grad=handcrafted_filters_require_grad)
         n_channels_mid = self.predev_conv.n_channels_out
         self.norm1 = LayerNorm()
@@ -221,24 +220,46 @@ class HandcraftedFilterModule(nn.Module):
         global TRACKERMODULEGROUPCOUNTER
         TRACKERMODULECOUNTER += 1
         self.tracker_input = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Input")
+        
+        # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
+        if f>1:
+            self.copymodule1 = CopyModule(n_channels_in, n_channels_in * f)
+            TRACKERMODULECOUNTER += 1
+            self.tracker_copymodule1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.COPY, TRACKERMODULEGROUPCOUNTER, label="Copy channels", precursors=[TRACKERMODULECOUNTER - 1])
+        else:
+            self.copymodule1 = nn.Identity()
+            self.tracker_copymodule1 = nn.Identity()
+        
         TRACKERMODULECOUNTER += 1
         self.tracker_predev_conv = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.HFCONV, TRACKERMODULEGROUPCOUNTER, label="3x3 Conv", precursors=[TRACKERMODULECOUNTER - 1], tracked_module=self.predev_conv)
         TRACKERMODULECOUNTER += 1
         self.tracker_relu = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.RELU, TRACKERMODULEGROUPCOUNTER, label="ReLU", precursors=[TRACKERMODULECOUNTER - 1])
         TRACKERMODULECOUNTER += 1
         self.tracker_norm1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.NORM, TRACKERMODULEGROUPCOUNTER, label="LayerNorm", precursors=[TRACKERMODULECOUNTER - 1])
+        
+        # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
+        if n_channels_in * f < n_channels_out:
+            self.copymodule2 = CopyModule(n_channels_in * f, n_channels_out, interleave=False)
+            TRACKERMODULECOUNTER += 1
+            self.tracker_copymodule2 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.COPY, TRACKERMODULEGROUPCOUNTER, label="Copy channels", precursors=[TRACKERMODULECOUNTER - 1])
+        else:
+            self.copymodule2 = nn.Identity()
+            self.tracker_copymodule2 = nn.Identity()
+
         TRACKERMODULECOUNTER += 1
         self.tracker_conv1x1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="1x1 Conv", precursors=[TRACKERMODULECOUNTER - 1], tracked_module=self.conv1x1)
 
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_input(x)
+        _ = self.tracker_copymodule1(self.copymodule1(x))
         x = self.predev_conv(x)
         _ = self.tracker_predev_conv(x)
         x = self.relu(x)
         _ = self.tracker_relu(x)
         x = self.norm1(x)
         _ = self.tracker_norm1(x)
+        _ = self.tracker_copymodule2(self.copymodule2(x))
         x = self.conv1x1(x)
         _ = self.tracker_conv1x1(x)
         return x
@@ -273,14 +294,20 @@ class CopyModule(nn.Module):
         self,
         n_channels_in : int,
         n_channels_out : int,
+        interleave : bool = True,
     ) -> None:
         super().__init__()
 
         self.factor = n_channels_out // n_channels_in
+        self.interleave = interleave
 
     def forward(self, x: Tensor) -> Tensor:
-        
-        return x.repeat_interleave(2, dim=1)
+        if self.interleave:
+            return x.repeat_interleave(self.factor, dim=1)
+        else:
+            dimensions = [1 for _ in range(x.ndim)]
+            dimensions[1] = self.factor
+            return x.repeat(*dimensions)
 
 
 class LayerNorm(nn.Module):
@@ -327,7 +354,8 @@ class DoubleHandcraftedFilterModule(nn.Module):
             self.tracker_avgpool = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.POOL, TRACKERMODULEGROUPCOUNTER, label="AvgPool")
 
         # Permutation
-        self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
+        #self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
+        self.permutation = nn.Parameter(torch.arange(n_channels_in).roll(1), False)
         TRACKERMODULEGROUPCOUNTER += 1
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.REWIRE, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Channel Permutation"))
         TRACKERMODULECOUNTER += 1
@@ -390,7 +418,7 @@ class DoubleHandcraftedFilterModule(nn.Module):
 
         # Skip
         TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[summand_index], label="Skip"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SIMPLEGROUP, precursors=[summand_index], label="Skip"))
 
         # Sum
         TRACKERMODULEGROUPCOUNTER += 1
@@ -438,7 +466,7 @@ class DoubleHandcraftedFilterModule(nn.Module):
 
         _ = self.tracker_sum_summand1(out)
         _ = self.tracker_sum_summand2(x)
-        out += x
+        out = out + x
         _ = self.tracker_sum(out)
 
         _ = self.tracker_activation_and_norm_input(out)
@@ -567,9 +595,8 @@ class HFNet_(nn.Module):
         self.tracker_classifier = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="Classifier", tracked_module=self.classifier, channel_labels="classes")
         TRACKERMODULECOUNTER += 1
         self.tracker_classifier_softmax = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.SIMPLENODE, TRACKERMODULEGROUPCOUNTER, label="Class Probabilities", precursors=[TRACKERMODULECOUNTER - 1], channel_labels="classes")
-
         for m in self.modules():
-            if isinstance(m, (nn.Conv2d, PredefinedConv)) and hasattr(m, 'kernel_size') and m.kernel_size==1:
+            if isinstance(m, nn.Conv2d) and hasattr(m, 'kernel_size') and m.kernel_size[0] == 1:
                 if init_mode == 'kaiming_normal':
                     nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity=activation)
                 elif init_mode == 'kaiming_uniform':
@@ -578,9 +605,8 @@ class HFNet_(nn.Module):
                     nn.init.sparse_(m.weight, sparsity=0.1, std=0.01)
                 elif init_mode == 'orthogonal':
                     nn.init.orthogonal_(m.weight, gain=1)
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                elif init_mode == 'zero':
+                    nn.init.constant_(m.weight, 0.)
 
 
     def _make_layer(
