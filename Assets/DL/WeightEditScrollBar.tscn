@@ -7,4 +7,5 @@ margin_right = 1024.0
 margin_bottom = 60.0
 rect_min_size = Vector2( 400, 0 )
 theme = ExtResource( 1 )
+step = 0.2
 page = 0.15

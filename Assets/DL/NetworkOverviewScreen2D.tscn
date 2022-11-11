@@ -25,12 +25,12 @@ custom_constants/separation = -1
 
 [node name="MainViewportContainer" type="ViewportContainer" parent="Viewports/VBoxContainer"]
 margin_right = 1280.0
-margin_bottom = 520.0
-rect_min_size = Vector2( 1280, 520 )
+margin_bottom = 440.0
+rect_min_size = Vector2( 1280, 440 )
 script = ExtResource( 6 )
 
 [node name="Viewport" type="Viewport" parent="Viewports/VBoxContainer/MainViewportContainer"]
-size = Vector2( 1280, 520 )
+size = Vector2( 1280, 440 )
 transparent_bg = true
 handle_input_locally = false
 hdr = false
@@ -42,14 +42,19 @@ render_target_update_mode = 3
 [node name="Camera2D" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview" index="1"]
 current = true
 
+[node name="CameraFrame" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" index="0"]
+margin_top = -240.0
+margin_bottom = 240.0
+rect_min_size = Vector2( 1320, 480 )
+
 [node name="Selector" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D/NodeSelector" index="1"]
 target_group = "on_network_group_selected_by_overview_screen"
 method_to_be_called_in_group = "network_group_selected_by_overview_screen"
 
 [node name="ViewportRectMinimap" type="ViewportContainer" parent="Viewports/VBoxContainer"]
-margin_top = 519.0
+margin_top = 439.0
 margin_right = 1280.0
-margin_bottom = 719.0
+margin_bottom = 639.0
 rect_min_size = Vector2( 1280, 200 )
 script = ExtResource( 6 )
 

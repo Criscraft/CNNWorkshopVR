@@ -6,7 +6,7 @@
 
 [sub_resource type="QuadMesh" id=4]
 resource_local_to_scene = true
-size = Vector2( 1, 0.563 )
+size = Vector2( 1, 0.5 )
 
 [sub_resource type="ViewportTexture" id=11]
 
@@ -21,7 +21,7 @@ albedo_texture = SubResource( 11 )
 
 [sub_resource type="BoxShape" id=6]
 resource_local_to_scene = true
-extents = Vector3( 0.5, 0.2815, 0.01 )
+extents = Vector3( 0.5, 0.25, 0.01 )
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 0.5, 0.01, 0.5 )
@@ -40,17 +40,17 @@ height = 1.0
 radius = 0.05
 
 [sub_resource type="CubeMesh" id=3]
-size = Vector3( 1, 0.002, 0.563 )
+size = Vector3( 1, 0.002, 0.5 )
 
 [sub_resource type="BoxShape" id=10]
-extents = Vector3( 0.5, 0.001, 0.281 )
+extents = Vector3( 0.5, 0.001, 0.25 )
 
 [node name="NetworkOverviewScreen" type="Spatial"]
 
 [node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
 transform = Transform( 1, 0, 0, 0, 0.5, 0.866026, 0, -0.866026, 0.5, 0, 1.12111, 0.00406688 )
-screen_size = Vector2( 1, 0.563 )
-viewport_size = Vector2( 1280, 720 )
+screen_size = Vector2( 1, 0.5 )
+viewport_size = Vector2( 1280, 640 )
 scene = ExtResource( 2 )
 collision_layer = 9
 
@@ -60,14 +60,14 @@ material/0 = SubResource( 5 )
 
 [node name="StaticBody" parent="Viewport2Din3D" index="1"]
 collision_layer = 9
-screen_size = Vector2( 1, 0.563 )
-viewport_size = Vector2( 1280, 720 )
+screen_size = Vector2( 1, 0.5 )
+viewport_size = Vector2( 1280, 640 )
 
 [node name="CollisionShape" parent="Viewport2Din3D/StaticBody" index="0"]
 shape = SubResource( 6 )
 
 [node name="Viewport" parent="Viewport2Din3D" index="2"]
-size = Vector2( 1280, 720 )
+size = Vector2( 1280, 640 )
 
 [node name="StaticBody" type="StaticBody" parent="."]
 

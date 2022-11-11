@@ -13,7 +13,7 @@ func _ready():
 	_error = connect("request_forward_pass", DLManager, "on_request_forward_pass")
 	
 	
-func _on_Snap_Zone_has_picked_up(what):
+func _on_network_input_tray_picked_up(what):
 	# Check if held object has image content.
 	if not what.has_node("ImageLogic"):
 		return
@@ -38,3 +38,7 @@ func receive_classification_results(results):
 	var confidence_values = results["confidence_values"]
 	for i in range(class_names.size()):
 		emit_signal("add_result_line", class_names[i] + " - " + confidence_values[i] + "%")
+
+
+func _on_feat_vis_tray_picked_up(what):
+	pass # Replace with function body.

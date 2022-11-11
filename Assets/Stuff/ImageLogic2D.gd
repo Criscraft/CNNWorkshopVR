@@ -25,3 +25,7 @@ func update_label() -> void:
 func set_size_of_children(size_new):
 	$Image.rect_min_size = Vector2(size_new, size_new)
 	$Label.rect_min_size = Vector2(size_new, 40)
+
+
+func _on_ImageSelectButton_pressed():
+	get_tree().call_group("on_image_selected", "image_selected", image_resource)

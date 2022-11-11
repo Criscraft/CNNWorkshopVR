@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/Stuff/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/DL/NetworkOutputScreen.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/NetworkInputOutputManager.gd" type="Script" id=4]
+[ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=5]
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 0.5, 1, 0.2 )
@@ -24,7 +25,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
 [node name="NetworkInputTray" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.009, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.132934, 1.009, 0 )
 
 [node name="Snap_Zone" parent="NetworkInputTray" index="1"]
 copies_on_pick_up = false
@@ -32,7 +33,24 @@ copies_on_pick_up = false
 [node name="NetworkOutputScreen" parent="." instance=ExtResource( 3 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.384, -0.097182 )
 
-[connection signal="has_picked_up" from="NetworkInputTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
+[node name="QuickLabel" parent="." instance=ExtResource( 5 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -0.13036, 1.0011, 0.0847925 )
+text = "Network Input"
+
+[node name="FeatVisTray" parent="." instance=ExtResource( 2 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13897, 1.009, 0 )
+
+[node name="Snap_Zone" parent="FeatVisTray" index="1"]
+copies_on_pick_up = false
+
+[node name="QuickLabel2" parent="." instance=ExtResource( 5 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.140429, 1.0011, 0.0847925 )
+text = "Feat. Vis. Input"
+
+[connection signal="has_picked_up" from="NetworkInputTray/Snap_Zone" to="." method="_on_network_input_tray_picked_up"]
+[connection signal="has_picked_up" from="FeatVisTray/Snap_Zone" to="." method="_on_feat_vis_tray_picked_up"]
 
 [editable path="NetworkInputTray"]
 [editable path="NetworkInputTray/Snap_Zone"]
+[editable path="FeatVisTray"]
+[editable path="FeatVisTray/Snap_Zone"]

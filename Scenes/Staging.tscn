@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
@@ -10,6 +10,7 @@
 [ext_resource path="res://Assets/DL/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
 [ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
 [ext_resource path="res://Assets/DL/ModuleInspectorStation.tscn" type="PackedScene" id=10]
+[ext_resource path="res://Assets/DL/SelectedImageSpawner.tscn" type="PackedScene" id=11]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -29,18 +30,21 @@ transform = Transform( 1, 0, 2.98023e-08, 0, 1, 0, -2.98023e-08, 0, 1, -0.011224
 [node name="TimedGrabableEliminationArea" parent="Environment" instance=ExtResource( 6 )]
 
 [node name="NetworkOverviewScreen" parent="Environment" instance=ExtResource( 3 )]
-transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.752392, 0, -0.00608492 )
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.76596, 0, -0.00608492 )
 
 [node name="NetworkGroupDetailsScreen" parent="Environment" instance=ExtResource( 8 )]
-transform = Transform( -4.37114e-08, 5.11965e-16, -1, 1.17124e-08, 1, 0, 1, -1.17124e-08, -4.37114e-08, 0.988412, 1.402, -0.00608492 )
+transform = Transform( -4.37114e-08, 5.11965e-16, -1, 1.17124e-08, 1, 0, 1, -1.17124e-08, -4.37114e-08, 0.976027, 1.38431, -0.00608492 )
 
 [node name="NetworkModuleDetailsScreen" parent="Environment" instance=ExtResource( 9 )]
-transform = Transform( -4.37114e-08, -1.10313e-15, -1, -2.52368e-08, 1, 0, 1, 2.52368e-08, -4.37114e-08, 0.988913, 2.05121, -0.00608492 )
+transform = Transform( -3.23931e-08, -0.34325, -0.939244, -3.87074e-08, 0.939244, -0.34325, 1, 2.52368e-08, -4.37114e-08, 0.801374, 1.9769, -0.00608492 )
 
 [node name="ModuleProvider" parent="Environment" instance=ExtResource( 7 )]
 transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.389869, 0, -0.00608498 )
 
 [node name="ModuleInspectorStation" parent="Environment" instance=ExtResource( 10 )]
 transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.0023303, 0, 0.603478 )
+
+[node name="SelectedImageSpawner" parent="Environment" instance=ExtResource( 11 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.435792, 0.973661, -0.684454 )
 
 [node name="SpawnedItems" type="Spatial" parent="."]
