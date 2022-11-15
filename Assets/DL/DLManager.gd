@@ -126,9 +126,14 @@ func on_request_architecture():
 	
 	
 # Called by signal from NetworkModuleDetailsManager
-func on_request_image_data(network_module_resource : NetworkModuleResource, mode="activation"):
+func on_request_image_data(network_module_resource : NetworkModuleResource, feature_visualization_mode=false):
 	var message = {"resource" : "request_image_data", "network_module_resource" : network_module_resource.get_dict()}
-	message["mode"] = mode
+	if feature_visualization_mode:
+		message["mode"] = "fv"
+		# Inform that we load feature visualization data, which might require time.
+		get_tree().call_group("on_loading_fv_data", "loading_fv_data", network_module_resource.module_id)
+	else:
+		message["mode"] = "activation"
 	send_request(message)
 
 
@@ -138,7 +143,7 @@ func send_network_weights():
 	var weight_dicts = {}
 	for network_module_resource in network_module_resources_weights_changed:
 		weight_dicts[network_module_resource.module_id] = network_module_resource.weights
-	var message = {"resource" : "send_network_weights", "weight_dicts" : weight_dicts}
+	var message = {"resource" : "request_network_weights", "weight_dicts" : weight_dicts}
 	network_module_resources_weights_changed = []
 	send_request(message)
 	
@@ -147,7 +152,14 @@ func send_request(request_dictionary : Dictionary):
 	var message = JSON.print(request_dictionary)
 	if message.length() < 100:
 		print(message)
-	_client.get_peer(1).put_packet(message.to_utf8())	
+	_client.get_peer(1).put_packet(message.to_utf8())
+	
+	
+func on_set_fv_image_resource(image_resource):
+	var message = {"resource" : "set_fv_image_resource", "image_resource" : image_resource.get_dict()}
+	send_request(message)
+	# Inform group that the fv image resource is updated.
+	get_tree().call_group("on_set_fv_image_resource", "set_fv_image_resource", image_resource)
 
 
 """

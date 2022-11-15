@@ -18,6 +18,7 @@ export var group_id : int = -1
 export var tracker_module_group_type : int = -1
 export var precursors : Array = []
 export var label : String = ""
+export var precursor_group_resources : Array = []
 	
 
 func get_dict():

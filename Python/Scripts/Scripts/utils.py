@@ -35,17 +35,18 @@ class TransformToUint(object):
         return data
         
 
-def tensor_to_string(tensor):
+def tensor_to_string(x):
     # tensor has shape (C, H, W) with channels RGB
-    image = tensor.detach().cpu().numpy()
-    image = image * 255
-    image = image.astype("uint8")
+    if not isinstance(x, np.ndarray):
+        x = x.detach().cpu().numpy()
+        x = x * 255
+        x = x.astype("uint8")
     # if image.shape[0] == 1:
     #     image.expand(-1, 3, -1, -1)
     #if image.shape[0] == 3:
     #    image = image[np.array([2,1,0])] # for sorting color channels to a unity friendly format BGR
-    image = image.transpose([1,2,0]) # put channel dimension to last, new shape (H, W, C)
-    image_enc = encode_image(image)
+    x = x.transpose([1,2,0]) # put channel dimension to last, new shape (H, W, C)
+    image_enc = encode_image(x)
     return image_enc
 
 

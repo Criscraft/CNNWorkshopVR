@@ -37,7 +37,7 @@ def get_network():
             'filter_mode_1' : 'UnevenPosOnly',
             'filter_mode_2' : 'UnevenPosOnly',
             'n_angles' : 4,
-            'n_blocks' : 2,
+            'n_blocks' : 1,
             'n_channels_in' : 20,
             'n_channels_out' : 20,
             'avgpool' : True if i>0 else False,
@@ -46,8 +46,8 @@ def get_network():
             'shuffle_conv_groups' : 20 // 4,
             } for i in range(4)],
         avgpool_after_firstlayer=False,
-        init_mode = 'zero',
-        #statedict='hfnet_blocks_2_2_2_2_shallow.pt',
+        #init_mode = 'zero',
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_hfnet_blocks_1_1_1_1_channels_20.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

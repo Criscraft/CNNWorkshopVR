@@ -13,6 +13,7 @@ network = None
 dataset = None
 noise_generator = None
 current_image_resource = None
+current_fv_image_resource = None
 
 def prepare_dl_objects(source):
     global dataset
@@ -42,8 +43,10 @@ async def handler(websocket):
             response = request_architecture(event)
         elif event["resource"] == "request_image_data":
             response = request_image_data(event)
-        elif event["resource"] == "send_network_weights":
-            response = receive_network_weights(event)
+        elif event["resource"] == "request_network_weights":
+            response = request_network_weights(event)
+        elif event["resource"] == "set_fv_image_resource":
+            response = set_fv_image_resource(event)
         
         if response:
             await websocket.send(response)
@@ -69,33 +72,7 @@ def request_dataset_images(event):
 
 
 def request_forward_pass(event):
-    # Create image resource
-    image_resource_dict = event["image_resource"]
-    image_resource = ImageResource(
-        id = image_resource_dict["id"],
-        module_id = image_resource_dict["module_id"],
-        channel_id = image_resource_dict["channel_id"],
-        mode = ImageResource.Mode(image_resource_dict["mode"]),
-    )
-
-    # Create image for the image resource
-    image = None
-    if image_resource.mode == ImageResource.Mode.DATASET and image_resource.id >= 0:
-        image, label = dataset.get_data_item(image_resource.id, False)
-        image_resource.label = dataset.class_names[label]
-    elif image_resource.mode == ImageResource.Mode.FEATURE_VISUALIZATION:
-        image = network.try_load_feature_visualization(image_resource.module_id)
-        if image is not None:
-            image = image[image_resource.channel_id]
-        else:
-            raise RuntimeError
-    elif image_resource.mode == ImageResource.Mode.NOISE:
-        image = noise_generator.get_noise_image()
-    elif image_resource.mode == ImageResource.Mode.ACTIVATION:
-        raise RuntimeError
-    else:
-        image = torch.zeros(dataset.get_data_item(0, True)[0].shape)
-    image_resource.data = image
+    image_resource = get_image_resource(event["image_resource"])
     response = perform_forward_pass(image_resource)
     print("send: " + "request_forward_pass")
     return response
@@ -136,13 +113,13 @@ def request_architecture(event):
 
 def request_image_data(event):
     image_resources = []
-    module_resources = event["network_module_resource"]
+    module_resource = event["network_module_resource"]
     mode = event["mode"]
+    module_id = module_resource["module_id"]
+    channel_labels = network.get_channel_labels(module_id)
     if mode == "activation":
-        module_id = module_resources["module_id"]
         activations = network.get_activation(module_id)[0]
         activations, minimum, maximum = utils.normalize(activations)
-        channel_labels = network.get_channel_labels(module_id)
         for channel_id, activation in enumerate(activations):
             image_resources.append(ImageResource(
                 module_id=module_id,
@@ -153,13 +130,25 @@ def request_image_data(event):
                 value_zero_decoded=minimum.item(),
                 value_255_decoded=maximum.item(),
             ).__dict__)
+    elif mode == "fv":
+        images = network.get_feature_visualization(module_id, current_fv_image_resource.data)
+        for channel_id, image in enumerate(images):
+            image_resources.append(ImageResource(
+                module_id=module_id,
+                channel_id=channel_id,
+                mode=ImageResource.Mode.FEATURE_VISUALIZATION,
+                label=channel_labels[channel_id] if channel_labels else "",
+                data=utils.tensor_to_string(image),
+            ).__dict__)
+    else:
+        raise ValueError(f"Unknown mode {mode}")
     response = {"resource" : "request_image_data", "image_resources" : image_resources}
     response = json.dumps(response, indent=1, ensure_ascii=True)
     print("send: " + "request_image_data")
     return response
 
 
-def receive_network_weights(event):
+def request_network_weights(event):
     for module_id, weights in event['weight_dicts'].items():
         weights = torch.FloatTensor(weights)
         weights = weights.to(network.device)
@@ -168,6 +157,44 @@ def receive_network_weights(event):
     print("send: " + "request_forward_pass")
     return response
 
+
+def set_fv_image_resource(event):
+    image_resource = get_image_resource(event["image_resource"])
+    global current_fv_image_resource
+    current_fv_image_resource = image_resource
+    print("set_fv_image_resource")
+    return ""
+
+
+def get_image_resource(image_resource_dict):
+    # Create image resource
+    image_resource = ImageResource(
+        id = image_resource_dict["id"],
+        module_id = image_resource_dict["module_id"],
+        channel_id = image_resource_dict["channel_id"],
+        mode = ImageResource.Mode(image_resource_dict["mode"]),
+    )
+
+    # Create image for the image resource
+    image = None
+    if image_resource.mode == ImageResource.Mode.DATASET and image_resource.id >= 0:
+        image, label = dataset.get_data_item(image_resource.id, False)
+        image_resource.label = dataset.class_names[label]
+    elif image_resource.mode == ImageResource.Mode.FEATURE_VISUALIZATION:
+        image = network.try_load_feature_visualization(image_resource.module_id)
+        if image is not None:
+            image = image[image_resource.channel_id]
+        else:
+            raise RuntimeError
+    elif image_resource.mode == ImageResource.Mode.NOISE:
+        image = noise_generator.get_noise_image()
+    elif image_resource.mode == ImageResource.Mode.ACTIVATION:
+        raise RuntimeError
+    else:
+        image = torch.zeros(dataset.get_data_item(0, True)[0].shape)
+    image_resource.data = image
+
+    return image_resource
 
 async def main():
     async with websockets.serve(handler, "", 8000, max_size=2**30, read_limit=2**30, write_limit=2**30):
@@ -178,7 +205,7 @@ if __name__ == "__main__":
     source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", "HFNetMNIST", "get_dl_objects.py")
     get_dl_objects_module = get_module(source_path)
     prepare_dl_objects(get_dl_objects_module)
-    print("server starts")
+    print("server running")
     asyncio.run(main())
 
 

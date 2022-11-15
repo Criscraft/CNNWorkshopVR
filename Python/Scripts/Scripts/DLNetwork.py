@@ -35,8 +35,6 @@ class DLNetwork(object):
 
         self.feature_visualizer = FeatureVisualizer(target_size=input_size)
         self.module_dict = {}
-        self.active_image_resource = ImageResource()
-        self.active_noise_image = None
 
         self.output_tracker_module_id = ""
         self.input_tracker_module_id = ""
@@ -45,7 +43,7 @@ class DLNetwork(object):
 
         self.feature_visualization_path = os.path.join(self.cache_path, 'FeatureVisualizations')
         if not os.path.exists(self.feature_visualization_path): os.makedirs(self.feature_visualization_path)
-        self.feature_visualization_mode = FeatureVisualizationMode.Loading
+        self.feature_visualization_mode = FeatureVisualizationMode.Generating
 
         self.export_path = os.path.join(self.cache_path, 'Export')
         if not os.path.exists(self.export_path): os.makedirs(self.export_path)
@@ -53,8 +51,7 @@ class DLNetwork(object):
     
     def initial_forward_pass(self, image_resource : ImageResource):
         with torch.no_grad():
-            self.active_image_resource = image_resource
-            image = self.active_image_resource.data.to(self.device)
+            image = image_resource.data.to(self.device)
             image = image.unsqueeze(0)
             out_dict = self.model.forward_features({'data' : image})
             module_dict = {}
@@ -75,6 +72,7 @@ class DLNetwork(object):
                     'group_id' : item['group_id'], 
                     'label' : item['label'],
                     'precursors' : item['precursors'],
+                    'module' : item['module'], 
                     'tracked_module' : item['tracked_module'],
                     'channel_labels' : item['channel_labels'],
                     'activation' : item.get('activation'),
@@ -93,8 +91,7 @@ class DLNetwork(object):
 
     def forward_pass(self, image_resource : ImageResource):
         with torch.no_grad():
-            self.active_image_resource = image_resource
-            image = self.active_image_resource.data.to(self.device)
+            image = image_resource.data.to(self.device)
             image = image.unsqueeze(0)
             out_dict = self.model.forward_features({'data' : image})
             # record info about each tracker module
@@ -111,7 +108,7 @@ class DLNetwork(object):
         for group in group_dict.values():
             group['tracker_module_group_type'] = group['tracker_module_group_type'].name
         # get tracker_module information
-        out_module_dict = {module_id : {key : module_info[key] for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in copy.deepcopy(self.module_dict).items()}
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in self.module_dict.items()}
         
         for module_id, module_info in out_module_dict.items():
             # convert enum to string
@@ -152,7 +149,7 @@ class DLNetwork(object):
     """
 
 
-    def get_feature_visualization(self, module_id):
+    def get_feature_visualization(self, module_id, image):
         if not self.module_dict:
             raise RuntimeError("need to do the initial forward pass first")
             
@@ -166,9 +163,9 @@ class DLNetwork(object):
             is_loaded = True
         if created_images is None:
             is_loaded = False
-            module = self.module_dict[module_id]["tracked_module"]
+            module = self.module_dict[module_id]["module"]
             n_channels = self.module_dict[module_id]["size"][1]
-            created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, self.active_image_resource.data, n_channels)
+            created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
         
         out_images = self.feature_visualizer.export_transformation(created_images)
 

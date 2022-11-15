@@ -129,6 +129,7 @@ class ActivationTracker():
             #one info_list can have multiple entries, for example if one relu module is applied several times in a network
             for info_item in info_list:
                 item_dict = module.meta
+                item_dict['module'] = module
                 #item_dict['module_id'] = module.module_name
                 if not item_dict['ignore_activation']:
                     item_dict['activation'] = info_item.in_data[0]

@@ -23,6 +23,7 @@ class FeatureVisualizer(object):
         epochs = 200,
         lr=20.,
         distribution_reg_blend=0.05,
+        # Scale inactive
         scale = 0.05,
         degrees = 10, 
         blur_sigma = 0.5,
@@ -72,7 +73,7 @@ class FeatureVisualizer(object):
                 model.zero_grad()
 
                 out_dict = model.forward_features({'data' : created_image}, module)
-                output = out_dict['activations'][0]['activation']
+                output = out_dict['layer_infos'][0]['activation']
                 loss_max = -torch.stack([output[i, j].mean() for i, j in enumerate(channels_batch)]).sum()
 
                 loss = loss_max
@@ -126,10 +127,10 @@ class ExportTransform(object):
 class Regularizer(object):
 
     def __init__(self, distribution_reg_blend, target_size, scale, degrees, blur_sigma, roll):
-        if scale > 0.:
-            scale = (1., 1. + scale)
-        else:
-            scale = None
+        # if scale > 0.:
+        #     scale = (1., 1. + scale)
+        # else:
+        #     scale = None
 
         if blur_sigma > 0.:
             blurring = tgm.image.GaussianBlur((5, 5), (blur_sigma, blur_sigma))# transforms.GaussianBlur(5, sigma=(0.1, blur_sigma))
@@ -141,9 +142,9 @@ class Regularizer(object):
             transforms.RandomApply(torch.nn.ModuleList([
                 transforms.RandomRotation(degrees=degrees),
                 ]), p=0.3),
-            transforms.RandomApply(torch.nn.ModuleList([
-                transforms.RandomAffine(degrees=0, scale=scale, interpolation=transforms.InterpolationMode.BILINEAR),
-                ]), p=0.05),
+            # transforms.RandomApply(torch.nn.ModuleList([
+            #     transforms.RandomAffine(degrees=0, scale=scale, interpolation=transforms.InterpolationMode.BILINEAR),
+            #     ]), p=0.05),
             blurring,
             transforms.CenterCrop(target_size[1:]),
             transforms.RandomApply(torch.nn.ModuleList([

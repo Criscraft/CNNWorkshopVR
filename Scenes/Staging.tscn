@@ -45,6 +45,6 @@ transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.38986
 transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.0023303, 0, 0.603478 )
 
 [node name="SelectedImageSpawner" parent="Environment" instance=ExtResource( 11 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.435792, 0.973661, -0.684454 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.415167, 0.907221, -0.399064 )
 
 [node name="SpawnedItems" type="Spatial" parent="."]

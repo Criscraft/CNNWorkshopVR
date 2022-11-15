@@ -25,7 +25,7 @@ export var feature_visualization_mode : bool = false setget set_feature_visualiz
 # When detail mode is inactive, the channels are shown in a grid (default)
 export var details_layout = false setget set_details_layout
 
-signal request_image_data(network_module_resource, mode)
+signal request_image_data(network_module_resource, feature_visualization_mode)
 
 
 func _ready():
@@ -57,13 +57,20 @@ func network_module_selected_by_detail_screen(network_module):
 func set_network_module_resource(new_network_module_resource):
 	network_module_resource = new_network_module_resource
 	update_text()
-	emit_signal("request_image_data", network_module_resource, "activation")
+	emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 	
 	
 # Called by DLManager via group
 func receive_classification_results(_results):
 	# When a new forward pass was performed, we need to update the image data.
-	emit_signal("request_image_data", network_module_resource, "activation")
+	if not feature_visualization_mode:
+		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
+		
+		
+# Called by DLManager via group
+func set_fv_image_resource(image_resource):
+	if feature_visualization_mode:
+		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 	
 	
 func update_text():
@@ -102,6 +109,7 @@ func add_text(text):
 	new_text.text = text
 	module_notes_container.add_child(new_text)
 
+
 # Called by DLManager when image data is received.
 func receive_image_data(image_resource_data):
 	if image_resource_data[0].module_id != network_module_resource.module_id:
@@ -135,6 +143,7 @@ func on_pool_task_completed(task):
 		
 
 func update_image_data(image_resources=[]):
+	set_loading(false)
 	if not image_resources:
 		# If no image_resources are given we reuse the data that is already present.
 		for child in image_container.get_children():
@@ -211,6 +220,9 @@ func update_details_layout():
 
 func set_feature_visualization_mode(feature_visualization_mode_):
 	feature_visualization_mode = feature_visualization_mode_
+	if network_module_resource != null:
+		# If we already have a network module resource we update the images.
+		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 	
 	
 func set_legend_visible(mode : bool):
@@ -222,3 +234,15 @@ func on_weight_changed(weight, channel_ind, weight_ind):
 	#var group_size = network_module_resource.weights[0].size()
 	network_module_resource.weights[channel_ind][weight_ind][0][0] = weight
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
+
+
+func loading_fv_data(module_id):
+	if network_module_resource != null and module_id == network_module_resource.module_id:
+		for child in image_container.get_children():
+			child.queue_free()
+		set_loading(true)
+		
+		
+func set_loading(mode : bool):
+	$LoadingScreen.visible = mode
+	$ImagePanel.visible = not mode

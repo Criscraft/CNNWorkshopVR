@@ -2,15 +2,16 @@ extends Spatial
 
 var network_module_resource : Resource setget set_network_module_resource
 var image_resource : Resource setget set_image_resource
-var lever_switch_layout_details = true
-var lever_switch_activation_fv_status = true
+var layout_details_mode = true
+var feature_visualization_mode = false
 
 export var screen_position : int = 0
 
-signal change_network_module_resource(network_module_resource, screen_position, details_layout, feature_visualization_mode)
-signal change_image_resource(image_resource, screen_position)
-signal change_details_layout(screen_position, mode)
+signal set_network_module_resource(network_module_resource, screen_position, details_layout, feature_visualization_mode)
+signal set_image_resource(image_resource, screen_position)
+signal set_details_layout(screen_position, mode)
 signal toggle_module_notes(screen_position)
+signal set_feature_visualization_mode(screen_position, mode)
 
 func _on_Snap_Zone_has_picked_up(pickable_object):
 	var module_logic = pickable_object.get_node_or_null("ModuleLogic")
@@ -37,8 +38,8 @@ func set_network_module_resource(network_module_resource_):
 		
 	network_module_resource = network_module_resource_
 	# Note that when lever_switch_layout_status is true we want to see details
-	# Note that when lever_switch_activation_fv_status is true we want to show activations, not feature visualizations
-	emit_signal("change_network_module_resource", network_module_resource, screen_position, lever_switch_layout_details, not lever_switch_activation_fv_status)
+	# Note that when feature_visualization_mode is false we want to show activations
+	emit_signal("set_network_module_resource", network_module_resource, screen_position, layout_details_mode, feature_visualization_mode)
 	
 
 func set_image_resource(image_resource_):
@@ -46,19 +47,19 @@ func set_image_resource(image_resource_):
 		return
 		
 	image_resource = image_resource_
-	emit_signal("change_image_resource", image_resource, screen_position)
+	emit_signal("set_image_resource", image_resource, screen_position)
 
 
 func _on_lever_switch_layout_status_change(status_):
-	lever_switch_layout_details = status_
+	layout_details_mode = status_
 	# Note that when lever_switch_layout_details is true we want to see details
-	emit_signal("change_details_layout", screen_position, lever_switch_layout_details)
+	emit_signal("set_details_layout", screen_position, layout_details_mode)
 	
 
 func _on_lever_switch_activation_fv_status_change(status_):
-	lever_switch_activation_fv_status = status_
-	# Note that when lever_switch_activation_fv_status is true we want to show activations, not feature visualizations
-	print("You changed lever_switch_activation_fv_status but this is not yet implemented")
+	feature_visualization_mode = not status_
+	# Note that when status_ is true we want to show activations, not feature visualizations
+	emit_signal("set_feature_visualization_mode", screen_position, feature_visualization_mode)
 
 
 func _on_ToggleLayout_pressed(_button):

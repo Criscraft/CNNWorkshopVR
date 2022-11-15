@@ -28,7 +28,6 @@ func network_group_selected_by_overview_screen(network_group):
 	yield(get_tree(), "idle_frame")
 	graph_edit.call_deferred("arrange_nodes")
 	
-	
 
 func receive_architecture(architecture_dict):
 	# Collect all group ids:
