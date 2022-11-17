@@ -592,7 +592,7 @@ class HFNet_(nn.Module):
         TRACKERMODULEGROUPCOUNTER += 1
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.GROUPCONV, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Classifier"))
         TRACKERMODULECOUNTER += 1
-        self.tracker_classifier = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="Classifier", tracked_module=self.classifier, channel_labels="classes")
+        self.tracker_classifier = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="Classifier", tracked_module=self.classifier, channel_labels="classes", input_channels=blockconfig_list[-1]['n_channels_out'])
         TRACKERMODULECOUNTER += 1
         self.tracker_classifier_softmax = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.SIMPLENODE, TRACKERMODULEGROUPCOUNTER, label="Class Probabilities", precursors=[TRACKERMODULECOUNTER - 1], channel_labels="classes")
         for m in self.modules():

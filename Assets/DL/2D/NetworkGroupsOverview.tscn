@@ -1,0 +1,11 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://Assets/GraphHandling/CustomGraphEdit.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/2D/NetworkGroup.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/DL/2D/NetworkGroupsOverview.gd" type="Script" id=3]
+
+[node name="NetworkGroupsOverview" type="Node2D"]
+script = ExtResource( 3 )
+network_group_scene = ExtResource( 2 )
+
+[node name="CustomGraphEdit" parent="." instance=ExtResource( 1 )]

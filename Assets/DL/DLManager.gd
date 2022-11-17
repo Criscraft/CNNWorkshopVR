@@ -8,6 +8,8 @@ var _client = WebSocketClient.new()
 var network_module_resources_weights_changed = []
 
 signal on_connected()
+signal on_receive_dataset_images(image_resource_data)
+signal on_receive_noise_image(image_resource)
 
 """
 #################################
@@ -57,7 +59,8 @@ func _connected(proto = ""):
 	# and not put_packet directly when not using the MultiplayerAPI.
 	# _client.get_peer(1).put_packet("Test packet".to_utf8())
 	emit_signal("on_connected")
-	on_request_architecture()
+	request_architecture()
+	request_noise_image()
 	
 	
 func _process(_delta):
@@ -83,7 +86,7 @@ func _on_data():
 		
 		"request_dataset_images":
 			print("DLManager reveived dataset images.")
-			get_tree().call_group("on_receive_dataset_images", "receive_dataset_images", data["image_resources"])
+			emit_signal("on_receive_dataset_images", data["image_resources"])
 			
 		"request_forward_pass":
 			print("DLManager reveived classification results.")
@@ -91,11 +94,16 @@ func _on_data():
 			
 		"request_architecture":
 			print("DLManager reveived architecture.")
-			get_tree().call_group("on_receive_architecture", "receive_architecture", data["architecture"])
+			ArchitectureManager.create_network_group_resources(data["architecture"]["group_dict"])
+			ArchitectureManager.create_network_module_resources(data["architecture"]["module_dict"])
 			
 		"request_image_data":
 			print("DLManager reveived image data.")
 			get_tree().call_group("on_receive_image_data", "receive_image_data", data["image_resources"])
+			
+		"request_noise_image":
+			print("DLManager reveived noise image.")
+			emit_signal("on_receive_noise_image", data["image_resource"])
 			
 		_:
 			print("No match in DLManager.")
@@ -120,7 +128,7 @@ func on_request_forward_pass(image_resource):
 	
 	
 # Called in _ready()
-func on_request_architecture():
+func request_architecture():
 	var message = {"resource" : "request_architecture"}
 	send_request(message)
 	
@@ -161,6 +169,11 @@ func on_set_fv_image_resource(image_resource):
 	# Inform group that the fv image resource is updated.
 	get_tree().call_group("on_set_fv_image_resource", "set_fv_image_resource", image_resource)
 
+
+# Called in _ready()
+func request_noise_image():
+	var message = {"resource" : "request_noise_image"}
+	send_request(message)
 
 """
 #################################

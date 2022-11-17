@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/2D/NetworkGroupDetailsScreen2D.tscn" type="PackedScene" id=2]
+
+[node name="NetworkGroupDetailsScreen" type="Spatial"]
+
+[node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
+screen_size = Vector2( 1, 0.234 )
+viewport_size = Vector2( 1280, 300 )
+scene = ExtResource( 2 )
+collision_layer = 8

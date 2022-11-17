@@ -1,0 +1,107 @@
+[gd_scene load_steps=14 format=2]
+
+[ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/2D/NetworkOverviewScreen2D.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/Materials/test_material.tres" type="Material" id=3]
+
+[sub_resource type="QuadMesh" id=4]
+resource_local_to_scene = true
+size = Vector2( 1, 0.5 )
+
+[sub_resource type="ViewportTexture" id=11]
+
+[sub_resource type="SpatialMaterial" id=5]
+resource_local_to_scene = true
+flags_transparent = true
+flags_unshaded = true
+flags_do_not_receive_shadows = true
+flags_disable_ambient_light = true
+params_cull_mode = 2
+albedo_texture = SubResource( 11 )
+
+[sub_resource type="BoxShape" id=6]
+resource_local_to_scene = true
+extents = Vector3( 0.5, 0.25, 0.01 )
+
+[sub_resource type="CubeMesh" id=1]
+size = Vector3( 0.5, 0.01, 0.5 )
+
+[sub_resource type="BoxShape" id=8]
+extents = Vector3( 0.25, 0.005, 0.25 )
+
+[sub_resource type="CylinderMesh" id=2]
+top_radius = 0.01
+bottom_radius = 0.05
+height = 1.1
+radial_segments = 32
+
+[sub_resource type="CylinderShape" id=9]
+height = 1.0
+radius = 0.05
+
+[sub_resource type="CubeMesh" id=3]
+size = Vector3( 1, 0.002, 0.5 )
+
+[sub_resource type="BoxShape" id=10]
+extents = Vector3( 0.5, 0.001, 0.25 )
+
+[node name="NetworkOverviewScreen" type="Spatial"]
+
+[node name="Viewport2Din3D" parent="." instance=ExtResource( 1 )]
+transform = Transform( 1, 0, 0, 0, 0.5, 0.866026, 0, -0.866026, 0.5, 0, 1.12111, 0.00406688 )
+screen_size = Vector2( 1, 0.5 )
+viewport_size = Vector2( 1280, 640 )
+scene = ExtResource( 2 )
+collision_layer = 9
+
+[node name="Screen" parent="Viewport2Din3D" index="0"]
+mesh = SubResource( 4 )
+material/0 = SubResource( 5 )
+
+[node name="StaticBody" parent="Viewport2Din3D" index="1"]
+collision_layer = 9
+screen_size = Vector2( 1, 0.5 )
+viewport_size = Vector2( 1280, 640 )
+
+[node name="CollisionShape" parent="Viewport2Din3D/StaticBody" index="0"]
+shape = SubResource( 6 )
+
+[node name="Viewport" parent="Viewport2Din3D" index="2"]
+size = Vector2( 1280, 640 )
+
+[node name="StaticBody" type="StaticBody" parent="."]
+
+[node name="MeshInstance" type="MeshInstance" parent="StaticBody"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0 )
+mesh = SubResource( 1 )
+skeleton = NodePath("../..")
+material/0 = ExtResource( 3 )
+
+[node name="MeshInstance4" type="CollisionShape" parent="StaticBody"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0 )
+shape = SubResource( 8 )
+
+[node name="MeshInstance2" type="MeshInstance" parent="StaticBody"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.558, 0 )
+mesh = SubResource( 2 )
+skeleton = NodePath("../..")
+material/0 = ExtResource( 3 )
+
+[node name="MeshInstance5" type="CollisionShape" parent="StaticBody"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.508, 0 )
+shape = SubResource( 9 )
+
+[node name="MeshInstance3" type="MeshInstance" parent="StaticBody"]
+transform = Transform( 0.95, 0, 0, 0, 0.822724, -0.475, 0, 0.475, 0.822724, 0, 1.12, 0 )
+mesh = SubResource( 3 )
+skeleton = NodePath("../MeshInstance2")
+material/0 = ExtResource( 3 )
+
+[node name="MeshInstance6" type="CollisionShape" parent="StaticBody"]
+transform = Transform( 1, 0, 0, 0, 0.866026, -0.5, 0, 0.5, 0.866026, 0, 1.12, 0 )
+shape = SubResource( 10 )
+
+[connection signal="pointer_entered" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_entered"]
+[connection signal="pointer_exited" from="Viewport2Din3D/Viewport/NetworkOverviewScreen2D" to="Viewport2Din3D/Viewport/NetworkOverviewScreen2D/Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/CameraDragFunction" method="_on_pointer_exited"]
+
+[editable path="Viewport2Din3D"]

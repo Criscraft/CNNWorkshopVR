@@ -1,16 +1,17 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
-[ext_resource path="res://Assets/DL/ImageShelf.tscn" type="PackedScene" id=2]
-[ext_resource path="res://Assets/DL/NetworkOverviewScreen.tscn" type="PackedScene" id=3]
-[ext_resource path="res://Assets/Stuff/Ground.tscn" type="PackedScene" id=4]
-[ext_resource path="res://Assets/DL/NetworkStation.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/DL/3D/ImageShelf.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/DL/3D/NetworkOverviewScreen.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Assets/Environment/Ground.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Assets/DL/3D/NetworkStation.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/TimedGrabableEliminationArea.tscn" type="PackedScene" id=6]
-[ext_resource path="res://Assets/DL/ModuleProvider.tscn" type="PackedScene" id=7]
-[ext_resource path="res://Assets/DL/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
-[ext_resource path="res://Assets/DL/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
-[ext_resource path="res://Assets/DL/ModuleInspectorStation.tscn" type="PackedScene" id=10]
-[ext_resource path="res://Assets/DL/SelectedImageSpawner.tscn" type="PackedScene" id=11]
+[ext_resource path="res://Assets/DL/3D/NetworkModuleProvider.tscn" type="PackedScene" id=7]
+[ext_resource path="res://Assets/DL/3D/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
+[ext_resource path="res://Assets/DL/3D/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
+[ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStation.tscn" type="PackedScene" id=10]
+[ext_resource path="res://Assets/DL/3D/SelectedImageSpawner.tscn" type="PackedScene" id=11]
+[ext_resource path="res://Assets/DL/3D/NoiseImageSpawner.tscn" type="PackedScene" id=12]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -43,6 +44,9 @@ transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.38986
 
 [node name="ModuleInspectorStation" parent="Environment" instance=ExtResource( 10 )]
 transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.0023303, 0, 0.603478 )
+
+[node name="NoiseImageSpawner" parent="Environment" instance=ExtResource( 12 )]
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -0.415, 0.907, 0 )
 
 [node name="SelectedImageSpawner" parent="Environment" instance=ExtResource( 11 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.415167, 0.907221, -0.399064 )

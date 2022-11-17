@@ -1,10 +1,6 @@
 extends Node
 
-export var death_timer_path : String
-var death_timer_scene : Resource
-
-func _ready():
-	death_timer_scene = load(death_timer_path)
+export var death_timer_scene : PackedScene = preload("res://Assets/Stuff/DeathTimer.tscn")
 
 
 func _on_TimedGrabableEliminationArea_body_entered(body):

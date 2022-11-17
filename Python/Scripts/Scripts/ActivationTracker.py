@@ -43,7 +43,7 @@ class TrackerModuleGroup(object):
 
 class TrackerModule(nn.Identity):
 
-    def __init__(self, id, tracker_module_type, group_id, label="", precursors=[], tracked_module=None, ignore_activation=False, channel_labels=[]):
+    def __init__(self, id, tracker_module_type, group_id, label="", precursors=[], tracked_module=None, ignore_activation=False, channel_labels=[], input_channels=-1):
         super().__init__()
         self.meta = {
             'module_id' : id,
@@ -54,6 +54,7 @@ class TrackerModule(nn.Identity):
             'tracked_module' : tracked_module,
             'ignore_activation' : ignore_activation,
             'channel_labels' : channel_labels,
+            'input_channels' : input_channels,
             'activation' : None,
         }
 
@@ -124,22 +125,22 @@ class ActivationTracker():
                 output = model(batch)
         
         #value is a list with one element which is the LayerInfo
-        activations = []
+        module_dicts = []
         for module, info_list in self._layer_info_dict.items():
             #one info_list can have multiple entries, for example if one relu module is applied several times in a network
             for info_item in info_list:
-                item_dict = module.meta
-                item_dict['module'] = module
+                module_dict = module.meta
+                module_dict['module'] = module
                 #item_dict['module_id'] = module.module_name
-                if not item_dict['ignore_activation']:
-                    item_dict['activation'] = info_item.in_data[0]
-                activations.append(item_dict)
-        return output, activations
+                if not module_dict['ignore_activation']:
+                    module_dict['activation'] = info_item.in_data[0]
+                module_dicts.append(module_dict)
+        return output, module_dicts
 
 
 """
-activations is a list with dicts.
-A dict contains:
+module_dicts is a list with module_dicts.
+A module_dicts contains:
 'module_id' : module_id,
 'tracker_module_type' : tracker_module_type,
 'group_id' : group_id, 
@@ -148,5 +149,6 @@ A dict contains:
 'tracked_module' : tracked_module,
 'ignore_activation' : ignore_activation,
 'channel_labels' : channel_labels,
+'input_channels' : -1
 'activation' : None,
 """

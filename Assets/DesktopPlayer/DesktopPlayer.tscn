@@ -23,7 +23,7 @@ texture = ExtResource( 3 )
 
 [node name="Function_Pickup" parent="Camera" instance=ExtResource( 2 )]
 _hand = NodePath("../Hand")
-ranged_distance = 1.0
+ranged_distance = 2.0
 ranged_angle = 10.0
 impulse_factor = 2.0
 

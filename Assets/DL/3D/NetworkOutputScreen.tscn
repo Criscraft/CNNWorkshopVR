@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://Assets/Stuff/Viewport_2D_in_3D_Static.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/2D/NetworkOutput2D.tscn" type="PackedScene" id=2]
+
+[node name="NetworkOutputScreen" type="Spatial"]
+
+[node name="Viewport2Din3DStatic" parent="." instance=ExtResource( 1 )]
+screen_size = Vector2( 0.5, 0.75 )
+viewport_size = Vector2( 500, 750 )
+scene = ExtResource( 2 )

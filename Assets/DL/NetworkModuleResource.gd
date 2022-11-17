@@ -22,11 +22,13 @@ export var tracker_module_type : int = -1
 export var group_id : int = -1
 export var label : String = ""
 export var precursors : Array = []
+export var precursor_module_resources : Array = []
 export var has_data : bool = false
 
 # Optional properties
 export var channel_labels : Array = []
 export var size : Array = []
+export var input_channels : int =-1
 export var weights : Array = []
 export var weights_min : float = -1
 export var weights_max : float = -1

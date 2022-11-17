@@ -9,7 +9,6 @@ extents = Vector3( 100, 0.1, 100 )
 collision_layer = 0
 collision_mask = 4
 script = ExtResource( 1 )
-death_timer_path = "res://Assets/Stuff/DeathTimer.tscn"
 
 [node name="CollisionShape" type="CollisionShape" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0 )

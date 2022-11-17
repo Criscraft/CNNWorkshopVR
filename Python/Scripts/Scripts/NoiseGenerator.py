@@ -6,15 +6,14 @@ class NoiseGenerator:
         self.device = device
         self.active_noise_image = None
         self.shape = shape
-        self.grayscale = grayscale
 
 
     def generate_noise_image(self):
-        if self.grayscale:
-            self.active_noise_image = torch.randn((1, self.shape[0], self.shape[1]), device=self.device)
-            #self.active_noise_image = self.active_noise_image.repeat(3, 1, 1)
-        else:
-            self.active_noise_image = torch.randn((3, self.shape[0], self.shape[1]), device=self.device)
+        # Generate image with values between 0 and 1
+        self.active_noise_image = torch.randn(*self.shape, device=self.device)
+        minimum = self.active_noise_image.min()
+        maximum = self.active_noise_image.max()
+        self.active_noise_image = (self.active_noise_image - minimum) / (maximum - minimum)
 
 
     def get_noise_image(self):

@@ -1,7 +1,0 @@
-[gd_scene load_steps=3 format=2]
-
-[ext_resource path="res://Assets/DL/NetworkModule.gd" type="Script" id=1]
-[ext_resource path="res://Assets/GraphHandling/MyGraphNode.tscn" type="PackedScene" id=2]
-
-[node name="NetworkModule" instance=ExtResource( 2 )]
-script = ExtResource( 1 )

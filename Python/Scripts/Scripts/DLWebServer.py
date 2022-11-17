@@ -47,6 +47,8 @@ async def handler(websocket):
             response = request_network_weights(event)
         elif event["resource"] == "set_fv_image_resource":
             response = set_fv_image_resource(event)
+        elif event["resource"] == "request_noise_image":
+            response = request_noise_image(event)
         
         if response:
             await websocket.send(response)
@@ -131,6 +133,9 @@ def request_image_data(event):
                 value_255_decoded=maximum.item(),
             ).__dict__)
     elif mode == "fv":
+        if current_fv_image_resource is None:
+            print("FV request cannot be served: no fv image resource selected.")
+            return ""
         images = network.get_feature_visualization(module_id, current_fv_image_resource.data)
         for channel_id, image in enumerate(images):
             image_resources.append(ImageResource(
@@ -195,6 +200,21 @@ def get_image_resource(image_resource_dict):
     image_resource.data = image
 
     return image_resource
+
+
+def request_noise_image(event):
+    noise_image = noise_generator.get_noise_image()
+    image_resource = ImageResource(
+        mode = ImageResource.Mode.NOISE,
+        data = utils.tensor_to_string(noise_image)
+    )
+    image_resource = image_resource.__dict__
+    response = {"resource" : "request_noise_image", "image_resource" : image_resource}
+    response = json.dumps(response, indent=1, ensure_ascii=True)
+    print("send: " + "request_noise_image")
+    return response
+
+
 
 async def main():
     async with websockets.serve(handler, "", 8000, max_size=2**30, read_limit=2**30, write_limit=2**30):

@@ -27,7 +27,7 @@ class FeatureVisualizer(object):
         scale = 0.05,
         degrees = 10, 
         blur_sigma = 0.5,
-        roll = 5,
+        roll = 4,
         epochs_without_robustness = 10):
         
         super().__init__()

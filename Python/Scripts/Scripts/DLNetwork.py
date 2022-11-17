@@ -55,9 +55,11 @@ class DLNetwork(object):
             image = image.unsqueeze(0)
             out_dict = self.model.forward_features({'data' : image})
             module_dict = {}
+            
             # assumtion, that the input tracker is the first one and the output tracker is the last one 
             self.input_tracker_module_id = out_dict['layer_infos'][0]['module_id']
             self.output_tracker_module_id = out_dict['layer_infos'][-1]['module_id']
+            
             # record info about each tracker module
             for item in out_dict['layer_infos']:
                 if 'activation' in item:
@@ -67,18 +69,21 @@ class DLNetwork(object):
                 else:
                     has_data = False
                     size = [0]
+                
                 module_dict[item['module_id']] = { 
                     'tracker_module_type' : item['tracker_module_type'], 
                     'group_id' : item['group_id'], 
                     'label' : item['label'],
                     'precursors' : item['precursors'],
-                    'module' : item['module'], 
                     'tracked_module' : item['tracked_module'],
                     'channel_labels' : item['channel_labels'],
+                    'input_channels' : item['input_channels'],
                     'activation' : item.get('activation'),
                     'has_data' : has_data,
                     'size' : size,
+                    'module' : item['module'], 
                 }
+            
             for module_info in module_dict.values():
                 # Add channel labels if necessary
                 if module_info['channel_labels'] == "classes":
@@ -108,7 +113,7 @@ class DLNetwork(object):
         for group in group_dict.values():
             group['tracker_module_group_type'] = group['tracker_module_group_type'].name
         # get tracker_module information
-        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in self.module_dict.items()}
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size', 'input_channels')} for module_id, module_info in self.module_dict.items()}
         
         for module_id, module_info in out_module_dict.items():
             # convert enum to string
