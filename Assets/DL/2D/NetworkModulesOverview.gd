@@ -24,11 +24,10 @@ func network_group_selected_by_overview_screen(network_group):
 	for child in my_graph_nodes.get_children():
 		my_graph_nodes.remove_child(child)
 		
-	if not group_id in group_id_to_network_module_dicts:
-		return
-	# Add new module nodes to graph edit.
-	for node in group_id_to_network_module_dicts[group_id]:
-		my_graph_nodes.add_child(node)
+	if group_id in group_id_to_network_module_dicts:
+		# Add new module nodes to graph edit.
+		for node in group_id_to_network_module_dicts[group_id]:
+			my_graph_nodes.add_child(node)
 	
 	# Wait one frame to give the boxes time to resize.
 	yield(get_tree(), "idle_frame")

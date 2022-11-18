@@ -44,10 +44,10 @@ def get_network():
             'f' : 1,
             'handcrafted_filters_require_grad' : False,
             'shuffle_conv_groups' : 20 // 4,
-            } for i in range(4)],
+            } for i in range(3)],
         avgpool_after_firstlayer=False,
         #init_mode = 'zero',
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_hfnet_blocks_1_1_1_1_channels_20.pt'),
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_hfnet_blocks_1_1_1_channels_20.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

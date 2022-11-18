@@ -1,10 +1,10 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/VRInteraction/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/VRInteraction/LeverSwitch.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorTable.gd" type="Script" id=4]
-[ext_resource path="res://Assets/VRInteraction/PointablePushButton.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/DL/3D/NetworkModuleActionSelector.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=7]
 
 [sub_resource type="CubeMesh" id=1]
@@ -12,6 +12,12 @@ size = Vector3( 0.35, 1, 0.2 )
 
 [sub_resource type="BoxShape" id=2]
 extents = Vector3( 0.175, 0.5, 0.1 )
+
+[sub_resource type="CubeMesh" id=3]
+size = Vector3( 0.35, 0.05, 0.1 )
+
+[sub_resource type="BoxShape" id=4]
+extents = Vector3( 0.175, 0.025, 0.05 )
 
 [node name="NetworkModuleInspectorTable" type="StaticBody"]
 script = ExtResource( 4 )
@@ -25,6 +31,15 @@ material/0 = ExtResource( 1 )
 [node name="CollisionShape" type="CollisionShape" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
+
+[node name="MeshInstance2" type="MeshInstance" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.15 )
+mesh = SubResource( 3 )
+material/0 = ExtResource( 1 )
+
+[node name="CollisionShape2" type="CollisionShape" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.15 )
+shape = SubResource( 4 )
 
 [node name="ModuleTray" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0730973, 1.009, 0 )
@@ -54,15 +69,12 @@ text = "Feat. map"
 transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, -0.079 )
 text = "Feat. Vis."
 
-[node name="ToggleModuleNotesButton" parent="." instance=ExtResource( 5 )]
-transform = Transform( 0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 1.00616, 0.0694866 )
+[node name="NetworkModuleActionSelector" parent="." instance=ExtResource( 5 )]
 
 [connection signal="has_dropped" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_dropped"]
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
 [connection signal="hinge_moved" from="LeverSwitchLayout/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_layout_status_change"]
 [connection signal="hinge_moved" from="LeverSwitchActivationFV/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_activation_fv_status_change"]
-[connection signal="pointer_pressed" from="ToggleModuleNotesButton/Button" to="." method="_on_ToggleLayout_pressed"]
-[connection signal="button_pressed" from="ToggleModuleNotesButton/InteractableAreaButton" to="." method="_on_ToggleLayout_pressed"]
 
 [editable path="ModuleTray"]
 [editable path="ModuleTray/Snap_Zone"]
@@ -72,4 +84,3 @@ transform = Transform( 0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 1.00616, 0.0694866 )
 [editable path="LeverSwitchActivationFV"]
 [editable path="QuickLabel3"]
 [editable path="QuickLabel4"]
-[editable path="ToggleModuleNotesButton"]

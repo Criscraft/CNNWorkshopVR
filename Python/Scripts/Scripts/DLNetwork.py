@@ -27,7 +27,6 @@ class DLNetwork(object):
         self.classification = classification
         self.softmax = softmax #whether to apply softmax on the classification result
         self.class_names = class_names
-        self.cache_path = cache_path
         self.model = model.to(self.device)
         for param in self.model.parameters():
             param.requires_grad = False
@@ -39,11 +38,8 @@ class DLNetwork(object):
         self.output_tracker_module_id = ""
         self.input_tracker_module_id = ""
 
+        self.cache_path = cache_path
         if not os.path.exists(self.cache_path): os.makedirs(self.cache_path)
-
-        self.feature_visualization_path = os.path.join(self.cache_path, 'FeatureVisualizations')
-        if not os.path.exists(self.feature_visualization_path): os.makedirs(self.feature_visualization_path)
-        self.feature_visualization_mode = FeatureVisualizationMode.Generating
 
         self.export_path = os.path.join(self.cache_path, 'Export')
         if not os.path.exists(self.export_path): os.makedirs(self.export_path)
@@ -142,16 +138,6 @@ class DLNetwork(object):
             return self.module_dict[module_id]['activation'].cpu()
         else:
             raise RuntimeError("need to do the initial forward pass first")
-        
-
-    """
-    def get_weights(self, module_id):
-        module = self.module_dict[module_id]["tracked_module"]
-        if module is not None and hasattr(module, "weight"):
-            return module.weight
-        else:
-            return None
-    """
 
 
     def get_feature_visualization(self, module_id, image):
@@ -161,21 +147,10 @@ class DLNetwork(object):
         if module_id == self.input_tracker_module_id:
             return np.zeros((self.module_dict[module_id]["size"][1], 3, 1, 1))
         
-        created_images = None
-        is_loaded = False
-        if self.feature_visualization_mode == FeatureVisualizationMode.Loading:
-            created_images = self.try_load_feature_visualization(module_id)
-            is_loaded = True
-        if created_images is None:
-            is_loaded = False
-            module = self.module_dict[module_id]["module"]
-            n_channels = self.module_dict[module_id]["size"][1]
-            created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
-        
+        module = self.module_dict[module_id]["module"]
+        n_channels = self.module_dict[module_id]["size"][1]
+        created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
         out_images = self.feature_visualizer.export_transformation(created_images)
-
-        if not is_loaded: 
-            self.save_feature_visualization(module_id, created_images)
         
         return out_images
 
@@ -192,25 +167,6 @@ class DLNetwork(object):
         indices_tmp = np.argsort(-out)
         indices_tmp = indices_tmp[:10]
         return out[indices_tmp], indices_tmp
-
-
-    def delete_feat_vis_cache(self):
-        shutil.rmtree(self.feature_visualization_path)
-        os.makedirs(self.feature_visualization_path)
-
-    
-    def try_load_feature_visualization(self, module_id):
-        path = os.path.join(self.feature_visualization_path, f"layer_{module_id}.pt")
-        if os.path.exists(path):
-            created_images = torch.load(path, 'cpu')
-        else:
-            created_images = None
-        return created_images
-
-
-    def save_feature_visualization(self, module_id, created_images):
-        path = os.path.join(self.feature_visualization_path, f"layer_{module_id}.pt")
-        torch.save(created_images, path)
 
     
     def export(self, image_resource : ImageResource):

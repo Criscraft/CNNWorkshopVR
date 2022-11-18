@@ -1,44 +1,15 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=4 format=2]
 
-[ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorTable.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStationScreenManager.gd" type="Script" id=2]
 [ext_resource path="res://Assets/DL/2D/NetworkInspectorScreen2D.tscn" type="PackedScene" id=3]
 [ext_resource path="res://addons/godot-xr-tools/objects/Viewport_2D_in_3D.tscn" type="PackedScene" id=5]
 
 [node name="NetworkModuleInspectorStation" type="Spatial"]
-
-[node name="NetworkModuleInspectorStationScreenManager" type="Spatial" parent="."]
 script = ExtResource( 2 )
 
-[node name="Screen" parent="NetworkModuleInspectorStationScreenManager" instance=ExtResource( 5 )]
+[node name="Screen" parent="." instance=ExtResource( 5 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49919, -1.89211 )
 screen_size = Vector2( 5, 3 )
 viewport_size = Vector2( 2133, 1280 )
 scene = ExtResource( 3 )
 collision_layer = 8
-
-[node name="NetworkModuleInspectorTable1" parent="." instance=ExtResource( 1 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, 0, 0 )
-
-[node name="NetworkModuleInspectorTable2" parent="." instance=ExtResource( 1 )]
-screen_position = 1
-
-[node name="NetworkModuleInspectorTable3" parent="." instance=ExtResource( 1 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.36, 0, 0 )
-screen_position = 2
-
-[connection signal="set_details_layout" from="NetworkModuleInspectorTable1" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_details_layout"]
-[connection signal="set_feature_visualization_mode" from="NetworkModuleInspectorTable1" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_feature_visualization_mode"]
-[connection signal="set_image_resource" from="NetworkModuleInspectorTable1" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_image_resource"]
-[connection signal="set_network_module_resource" from="NetworkModuleInspectorTable1" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_network_module_resource"]
-[connection signal="toggle_module_notes" from="NetworkModuleInspectorTable1" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_toggle_module_notes"]
-[connection signal="set_details_layout" from="NetworkModuleInspectorTable2" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_details_layout"]
-[connection signal="set_feature_visualization_mode" from="NetworkModuleInspectorTable2" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_feature_visualization_mode"]
-[connection signal="set_image_resource" from="NetworkModuleInspectorTable2" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_image_resource"]
-[connection signal="set_network_module_resource" from="NetworkModuleInspectorTable2" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_network_module_resource"]
-[connection signal="toggle_module_notes" from="NetworkModuleInspectorTable2" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_toggle_module_notes"]
-[connection signal="set_details_layout" from="NetworkModuleInspectorTable3" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_details_layout"]
-[connection signal="set_feature_visualization_mode" from="NetworkModuleInspectorTable3" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_feature_visualization_mode"]
-[connection signal="set_image_resource" from="NetworkModuleInspectorTable3" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_image_resource"]
-[connection signal="set_network_module_resource" from="NetworkModuleInspectorTable3" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_set_network_module_resource"]
-[connection signal="toggle_module_notes" from="NetworkModuleInspectorTable3" to="NetworkModuleInspectorStationScreenManager" method="_on_ModuleInspectorTable_toggle_module_notes"]

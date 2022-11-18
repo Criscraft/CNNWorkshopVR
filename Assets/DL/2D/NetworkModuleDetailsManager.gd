@@ -177,6 +177,7 @@ func update_image_data(image_resources=[]):
 		new_instance.set_image_resource(image_resource)
 		if details_layout:
 			new_instance.set_network_module_resource(network_module_resource)
+		# Connect signal such that we get notified when a weight is changed.
 		_error = new_instance.connect("weight_changed", self, "on_weight_changed")
 		
 	# Update the legend
@@ -244,15 +245,24 @@ func set_legend_visible(mode : bool):
 	legend_visible = mode
 	$ImagePanel/VBoxContainer/Legend.visible = mode
 
-
-func on_weight_changed(weight, channel_ind, weight_ind):
+# Called by signal when a weight is changed by a channel node.
+func on_weight_changed(weight, channel_ind, group_ind):
 	#var group_size = network_module_resource.weights[0].size()
-	network_module_resource.weights[channel_ind][weight_ind][0][0] = weight
+	network_module_resource.weights[channel_ind][group_ind][0][0] = weight
+	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
+	
+
+func zero_weights():
+	if "weights" in network_module_resource:
+		for channel_weights in network_module_resource.weights:
+			for group_weight in channel_weights:
+				group_weight[0][0] = 0.0
+	
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 
 
 func loading_fv_data(module_id):
-	if network_module_resource != null and module_id == network_module_resource.module_id:
+	if feature_visualization_mode and network_module_resource != null and module_id == network_module_resource.module_id:
 		for child in image_container.get_children():
 			child.queue_free()
 		set_loading(true)

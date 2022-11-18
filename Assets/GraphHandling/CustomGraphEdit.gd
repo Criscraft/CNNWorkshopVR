@@ -131,7 +131,7 @@ func position_nodes():
 			
 func draw_edges():
 	for child in edges.get_children():
-		edges.remove_child(child)
+		child.queue_free()
 		
 	var precursor_node
 	var curve
@@ -188,7 +188,7 @@ func update_size():
 	else:
 		get_node("CenterOfGraph/CameraCenterOfGraph").zoom = Vector2((x_max + extra_margin) / resolution_x, (x_max + extra_margin) / resolution_x)
 	if reset_camera_position_on_arrangement_of_nodes:
-		get_node("CenterOfGraph/CameraCenterOfGraph").position = Vector2.ZERO	
+		get_node("CenterOfGraph/CameraCenterOfGraph").position = Vector2.ZERO
 	
 	
 class SetOperations:
