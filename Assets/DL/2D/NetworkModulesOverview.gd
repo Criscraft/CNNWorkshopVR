@@ -50,3 +50,14 @@ func create_module_nodes():
 		if not network_module_resource.group_id in group_id_to_network_module_dicts:
 			group_id_to_network_module_dicts[network_module_resource.group_id] = []
 		group_id_to_network_module_dicts[network_module_resource.group_id].append(module_node_instance)
+		
+	# Cleaning step: remove precursors that belong to a different group_id
+	var module_ids = []
+	for group_id in group_id_to_network_module_dicts:
+		module_ids = []
+		for module_instance in group_id_to_network_module_dicts[group_id]:
+			module_ids.append(module_instance.id)
+		for module_instance in group_id_to_network_module_dicts[group_id]:
+			for precursor in module_instance.precursors.duplicate():
+				if not precursor in module_ids:
+					module_instance.precursors.erase(precursor)

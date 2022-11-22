@@ -28,7 +28,6 @@ func create_network_group_resources(network_group_dicts):
 func create_network_group_resource(network_group_dict, id):
 	var network_group_resource = NetworkGroupResource.new()
 	network_group_resource.group_id = int(id)
-	network_group_resource.tracker_module_group_type = NetworkGroupResource.TYPE[network_group_dict["tracker_module_group_type"]]
 	# For some reason the json to dict conversion made precursors a float array. Correct that!
 	var precursors = []
 	for v in network_group_dict["precursors"]:
@@ -61,7 +60,6 @@ func create_network_module_resource(network_module_dict, id):
 	# Create NetworkGroupResource
 	var network_module_resource = NetworkModuleResource.new()
 	network_module_resource.module_id = int(id)
-	network_module_resource.tracker_module_type = NetworkModuleResource.TYPE[network_module_dict["tracker_module_type"]]
 	# For some reason the json to dict conversion made precursors a float array. Correct that!
 	var precursors = []
 	for v in network_module_dict["precursors"]:
@@ -72,7 +70,6 @@ func create_network_module_resource(network_module_dict, id):
 	network_module_resource.has_data = network_module_dict["has_data"]
 	network_module_resource.channel_labels = network_module_dict["channel_labels"]
 	network_module_resource.size = network_module_dict["size"]
-	network_module_resource.input_channels = network_module_dict["input_channels"]
 	if "weights" in network_module_dict:
 		network_module_resource.weights = network_module_dict["weights"]
 		network_module_resource.weights_min = network_module_dict["weights_min"]

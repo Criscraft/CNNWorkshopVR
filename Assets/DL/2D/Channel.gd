@@ -49,8 +49,6 @@ func add_details(network_module_resource):
 		var in_channels = out_channels
 		if network_module_resource.precursor_module_resources.size() > 0:
 			in_channels = network_module_resource.precursor_module_resources[0].size[1]
-		elif network_module_resource.input_channels > 0:
-			in_channels = network_module_resource.input_channels
 		var n_groups = in_channels / in_channels_per_group
 		var out_channels_per_group = out_channels / n_groups
 		channel_ind = $ChannelImageTile.image_resource.channel_id

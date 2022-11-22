@@ -10,11 +10,6 @@ import Scripts.utils as utils
 from Scripts.FeatureVisualizerRobust import FeatureVisualizer
 from Scripts.ImageResource import ImageResource
 
-
-class FeatureVisualizationMode(Enum):
-    Generating = 0
-    Loading = 1
-
 # TODO: module_id is an id, not an index. I need a dictionary to link it with the layers. 
 # TODO: dictionary from groupids to groups 
 
@@ -66,14 +61,12 @@ class DLNetwork(object):
                     has_data = False
                     size = [0]
                 
-                module_dict[item['module_id']] = { 
-                    'tracker_module_type' : item['tracker_module_type'], 
+                module_dict[item['module_id']] = {
                     'group_id' : item['group_id'], 
                     'label' : item['label'],
                     'precursors' : item['precursors'],
                     'tracked_module' : item['tracked_module'],
                     'channel_labels' : item['channel_labels'],
-                    'input_channels' : item['input_channels'],
                     'activation' : item.get('activation'),
                     'has_data' : has_data,
                     'size' : size,
@@ -106,28 +99,26 @@ class DLNetwork(object):
             raise ValueError("You have to prepare the input first")
         # get group information
         group_dict = copy.deepcopy(self.model.tracker_module_groups_info)
-        for group in group_dict.values():
-            group['tracker_module_group_type'] = group['tracker_module_group_type'].name
         # get tracker_module information
-        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('tracker_module_type', 'group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size', 'input_channels')} for module_id, module_info in self.module_dict.items()}
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in self.module_dict.items()}
         
         for module_id, module_info in out_module_dict.items():
-            # convert enum to string
-            module_info['tracker_module_type'] = module_info['tracker_module_type'].name
-            
             # Add information to special cases
-            if module_info['tracker_module_type'] == "GROUPCONV":
-                weights = self.module_dict[module_id]['tracked_module'].weight.data.cpu().numpy()
-                module_info['weights'] = weights.tolist()
-                module_info['weights_min'] = float(weights.min())
-                module_info['weights_max'] = float(weights.max())
-            elif module_info['tracker_module_type'] == "REWIRE":
-                module_info['permutation'] = self.module_dict[module_id]['tracked_module'].data.cpu().numpy().tolist()
-            elif module_info['tracker_module_type'] == "HFCONV":
-                module = self.module_dict[module_id]['tracked_module']
-                module_info['kernels'] = module.w.data.cpu().numpy().tolist()
-                module_info['padding'] = module.padding
-            
+            tracked_module = self.module_dict[module_id]['tracked_module']
+            if tracked_module is not None:
+                print(tracked_module.__class__)
+                if tracked_module.__class__ == "Conv2D":
+                    # We have a group convolution.
+                    weights = tracked_module.weight.data.cpu().numpy()
+                    module_info['weights'] = weights.tolist()
+                    module_info['weights_min'] = float(weights.min())
+                    module_info['weights_max'] = float(weights.max())
+                elif tracked_module.__class__ == "RewireModule":
+                    module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
+                elif tracked_module.__class__ == "PredefinedConvnxn":
+                    module_info['kernels'] = tracked_module.w.data.cpu().numpy().tolist()
+                    module_info['padding'] = tracked_module.padding
+                
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out
 

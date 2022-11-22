@@ -9,13 +9,10 @@ import enum
 from typing import Type, Any, Callable, Union, List, Tuple, Optional
 
 from torch.nn.modules import module
-from Scripts.ActivationTracker import ActivationTracker, TrackerModule, TrackerModuleType, TrackerModuleGroup, TrackerModuleGroupType
+from Scripts.ActivationTracker import ActivationTracker, TrackerModule, TrackerModuleGroup, reset_ids
 
 # Working Group Convolution and shuffeling of input channels in HFModule. Also added new modes: UnevenPosOnly and EvenPosOnly.
 
-# global variables to create the tracking modules 
-TRACKERMODULECOUNTER = 0
-TRACKERMODULEGROUPCOUNTER = 0
 TRACKERMODULEGROUPS = []
 
 class THFNet(nn.Module):
@@ -57,9 +54,7 @@ class THFNet(nn.Module):
             avgpool_after_firstlayer=avgpool_after_firstlayer,
             init_mode=init_mode)
 
-        global TRACKERMODULEGROUPS
-        # save info to class, because a second network instance could change TRACKERMODULEGROUPS
-        self.tracker_module_groups_info = {group.meta['group_id'] : {key : group.meta[key] for key in ['tracker_module_group_type', 'precursors', 'label']} for group in TRACKERMODULEGROUPS}
+        self.tracker_module_groups_info = {group.meta['group_id'] : {key : group.meta[key] for key in ['precursors', 'label']} for group in TRACKERMODULEGROUPS}
 
         if statedict:
             pretrained_dict = torch.load(statedict, map_location=torch.device('cpu'))
@@ -216,50 +211,34 @@ class HandcraftedFilterModule(nn.Module):
         self.relu = activation_layer()
         self.conv1x1 = conv(n_channels_mid, n_channels_out, kernel_size=1, stride=1, bias=False, groups=shuffle_conv_groups)
 
-        global TRACKERMODULECOUNTER
-        global TRACKERMODULEGROUPCOUNTER
-        TRACKERMODULECOUNTER += 1
-        self.tracker_input = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Input")
+        self.tracker_input = TrackerModule(label="Input")
         
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
-        if f>1:
-            self.copymodule1 = CopyModule(n_channels_in, n_channels_in * f)
-            TRACKERMODULECOUNTER += 1
-            self.tracker_copymodule1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.COPY, TRACKERMODULEGROUPCOUNTER, label="Copy channels", precursors=[TRACKERMODULECOUNTER - 1])
-        else:
-            self.copymodule1 = nn.Identity()
-            self.tracker_copymodule1 = nn.Identity()
+        self.copymodule1 = CopyModule(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
         
-        TRACKERMODULECOUNTER += 1
-        self.tracker_predev_conv = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.HFCONV, TRACKERMODULEGROUPCOUNTER, label="3x3 Conv", precursors=[TRACKERMODULECOUNTER - 1], tracked_module=self.predev_conv)
-        TRACKERMODULECOUNTER += 1
-        self.tracker_relu = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.RELU, TRACKERMODULEGROUPCOUNTER, label="ReLU", precursors=[TRACKERMODULECOUNTER - 1])
-        TRACKERMODULECOUNTER += 1
-        self.tracker_norm1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.NORM, TRACKERMODULEGROUPCOUNTER, label="LayerNorm", precursors=[TRACKERMODULECOUNTER - 1])
+        self.tracker_predev_conv = TrackerModule(label="3x3 Conv", tracked_module=self.predev_conv)
+        self.tracker_relu = TrackerModule(label="ReLU")
+        self.tracker_norm1 = TrackerModule(label="LayerNorm")
         
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
         if n_channels_in * f < n_channels_out:
             self.copymodule2 = CopyModule(n_channels_in * f, n_channels_out, interleave=False)
-            TRACKERMODULECOUNTER += 1
-            self.tracker_copymodule2 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.COPY, TRACKERMODULEGROUPCOUNTER, label="Copy channels", precursors=[TRACKERMODULECOUNTER - 1])
         else:
             self.copymodule2 = nn.Identity()
-            self.tracker_copymodule2 = nn.Identity()
 
-        TRACKERMODULECOUNTER += 1
-        self.tracker_conv1x1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="1x1 Conv", precursors=[TRACKERMODULECOUNTER - 1], tracked_module=self.conv1x1)
+        self.tracker_conv1x1 = TrackerModule(label="1x1 Conv", tracked_module=self.conv1x1)
 
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_input(x)
-        _ = self.tracker_copymodule1(self.copymodule1(x))
+        _ = self.copymodule1(x)
         x = self.predev_conv(x)
         _ = self.tracker_predev_conv(x)
         x = self.relu(x)
         _ = self.tracker_relu(x)
         x = self.norm1(x)
         _ = self.tracker_norm1(x)
-        _ = self.tracker_copymodule2(self.copymodule2(x))
+        _ = self.copymodule2(x)
         x = self.conv1x1(x)
         _ = self.tracker_conv1x1(x)
         return x
@@ -300,14 +279,19 @@ class CopyModule(nn.Module):
 
         self.factor = n_channels_out // n_channels_in
         self.interleave = interleave
+        self.tracker_copymodule = TrackerModule(label="Copy channels")
 
     def forward(self, x: Tensor) -> Tensor:
         if self.interleave:
-            return x.repeat_interleave(self.factor, dim=1)
+            out = x.repeat_interleave(self.factor, dim=1)
         else:
             dimensions = [1 for _ in range(x.ndim)]
             dimensions[1] = self.factor
-            return x.repeat(*dimensions)
+            out =  x.repeat(*dimensions)
+        
+        _ = self.tracker_copymodule(out)
+        
+        return out
 
 
 class LayerNorm(nn.Module):
@@ -339,8 +323,6 @@ class DoubleHandcraftedFilterModule(nn.Module):
     ) -> None:
         super().__init__()
 
-        global TRACKERMODULECOUNTER
-        global TRACKERMODULEGROUPCOUNTER
         global TRACKERMODULEGROUPS
 
         # Pooling
@@ -348,37 +330,30 @@ class DoubleHandcraftedFilterModule(nn.Module):
         if isinstance(self.avgpool, nn.Identity):
             self.tracker_avgpool = nn.Identity()
         else:
-            TRACKERMODULEGROUPCOUNTER += 1
-            TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.POOL, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="AvgPool"))
-            TRACKERMODULECOUNTER += 1
-            self.tracker_avgpool = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.POOL, TRACKERMODULEGROUPCOUNTER, label="AvgPool")
+            TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
+            self.tracker_avgpool = TrackerModule(label="AvgPool")
 
-        # Permutation
+        # Rewiring
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Channel Permutation"))
+        summand_group_id = TRACKERMODULEGROUPS[-1].group_id
+        self.rewire_module = RewireModule(torch.arange(n_channels_in).roll(1))
+        summand_module_id = self.rewire_module.tracker_permutation_output.module_id
         #self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
-        self.permutation = nn.Parameter(torch.arange(n_channels_in).roll(1), False)
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.REWIRE, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Channel Permutation"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_permutation_input = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Input")
-        TRACKERMODULECOUNTER += 1
-        self.tracker_permutation_output = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.REWIRE, TRACKERMODULEGROUPCOUNTER, label="Permutation", precursors=[TRACKERMODULECOUNTER - 1], tracked_module=self.permutation)
-        summand_index = TRACKERMODULEGROUPCOUNTER
         
-        # Copy
+        # Copy channels. This has no effect on the next layer and is only for the visualization.
         if n_channels_in != n_channels_out:
             self.copymodule = CopyModule(n_channels_in, n_channels_out)
-            TRACKERMODULEGROUPCOUNTER += 1
-            TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.COPY, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Copy channels"))
-            summand_index = TRACKERMODULEGROUPCOUNTER
+            TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Copy channels"))
+            summand_group_id = TRACKERMODULEGROUPS[-1].group_id
+            summand_module_id = self.copymodule.tracker_copymodule.module_id
         else:
             self.copymodule = nn.Identity()
 
         # First HFModule
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.HFModule, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="HFModule 1"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="HFModule 1"))
         
         self.hfmodule_1 = HandcraftedFilterModule(
-            n_channels_out,
+            n_channels_in,
             n_channels_out,
             f=f,
             k=k,
@@ -393,14 +368,11 @@ class DoubleHandcraftedFilterModule(nn.Module):
         self.relu1 = activation_layer(inplace=False)
         self.norm1 = LayerNorm()
 
-        TRACKERMODULECOUNTER += 1
-        self.tracker_relu1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.RELU, TRACKERMODULEGROUPCOUNTER, label="ReLU", precursors=[TRACKERMODULECOUNTER - 1])
-        TRACKERMODULECOUNTER += 1
-        self.tracker_norm1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.NORM, TRACKERMODULEGROUPCOUNTER, label="LayerNorm", precursors=[TRACKERMODULECOUNTER - 1])
+        self.tracker_relu1 = TrackerModule(label="ReLU")
+        self.tracker_norm1 = TrackerModule(label="LayerNorm")
 
         # Second HFModule
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.HFModule, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="HFModule 2"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="HFModule 2"))
 
         self.hfmodule_2 = HandcraftedFilterModule(
             n_channels_out,
@@ -417,44 +389,31 @@ class DoubleHandcraftedFilterModule(nn.Module):
             )
 
         # Skip
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SIMPLEGROUP, precursors=[summand_index], label="Skip"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[summand_group_id], label="Skip"))
 
         # Sum
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SUM, precursors=[TRACKERMODULEGROUPCOUNTER - 2, TRACKERMODULEGROUPCOUNTER - 1], label="Sum"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_sum_summand1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Summand 1")
-        TRACKERMODULECOUNTER += 1
-        self.tracker_sum_summand2 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Summand 2")
-        TRACKERMODULECOUNTER += 1
-        self.tracker_sum = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.SIMPLENODE, TRACKERMODULEGROUPCOUNTER, label="Sum", precursors=[TRACKERMODULECOUNTER - 1, TRACKERMODULECOUNTER - 2])
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[-1, -2], label="Sum"))
+        self.tracker_sum_summand1 = TrackerModule(label="Summand 1")
+        self.tracker_sum_summand2 = TrackerModule(label="Summand 2", precursors=[summand_module_id])
+        self.tracker_sum = TrackerModule(label="Sum", precursors=[-1, -2])
 
         # relu and norm
         self.relu2 = activation_layer(inplace=False)
         self.norm2 = LayerNorm()
 
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.SIMPLEGROUP, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Activation and Norm"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_activation_and_norm_input = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Input")
-        TRACKERMODULECOUNTER += 1
-        self.tracker_activation_and_norm_1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.RELU, TRACKERMODULEGROUPCOUNTER, label="ReLU", precursors=[TRACKERMODULECOUNTER - 1])
-        TRACKERMODULECOUNTER += 1
-        self.tracker_activation_and_norm_2 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.NORM, TRACKERMODULEGROUPCOUNTER, label="LayerNorm", precursors=[TRACKERMODULECOUNTER - 1])
-        
-        
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Activation and Norm"))
+        self.tracker_activation_and_norm_input = TrackerModule(label="Input")
+        self.tracker_activation_and_norm_1 = TrackerModule(label="ReLU")
+        self.tracker_activation_and_norm_2 = TrackerModule(label="LayerNorm")        
 
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.avgpool(x)
         _ = self.tracker_avgpool(x)
 
-        _ = self.tracker_permutation_input(x)
-        x = x[:,self.permutation]
-        _ = self.tracker_permutation_output(x)
-
-        x = self.copymodule(x)
+        x = self.rewire_module(x)
+        
+        _ = self.copymodule(x)
 
         out = self.hfmodule_1(x)
         out = self.relu1(out)
@@ -476,6 +435,20 @@ class DoubleHandcraftedFilterModule(nn.Module):
         _ = self.tracker_activation_and_norm_2(out)
 
         return out
+
+
+class RewireModule(nn.Module):
+    def __init__(self, indices):
+        super().__init__()
+        self.indices = nn.Parameter(indices, False)
+        self.tracker_permutation_input = TrackerModule(label="Input")
+        self.tracker_permutation_output = TrackerModule(label="Permutation", tracked_module=self)
+
+    def forward(self, x):
+        _ = self.tracker_permutation_input(x)
+        x = x[:,self.indices]
+        _ = self.tracker_permutation_output(x)
+        return x
 
 
 class HFNet_(nn.Module):
@@ -518,23 +491,18 @@ class HFNet_(nn.Module):
             activation_layer = nn.LeakyReLU
         self._activation_layer = activation_layer
 
-        global TRACKERMODULECOUNTER
-        global TRACKERMODULEGROUPCOUNTER
         global TRACKERMODULEGROUPS
         # reset, because a second network instance could change the globals
-        TRACKERMODULECOUNTER = 0
-        TRACKERMODULEGROUPCOUNTER = 0
         TRACKERMODULEGROUPS = []
+        # Reset the id system of the activaion tracker. This is necessary when multiple networks are instanced.
+        reset_ids()
 
         # Input
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.INPUT, label="Input"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_input_1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.INPUT, TRACKERMODULEGROUPCOUNTER, label="Input")
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Input", precursors=[]))
+        self.tracker_input_1 = TrackerModule(label="Input", precursors=[])
 
         # First convolution
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.HFModule, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="HFModule"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="HFModule"))
 
         self.conv1 = HandcraftedFilterModule(
             n_channels_in=start_config['n_channels_in'], 
@@ -550,18 +518,14 @@ class HFNet_(nn.Module):
         self.relu1 = activation_layer(inplace=False)
         self.norm1 = LayerNorm()
 
-        TRACKERMODULECOUNTER += 1
-        self.tracker_relu1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.RELU, TRACKERMODULEGROUPCOUNTER, label="ReLU", precursors=[TRACKERMODULECOUNTER - 1])
-        TRACKERMODULECOUNTER += 1
-        self.tracker_norm1 = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.NORM, TRACKERMODULEGROUPCOUNTER, label="LayerNorm", precursors=[TRACKERMODULECOUNTER - 1])
+        self.tracker_relu1 = TrackerModule(label="ReLU")
+        self.tracker_norm1 = TrackerModule(label="LayerNorm")
         
         # Pooling
         self.avgpool_after_first_layer = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool_after_firstlayer else nn.Identity()
 
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.INPUT, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="AvgPool"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_avgpool_after_first_layer = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.POOL, TRACKERMODULEGROUPCOUNTER, label="AvgPool")
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
+        self.tracker_avgpool_after_first_layer = TrackerModule(label="AvgPool")
 
         # Blocks
         self.layers = nn.ModuleList([
@@ -581,20 +545,14 @@ class HFNet_(nn.Module):
         # AdaptiveAvgPool
         self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
 
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.POOL, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="AvgPool"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_adaptiveavgpool = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.POOL, TRACKERMODULEGROUPCOUNTER, label="AvgPool")
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
+        self.tracker_adaptiveavgpool = TrackerModule(label="AvgPool")
 
         # Classifier
         self.classifier = nn.Conv2d(blockconfig_list[-1]['n_channels_out'], n_classes, kernel_size=1, stride=1, bias=False, groups=n_classes)
-        
-        TRACKERMODULEGROUPCOUNTER += 1
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(TRACKERMODULEGROUPCOUNTER, TrackerModuleGroupType.GROUPCONV, precursors=[TRACKERMODULEGROUPCOUNTER - 1], label="Classifier"))
-        TRACKERMODULECOUNTER += 1
-        self.tracker_classifier = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.GROUPCONV, TRACKERMODULEGROUPCOUNTER, label="Classifier", tracked_module=self.classifier, channel_labels="classes", input_channels=blockconfig_list[-1]['n_channels_out'])
-        TRACKERMODULECOUNTER += 1
-        self.tracker_classifier_softmax = TrackerModule(TRACKERMODULECOUNTER, TrackerModuleType.SIMPLENODE, TRACKERMODULEGROUPCOUNTER, label="Class Probabilities", precursors=[TRACKERMODULECOUNTER - 1], channel_labels="classes")
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Classifier"))
+        self.tracker_classifier = TrackerModule(label="Classifier", tracked_module=self.classifier, channel_labels="classes")
+        self.tracker_classifier_softmax = TrackerModule(label="Class Probabilities", channel_labels="classes")
         for m in self.modules():
             if isinstance(m, nn.Conv2d) and hasattr(m, 'kernel_size') and m.kernel_size[0] == 1:
                 if init_mode == 'kaiming_normal':

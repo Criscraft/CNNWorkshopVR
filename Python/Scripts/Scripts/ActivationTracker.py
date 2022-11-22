@@ -4,38 +4,19 @@ from contextlib import contextmanager
 from collections import defaultdict
 from enum import Enum
 
-class TrackerModuleGroupType(Enum):
-    INPUT = "INPUT"
-    OUTPUT = "OUTPUT"
-    GROUPCONV = "GROUPCONV"
-    HFModule = "HFModule"
-    REWIRE = "REWIRE"
-    COPY = "COPY" # induces a split in the computational graph, where channels are copied
-    ADD = "ADD"
-    POOL = "POOL"
-    SUM = "SUM"
-    SIMPLEGROUP = "SIMPLEGROUP"
-
-class TrackerModuleType(Enum):
-    INPUT = "INPUT" # allows muting
-    OUTPUT = "OUTPUT"
-    GROUPCONV = "GROUPCONV" # connections inside group only, editable weights
-    SIMPLENODE = "SIMPLENODE" # show activations
-    REWIRE = "REWIRE" # input - output rewiring
-    COPY = "COPY"
-    ADD = "ADD" # merge two branches
-    POOL = "POOL"
-    RELU = "RELU"
-    CONV = "CONV"
-    HFCONV = "HFCONV" # shows kernel and output, when f>1 one input is linked to several kernels
-    NORM = "NORM"
-
+# global variables
+group_id_ = 0
+module_id_ = 0
 
 class TrackerModuleGroup(object):
-    def __init__(self, id, tracker_module_group_type, label="", precursors=[]):
+    def __init__(self, label="", precursors=[-1]):
+        # precursors is a list of group ids
+        global group_id_
+        group_id_ = group_id_ + 1
+        self.group_id = group_id_
+        precursors = [p if p>=0 else self.group_id + p for p in precursors]
         self.meta = {
-            'group_id' : id,
-            'tracker_module_group_type' : tracker_module_group_type,
+            'group_id' : self.group_id,
             'precursors' : precursors,
             'label' : label,
         }
@@ -43,18 +24,22 @@ class TrackerModuleGroup(object):
 
 class TrackerModule(nn.Identity):
 
-    def __init__(self, id, tracker_module_type, group_id, label="", precursors=[], tracked_module=None, ignore_activation=False, channel_labels=[], input_channels=-1):
+    def __init__(self, group_id=-1, label="", precursors=[-1], tracked_module=None, ignore_activation=False, channel_labels=[]):
         super().__init__()
+        # precursors is a list of module ids
+        global module_id_
+        module_id_ = module_id_ + 1
+        self.module_id = module_id_
+        precursors = [p if p>=0 else self.module_id + p for p in precursors]
+        group_id = group_id if group_id>=0 else group_id_
         self.meta = {
-            'module_id' : id,
-            'tracker_module_type' : tracker_module_type,
-            'group_id' : group_id, 
+            'module_id' : self.module_id,
+            'group_id' : group_id,
             'label' : label,
             'precursors' : precursors, 
             'tracked_module' : tracked_module,
             'ignore_activation' : ignore_activation,
             'channel_labels' : channel_labels,
-            'input_channels' : input_channels,
             'activation' : None,
         }
 
@@ -137,6 +122,12 @@ class ActivationTracker():
                 module_dicts.append(module_dict)
         return output, module_dicts
 
+
+def reset_ids():
+    global module_id_
+    module_id_ = 0
+    global group_id_
+    group_id_ = 0
 
 """
 module_dicts is a list with module_dicts.
