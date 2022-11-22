@@ -103,16 +103,15 @@ class DLNetwork(object):
             # Add information to special cases
             tracked_module = self.module_dict[module_id]['tracked_module']
             if tracked_module is not None:
-                print(tracked_module.__class__)
-                if tracked_module.__class__ == "Conv2D":
+                if "Conv2d" in str(tracked_module.__class__):
                     # We have a group convolution.
                     weights = tracked_module.weight.data.cpu().numpy()
                     module_info['weights'] = weights.tolist()
                     module_info['weights_min'] = float(weights.min())
                     module_info['weights_max'] = float(weights.max())
-                elif tracked_module.__class__ == "RewireModule":
+                elif "RewireModule" in str(tracked_module.__class__):
                     module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
-                elif tracked_module.__class__ == "PredefinedConvnxn":
+                elif "PredefinedConvnxn" in str(tracked_module.__class__):
                     module_info['kernels'] = tracked_module.w.data.cpu().numpy().tolist()
                     module_info['padding'] = tracked_module.padding
                 

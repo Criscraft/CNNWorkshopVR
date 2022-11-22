@@ -20,7 +20,9 @@ func get_dict(get_image=false):
 		"channel_id" : channel_id,
 		"mode" : MODE.keys()[mode],
 	}
-	if get_image:
-		pass
+	if get_image and image != null:
+		var png = image.save_png_to_buffer()
+		var image_encoded = Marshalls.raw_to_base64(png)
+		out["data"] = image_encoded
 	return out
 	

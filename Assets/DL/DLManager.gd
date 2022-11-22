@@ -122,8 +122,8 @@ func on_request_dataset_images(n):
 	
 	
 # called by signal from Network Station
-func on_request_forward_pass(image_resource):
-	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource.get_dict()}
+func on_request_forward_pass(image_resource : Dictionary):
+	var message = {"resource" : "request_forward_pass", "image_resource" : image_resource}
 	send_request(message)
 	
 	
@@ -162,9 +162,10 @@ func send_request(request_dictionary : Dictionary):
 		print(message)
 	_client.get_peer(1).put_packet(message.to_utf8())
 	
-	
-func on_set_fv_image_resource(image_resource):
-	var message = {"resource" : "set_fv_image_resource", "image_resource" : image_resource.get_dict()}
+
+# called by signal from Network Station
+func on_set_fv_image_resource(image_resource : Dictionary):
+	var message = {"resource" : "set_fv_image_resource", "image_resource" : image_resource}
 	send_request(message)
 	# Inform group that the fv image resource is updated.
 	get_tree().call_group("on_set_fv_image_resource", "set_fv_image_resource", image_resource)

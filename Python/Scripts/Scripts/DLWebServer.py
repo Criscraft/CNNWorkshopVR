@@ -5,19 +5,23 @@ import json
 import os
 import torch
 import numpy as np
+import base64
 import Scripts.utils as utils
 from Scripts.utils import get_module
 
 # Create global variables. They will be filled inplace.
 network = None
 dataset = None
+transform = None
+input_shape = None
 noise_generator = None
 current_image_resource = None
 current_fv_image_resource = None
 
 def prepare_dl_objects(source):
     global dataset
-    dataset = source.get_dataset()
+    global transform
+    dataset, transform = source.get_dataset()
     global network
     network = source.get_network()
     # Set the class names for the network. This is important if class names should be displayed for some channels.
@@ -25,7 +29,9 @@ def prepare_dl_objects(source):
     global noise_generator
     noise_generator = source.get_noise_generator()
 
-    data = torch.zeros(dataset.get_data_item(0, True)[0].shape)
+    global input_shape
+    input_shape = dataset.get_data_item(0, True)[0].shape
+    data = torch.zeros(input_shape)
     image_resource = ImageResource(id=0, mode=ImageResource.Mode.DATASET, data=data)
     network.initial_forward_pass(image_resource)
 
@@ -182,21 +188,13 @@ def get_image_resource(image_resource_dict):
 
     # Create image for the image resource
     image = None
-    if image_resource.mode == ImageResource.Mode.DATASET and image_resource.id >= 0:
-        image, label = dataset.get_data_item(image_resource.id, False)
-        image_resource.label = dataset.class_names[label]
-    elif image_resource.mode == ImageResource.Mode.FEATURE_VISUALIZATION:
-        image = network.try_load_feature_visualization(image_resource.module_id)
-        if image is not None:
-            image = image[image_resource.channel_id]
-        else:
-            raise RuntimeError
-    elif image_resource.mode == ImageResource.Mode.NOISE:
-        image = noise_generator.get_noise_image()
-    elif image_resource.mode == ImageResource.Mode.ACTIVATION:
-        raise RuntimeError
+    global input_shape
+    if "data" in image_resource_dict:
+        
+        image = utils.decode_image(image_resource_dict["data"], input_shape[0])
+        image = transform(image)
     else:
-        image = torch.zeros(dataset.get_data_item(0, True)[0].shape)
+        image = torch.zeros(input_shape)
     image_resource.data = image
 
     return image_resource

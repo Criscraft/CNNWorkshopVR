@@ -8,6 +8,7 @@ var available_actions = []
 var active_action_ind : int = 0 setget set_active_action_ind
 
 signal zero_weights
+signal identity_weights
 
 class Action:
 	var label : String = "Action"
@@ -27,6 +28,12 @@ func _ready():
 	action.label = "set weights zero"
 	action.requirements = ["weights"]
 	action.action = "zero_weights"
+	all_actions.append(action)
+	
+	action = Action.new()
+	action.label = "identity weights"
+	action.requirements = ["weights"]
+	action.action = "identity_weights"
 	all_actions.append(action)
 	
 	set_network_module_details_manager(null)
@@ -61,6 +68,7 @@ func set_network_module_details_manager(network_module_details_manager_):
 	set_active_action_ind(active_action_ind)
 	
 	connect("zero_weights", network_module_details_manager, "zero_weights")
+	connect("identity_weights", network_module_details_manager, "identity_weights")
 	
 
 func set_active_action_ind(ind):

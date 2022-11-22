@@ -16,8 +16,8 @@ func set_image_resource(image_resource : ImageResource):
 	
 func set_network_module_resource(network_module_resource : NetworkModuleResource):
 	for child in get_children():
-			if child.name != "ChannelImageTile":
-				child.queue_free()
+		if child.name != "ChannelImageTile":
+			child.queue_free()
 	if network_module_resource != null:
 		add_details(network_module_resource)
 		
@@ -137,6 +137,7 @@ func set_size_of_children(size_new):
 		channel_image_tile.rect_min_size = Vector2(size_new, size_new)
 
 
+# Called by WeightEditContainer via signal.
 func on_weight_changed(weight, weight_ind):
 	var color = get_weight_color(weight)
 	$WeightEditContainer.set_color(weight_ind, color)

@@ -336,7 +336,8 @@ class DoubleHandcraftedFilterModule(nn.Module):
         # Rewiring
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Channel Permutation"))
         summand_group_id = TRACKERMODULEGROUPS[-1].group_id
-        self.rewire_module = RewireModule(torch.arange(n_channels_in).roll(1))
+        group_size = n_channels_in // shuffle_conv_groups
+        self.rewire_module = RewireModule(torch.arange(n_channels_in).roll(group_size // 2))
         summand_module_id = self.rewire_module.tracker_permutation_output.module_id
         #self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
         

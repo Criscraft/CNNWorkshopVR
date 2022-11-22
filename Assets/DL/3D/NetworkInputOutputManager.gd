@@ -31,7 +31,7 @@ func set_current_image_resource(image_resource_):
 		emit_signal("add_result_line", "A feature map is not a valid input for the network.")
 	else:
 		current_image_resource = image_resource_
-		emit_signal("request_forward_pass", current_image_resource)
+		emit_signal("request_forward_pass", current_image_resource.get_dict(true))
 
 
 # Called by DLManager via group.
@@ -55,4 +55,4 @@ func _on_feat_vis_tray_picked_up(what):
 func set_current_fv_image_resource(image_resource_):
 	if image_resource_.mode != ImageResource.MODE.ACTIVATION:
 		current_fv_image_resource = image_resource_
-		emit_signal("set_fv_image_resource", current_fv_image_resource)
+		emit_signal("set_fv_image_resource", current_fv_image_resource.get_dict(true))

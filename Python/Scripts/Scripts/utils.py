@@ -55,6 +55,14 @@ def encode_image(data):
     return base64.b64encode(buffer).decode('utf-8')
 
 
+def decode_image(string_data, n_channels=3):
+    decoded = base64.b64decode(string_data)
+    decoded = np.frombuffer(decoded, dtype=np.uint8)
+    mode = cv2.IMREAD_COLOR if n_channels==3 else cv2.IMREAD_GRAYSCALE
+    image = cv2.imdecode(decoded, mode)
+    return image
+
+
 def get_module(module_path):
     module_name = os.path.basename(module_path)[:-3]
     

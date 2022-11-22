@@ -24,8 +24,8 @@ def get_network():
         n_classes=10,
         start_config={
             'k' : 3, 
-            'filter_mode' : 'UnevenPosOnly',
-            'n_angles' : 4,
+            'filter_mode' : 'Uneven',
+            'n_angles' : 2,
             'n_channels_in' : 1,
             'n_channels_out' : 20, # muss teilbar durch shuffle_conv_groups sein sowie durch die Anzahl an Klassen 
             'f' : 4,
@@ -34,9 +34,9 @@ def get_network():
         },
         blockconfig_list=[
             {'k' : 3, 
-            'filter_mode_1' : 'UnevenPosOnly',
-            'filter_mode_2' : 'UnevenPosOnly',
-            'n_angles' : 4,
+            'filter_mode_1' : 'Uneven',
+            'filter_mode_2' : 'Uneven',
+            'n_angles' : 2,
             'n_blocks' : 1,
             'n_channels_in' : 20,
             'n_channels_out' : 20,
@@ -73,7 +73,7 @@ def get_dataset():
 
     dldata = DLData(dataset, dataset_to_tensor, data_indices, dataset.class_names, N_CLASSES)
     
-    return dldata
+    return dldata, transform_test
 
 
 def get_noise_generator():

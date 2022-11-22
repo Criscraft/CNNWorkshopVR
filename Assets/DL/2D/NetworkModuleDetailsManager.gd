@@ -61,7 +61,7 @@ func set_network_module_resource(new_network_module_resource):
 # Called by DLManager via group
 func receive_classification_results(_results):
 	# When a new forward pass was performed, we need to update the image data.
-	if not feature_visualization_mode:
+	if not feature_visualization_mode and network_module_resource != null:
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 		
 		
@@ -252,13 +252,30 @@ func on_weight_changed(weight, channel_ind, group_ind):
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 	
 
+# Called by NetworkModuleActionSelector
 func zero_weights():
 	if "weights" in network_module_resource:
 		for channel_weights in network_module_resource.weights:
 			for group_weight in channel_weights:
 				group_weight[0][0] = 0.0
-	
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
+	update_details_layout()
+	
+	
+# Called by NetworkModuleActionSelector
+func identity_weights():
+	if "weights" in network_module_resource:
+		var group = 0
+		var group_size = network_module_resource.weights[0].size()
+		for channel_weights in network_module_resource.weights:
+			for i in range(group_size):
+				if group == i:
+					channel_weights[i][0][0] = 1.0
+				else:
+					channel_weights[i][0][0] = 0.0
+			group = (group + 1) % group_size
+	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
+	update_details_layout()
 
 
 func loading_fv_data(module_id):
