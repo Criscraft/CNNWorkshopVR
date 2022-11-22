@@ -15,7 +15,7 @@ from Scripts.ImageResource import ImageResource
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, softmax=False, class_names=[], cache_path=os.path.join("cache", "network")):
+    def __init__(self, model, device, classification, input_size, softmax=False, class_names=[], export_path=os.path.join("export", "network")):
         super().__init__()
         
         self.device = device
@@ -33,10 +33,7 @@ class DLNetwork(object):
         self.output_tracker_module_id = ""
         self.input_tracker_module_id = ""
 
-        self.cache_path = cache_path
-        if not os.path.exists(self.cache_path): os.makedirs(self.cache_path)
-
-        self.export_path = os.path.join(self.cache_path, 'Export')
+        self.export_path = export_path
         if not os.path.exists(self.export_path): os.makedirs(self.export_path)
         
     
