@@ -1,8 +1,10 @@
 extends Control
 
-export var line_scene : PackedScene
-export var weight_edit_scene : PackedScene
+export var line_scene : PackedScene = preload("res://Assets/Stuff/TextLine.tscn")
+export var weight_edit_container_scene : PackedScene = preload("res://Assets/DL/2D/WeightEditContainer.tscn")
 var margin = 10
+var weight_slider_height = 60
+var image_height = 256
 var left_weight_limit : float
 var right_weight_limit : float
 var channel_ind : int
@@ -53,7 +55,7 @@ func add_details(network_module_resource):
 		var out_channels_per_group = out_channels / n_groups
 		channel_ind = $ChannelImageTile.image_resource.channel_id
 		var group_ind = int(channel_ind / out_channels_per_group)
-		var channel_offset = group_ind * in_channels_per_group
+		var first_input_channel = group_ind * in_channels_per_group
 		
 		var color
 		var weights = []
@@ -72,50 +74,29 @@ func add_details(network_module_resource):
 		"""
 		
 		# Draw weight edit UI
-		var weight_edit = weight_edit_scene.instance()
+		var weight_edit = weight_edit_container_scene.instance()
 		add_child(weight_edit)
 		move_child(weight_edit, 0)
-		weight_edit.set_initial_weights(weights, left_weight_limit, right_weight_limit)
-		
-		# Draw channel connections and colorize
-		
-		var y_offset
-		for i in range(in_channels_per_group):
-			color = get_weight_color(weights[i])
-			weight_edit.set_color(i, color)
-			y_offset =  (i + 0.5) / in_channels_per_group
-			draw_channel_connection(channel_ind, channel_offset + i, color, y_offset)
+		weight_edit.set_initial_weights(weights, left_weight_limit, right_weight_limit, first_input_channel)
 			
 		# Draw dummy rect such that the channel connections have enough space to be shown
 		add_dummy_rect()
-			
-			
-func get_weight_color(weight):
-	var color : Color
-	if weight < 0:
-		color = Color(0, 0, weight / (left_weight_limit + 1e-6))
-	else:
-		color = Color(weight / (right_weight_limit + 1e-6), 0, 0)
-	return color
+		
 	
-	
-func draw_channel_connection(this_channel_id, precursor_channel_id, color=null, relative_shift_right=0.5):
-	var width = 256
-	var height = 256
-	var this_global_position_y = this_channel_id * (height + margin)
-	var precursor_global_position_y = precursor_channel_id * (height + margin)
+func draw_channel_connection(this_channel_id, precursor_channel_id):
+	var width = image_height
+	var this_global_position_y = this_channel_id * (image_height + margin)
+	var precursor_global_position_y = precursor_channel_id * (image_height + margin)
 	var relative_precursor_position_y = precursor_global_position_y - this_global_position_y
-	var start_pos = Vector2(width, relative_shift_right * height)
-	var mid_pos = Vector2(0.25 * width, relative_precursor_position_y + 0.5 * height)
-	var end_pos = Vector2(0, relative_precursor_position_y + 0.5 * height)
+	var start_pos = Vector2(width, 0.5 * width)
+	var mid_pos = Vector2(0.25 * width, relative_precursor_position_y + 0.5 * image_height)
+	var end_pos = Vector2(0, relative_precursor_position_y + 0.5 * image_height)
 	var curve = Curve2D.new()
 	curve.add_point(start_pos, Vector2(0, 0), Vector2(0, 0))
 	curve.add_point(mid_pos, Vector2(0, 0), Vector2(0, 0))
 	curve.add_point(end_pos, Vector2(0, 0), Vector2(0, 0))
 	var line_instance = line_scene.instance()
 	line_instance.set_curve(curve)
-	if color != null:
-		line_instance.set_color(color)
 	add_child(line_instance)
 
 
@@ -139,7 +120,6 @@ func set_size_of_children(size_new):
 
 # Called by WeightEditContainer via signal.
 func on_weight_changed(weight, weight_ind):
-	var color = get_weight_color(weight)
-	$WeightEditContainer.set_color(weight_ind, color)
+	$WeightEditContainer.set_weight(weight_ind, weight)
 	emit_signal("weight_changed", weight, channel_ind, weight_ind)
 	

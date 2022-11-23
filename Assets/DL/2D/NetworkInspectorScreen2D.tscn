@@ -15,21 +15,3 @@ margin_bottom = 600.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
 alignment = 1
-
-[node name="Slot0" type="HBoxContainer" parent="Container"]
-margin_left = 508.0
-margin_right = 508.0
-margin_bottom = 600.0
-alignment = 1
-
-[node name="Slot1" type="HBoxContainer" parent="Container"]
-margin_left = 512.0
-margin_right = 512.0
-margin_bottom = 600.0
-alignment = 1
-
-[node name="Slot2" type="HBoxContainer" parent="Container"]
-margin_left = 516.0
-margin_right = 516.0
-margin_bottom = 600.0
-alignment = 1

@@ -1,11 +1,17 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://Assets/ThemesAndFonts/ScrollBarThemeWeights.tres" type="Theme" id=1]
+
+[sub_resource type="StyleBoxFlat" id=1]
+resource_local_to_scene = true
+content_margin_bottom = 60.0
+bg_color = Color( 0.227451, 0.227451, 0.227451, 1 )
 
 [node name="WeightEditScrollBar" type="HScrollBar"]
 margin_right = 1024.0
 margin_bottom = 60.0
 rect_min_size = Vector2( 400, 0 )
 theme = ExtResource( 1 )
+custom_styles/scroll = SubResource( 1 )
 step = 0.2
 page = 0.15

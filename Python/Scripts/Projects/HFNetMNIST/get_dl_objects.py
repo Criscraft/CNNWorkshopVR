@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import os
-from Projects.HFNetMNIST.THFNet import THFNet
+from Projects.HFNetMNIST.PFNetSimple import PFNetSimple
 from Projects.HFNetMNIST.TransformTestGS import TransformTestGS
 from Projects.HFNetMNIST.TransformToTensor import TransformToTensor
 from Projects.HFNetMNIST.MNIST import MNIST
@@ -20,34 +20,31 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 def get_network():
 
-    model = THFNet(
+    model = PFNetSimple(
         n_classes=10,
         start_config={
-            'k' : 3, 
+            'n_channels_in' : 1,
             'filter_mode' : 'Uneven',
             'n_angles' : 2,
-            'n_channels_in' : 1,
-            'n_channels_out' : 20, # muss teilbar durch shuffle_conv_groups sein sowie durch die Anzahl an Klassen 
-            'f' : 4,
             'handcrafted_filters_require_grad' : False,
-            'shuffle_conv_groups' : 1,
+            'f' : 4,
+            'k' : 3, 
+            'stride' : 1,
         },
         blockconfig_list=[
-            {'k' : 3, 
-            'filter_mode_1' : 'Uneven',
-            'filter_mode_2' : 'Uneven',
+            {'n_channels_in' : 16,
+            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
+            'filter_mode' : 'Uneven',
             'n_angles' : 2,
-            'n_blocks' : 1,
-            'n_channels_in' : 20,
-            'n_channels_out' : 20,
-            'avgpool' : True if i>0 else False,
             'f' : 1,
+            'k' : 3, 
             'handcrafted_filters_require_grad' : False,
-            'shuffle_conv_groups' : 20 // 4,
+            'shuffle_conv_groups' : 16 // 4,
+            'avgpool' : True if i>0 else False,
             } for i in range(3)],
         avgpool_after_firstlayer=False,
         #init_mode = 'zero',
-        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_hfnet_blocks_1_1_1_channels_20.pt'),
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_pfnet_simple.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
