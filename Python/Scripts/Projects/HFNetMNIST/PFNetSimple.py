@@ -93,7 +93,8 @@ class CopyModule(nn.Module):
 
         self.factor = n_channels_out // n_channels_in
         self.interleave = interleave
-        self.tracker_copymodule = TrackerModule(label="Copy channels")
+        info_code = "interleave" if self.interleave else ""
+        self.tracker_copymodule = TrackerModule(label="Copy channels", info_code=info_code)
 
     def forward(self, x: Tensor) -> Tensor:
         if self.interleave:
@@ -432,7 +433,7 @@ class ResidualModule(nn.Module):
             self.copymodule = nn.Identity()
 
         # HFModule
-        self.hfmodule = PredefinedFilterModule(
+        self.pfmodule = PredefinedFilterModule(
             n_channels_in=n_channels_in,
             n_channels_out=n_channels_out,
             filter_mode=filter_mode,
@@ -446,6 +447,7 @@ class ResidualModule(nn.Module):
             shuffle_conv_groups=shuffle_conv_groups,
             activation_for_3x3=False
             )
+        pf_module_id = self.pfmodule.predefined_filter_module_3x3_part.tracker_norm.module_id
 
         # Skip
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[summand_group_id], label="Skip"))
@@ -456,7 +458,7 @@ class ResidualModule(nn.Module):
         # Sum
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[-1, -2], label="Sum"))
 
-        self.tracker_sum_summand1 = TrackerModule(label="Summand 1")
+        self.tracker_sum_summand1 = TrackerModule(label="Summand 1", precursors=[pf_module_id])
         self.tracker_sum_summand2 = TrackerModule(label="Summand 2", precursors=[skip_module_id])
         self.tracker_sum = TrackerModule(label="Sum", precursors=[-1, -2])
 
@@ -476,7 +478,7 @@ class ResidualModule(nn.Module):
         x = self.rewire_module(x)
         _ = self.copymodule(x)
 
-        out = self.hfmodule(x)
+        out = self.pfmodule(x)
 
         x = self.skip(x)
         _ = self.tracker_skip(x)

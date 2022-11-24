@@ -2,9 +2,18 @@ extends Node
 
 export var id_to_network_group_resource_dict = {}
 export var id_to_network_module_resource_dict = {}
+onready var channel_highlighting_script = preload("res://Assets/DL/ChannelHighlighting.gd")
+var channel_highlighting
 
 signal created_network_group_resources
 signal created_network_module_resources
+
+func _ready():
+	channel_highlighting = Node.new()
+	channel_highlighting.name = "ChannelHighlighting"
+	channel_highlighting.set_script(channel_highlighting_script)
+	channel_highlighting.add_to_group("on_image_selected")
+	add_child(channel_highlighting)
 
 func create_network_group_resources(network_group_dicts):
 	var network_group_dict
@@ -23,7 +32,7 @@ func create_network_group_resources(network_group_dicts):
 			network_group_resource.precursor_group_resources.append(id_to_network_group_resource_dict[id2])
 			
 	emit_signal("created_network_group_resources")
-			
+	
 
 func create_network_group_resource(network_group_dict, id):
 	var network_group_resource = NetworkGroupResource.new()
@@ -40,19 +49,23 @@ func create_network_group_resource(network_group_dict, id):
 func create_network_module_resources(network_module_dicts):
 	var network_module_dict
 	var network_module_resource
+	var precursor
 	
+	# Create network module resources
 	for id in network_module_dicts:
-		# Create NetworkModuleResource
 		network_module_dict = network_module_dicts[id]
 		network_module_resource = create_network_module_resource(network_module_dict, id)
 		id_to_network_module_resource_dict[int(id)] = network_module_resource
 	
+	# Add precursors and successors to network module resources
 	for id in id_to_network_module_resource_dict:
 		network_module_resource = id_to_network_module_resource_dict[id]
-		network_module_resource.precursor_module_resources = []
 		for id2 in network_module_resource.precursors:
-			network_module_resource.precursor_module_resources.append(id_to_network_module_resource_dict[id2])
-			
+			precursor = id_to_network_module_resource_dict[id2]
+			network_module_resource.precursor_module_resources.append(precursor)
+			precursor.successor_module_resources.append(network_module_resource)
+	
+	channel_highlighting.initialize()
 	emit_signal("created_network_module_resources")
 			
 
@@ -67,9 +80,9 @@ func create_network_module_resource(network_module_dict, id):
 	network_module_resource.precursors = precursors
 	network_module_resource.group_id = int(network_module_dict["group_id"])
 	network_module_resource.label = network_module_dict["label"]
-	network_module_resource.has_data = network_module_dict["has_data"]
 	network_module_resource.channel_labels = network_module_dict["channel_labels"]
 	network_module_resource.size = network_module_dict["size"]
+	network_module_resource.info_code = network_module_dict["info_code"]
 	if "weights" in network_module_dict:
 		network_module_resource.weights = network_module_dict["weights"]
 		network_module_resource.weights_min = network_module_dict["weights_min"]

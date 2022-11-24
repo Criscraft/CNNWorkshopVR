@@ -50,32 +50,12 @@ class DLNetwork(object):
             
             # record info about each tracker module
             for item in out_dict['layer_infos']:
-                if 'activation' in item:
-                    if len(item['activation'].shape) == 4:
-                        has_data = True
-                    size = item['activation'].shape
+                item['size'] = item['activation'].shape
+                if item['channel_labels'] == "classes":
+                    item['channel_labels'] = self.class_names
                 else:
-                    has_data = False
-                    size = [0]
-                
-                module_dict[item['module_id']] = {
-                    'group_id' : item['group_id'], 
-                    'label' : item['label'],
-                    'precursors' : item['precursors'],
-                    'tracked_module' : item['tracked_module'],
-                    'channel_labels' : item['channel_labels'],
-                    'activation' : item.get('activation'),
-                    'has_data' : has_data,
-                    'size' : size,
-                    'module' : item['module'], 
-                }
-            
-            for module_info in module_dict.values():
-                # Add channel labels if necessary
-                if module_info['channel_labels'] == "classes":
-                    module_info['channel_labels'] = self.class_names
-                else:
-                    module_info['channel_labels'] = []
+                    item['channel_labels'] = []
+                module_dict[item['module_id']] = item
 
             self.module_dict = module_dict
 
@@ -97,7 +77,7 @@ class DLNetwork(object):
         # get group information
         group_dict = copy.deepcopy(self.model.tracker_module_groups_info)
         # get tracker_module information
-        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'channel_labels', 'has_data', 'size')} for module_id, module_info in self.module_dict.items()}
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'channel_labels', 'size', 'info_code')} for module_id, module_info in self.module_dict.items()}
         
         for module_id, module_info in out_module_dict.items():
             # Add information to special cases

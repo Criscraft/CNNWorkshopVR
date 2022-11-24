@@ -24,7 +24,7 @@ class TrackerModuleGroup(object):
 
 class TrackerModule(nn.Identity):
 
-    def __init__(self, group_id=-1, label="", precursors=[-1], tracked_module=None, ignore_activation=False, channel_labels=[]):
+    def __init__(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
         super().__init__()
         # precursors is a list of module ids
         global module_id_
@@ -38,7 +38,7 @@ class TrackerModule(nn.Identity):
             'label' : label,
             'precursors' : precursors, 
             'tracked_module' : tracked_module,
-            'ignore_activation' : ignore_activation,
+            'info_code' : info_code,
             'channel_labels' : channel_labels,
             'activation' : None,
         }
@@ -116,9 +116,7 @@ class ActivationTracker():
             for info_item in info_list:
                 module_dict = module.meta
                 module_dict['module'] = module
-                #item_dict['module_id'] = module.module_name
-                if not module_dict['ignore_activation']:
-                    module_dict['activation'] = info_item.in_data[0]
+                module_dict['activation'] = info_item.in_data[0]
                 module_dicts.append(module_dict)
         return output, module_dicts
 
@@ -133,13 +131,13 @@ def reset_ids():
 module_dicts is a list with module_dicts.
 A module_dicts contains:
 'module_id' : module_id,
-'tracker_module_type' : tracker_module_type,
 'group_id' : group_id, 
 'label' : label,
 'precursors' : precursors, 
 'tracked_module' : tracked_module,
-'ignore_activation' : ignore_activation,
+'info_code' : "",
 'channel_labels' : channel_labels,
 'input_channels' : -1
 'activation' : None,
+'module'
 """

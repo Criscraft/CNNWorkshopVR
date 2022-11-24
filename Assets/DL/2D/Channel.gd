@@ -7,7 +7,6 @@ var weight_slider_height = 60
 var image_height = 256
 var left_weight_limit : float
 var right_weight_limit : float
-var channel_ind : int
 
 signal weight_changed(weight, channel_ind, weight_ind)
 
@@ -25,7 +24,9 @@ func set_network_module_resource(network_module_resource : NetworkModuleResource
 		
 
 func add_details(network_module_resource):
+	var channel_ind = $ChannelImageTile.image_resource.channel_id
 	if network_module_resource.kernels:
+		# We have a nxn convolution with n>1
 		var kernel_id = $ChannelImageTile.image_resource.channel_id % network_module_resource.kernels.size()
 		var kernel = network_module_resource.kernels[kernel_id]
 		var kernel_image = ImageProcessing.array_to_grayscaleimage(kernel[0])
@@ -40,12 +41,13 @@ func add_details(network_module_resource):
 		kernel_texture_rect.rect_min_size = Vector2(256, 256)
 		
 	if network_module_resource.permutation:
-		channel_ind = $ChannelImageTile.image_resource.channel_id
+		# We have a permutation layer.
 		var perm_ind = network_module_resource.permutation[channel_ind]
 		draw_channel_connection(channel_ind, perm_ind)
 		add_dummy_rect()
 		
 	if network_module_resource.weights:
+		# We have a 1x1 convolution
 		var in_channels_per_group = network_module_resource.weights[0].size()
 		var out_channels = network_module_resource.size[1]
 		var in_channels = out_channels
@@ -53,11 +55,9 @@ func add_details(network_module_resource):
 			in_channels = network_module_resource.precursor_module_resources[0].size[1]
 		var n_groups = in_channels / in_channels_per_group
 		var out_channels_per_group = out_channels / n_groups
-		channel_ind = $ChannelImageTile.image_resource.channel_id
 		var group_ind = int(channel_ind / out_channels_per_group)
 		var first_input_channel = group_ind * in_channels_per_group
 		
-		var color
 		var weights = []
 		for weight in network_module_resource.weights[channel_ind]:
 			weights.append(weight[0][0])
@@ -81,6 +81,25 @@ func add_details(network_module_resource):
 			
 		# Draw dummy rect such that the channel connections have enough space to be shown
 		add_dummy_rect()
+	else:
+		# Check if we have a copy module
+		if network_module_resource.precursor_module_resources:
+			var in_channels = int(network_module_resource.precursor_module_resources[0].size[1])
+			var out_channels = int(network_module_resource.size[1])
+			var in_channel_ind
+			if in_channels < out_channels:
+				# We have a copy module.
+				if in_channels==1:
+					in_channel_ind = 0
+				elif network_module_resource.info_code=="interleave":
+					var out_channels_per_in_channel = int(out_channels / in_channels)
+					in_channel_ind = int(channel_ind / out_channels_per_in_channel)
+				else:
+					in_channel_ind = channel_ind % int(in_channels)
+					
+				draw_channel_connection(channel_ind, in_channel_ind)
+				# Draw dummy rect such that the channel connections have enough space to be shown
+				add_dummy_rect()
 		
 	
 func draw_channel_connection(this_channel_id, precursor_channel_id):
@@ -121,5 +140,6 @@ func set_size_of_children(size_new):
 # Called by WeightEditContainer via signal.
 func on_weight_changed(weight, weight_ind):
 	$WeightEditContainer.set_weight(weight_ind, weight)
+	var channel_ind = $ChannelImageTile.image_resource.channel_id
 	emit_signal("weight_changed", weight, channel_ind, weight_ind)
 	

@@ -29,3 +29,11 @@ static func array_to_grayscaleimage(array : Array):
 			image.set_pixel(j, i, Color(value, 0, -value))
 	image.unlock()
 	return image
+
+static func get_weight_color(weight):
+	var color : Color
+	if weight < 0:
+		color = Color(0, 0, weight / (-1.0 + 1e-6))
+	else:
+		color = Color(weight / (1.0 + 1e-6), 0, 0)
+	return color
