@@ -113,15 +113,12 @@ func receive_image_data(image_resource_data):
 	if image_resource_data[0].module_id != network_module_resource.module_id:
 		return
 	var mode = ImageResource.MODE[image_resource_data[0]["mode"]]
-	if not feature_visualization_mode and mode != ImageResource.MODE.ACTIVATION:
-		return
-	if feature_visualization_mode and mode != ImageResource.MODE.FEATURE_VISUALIZATION:
-		return
-	
-	add_to_group("on_pool_task_completed")
-	THREADPOOL.submit_task(self, "process_module_image_resources", image_resource_data, "process_module_image_resources_" + String(network_module_resource.module_id))
-	#var results = process_module_image_resources(image_resource_data)
-	#update_image_data(results)
+	if mode == ImageResource.MODE.ACTIVATION and feature_visualization_mode == false or \
+		mode == ImageResource.MODE.FEATURE_VISUALIZATION and feature_visualization_mode == true:
+		add_to_group("on_pool_task_completed")
+		THREADPOOL.submit_task(self, "process_module_image_resources", image_resource_data, "process_module_image_resources_" + String(network_module_resource.module_id))
+		#var results = process_module_image_resources(image_resource_data)
+		#update_image_data(results)
 
 
 func process_module_image_resources(image_resource_data):

@@ -120,6 +120,7 @@ def request_architecture(event):
 
 
 def request_image_data(event):
+    print(event)
     image_resources = []
     module_resource = event["network_module_resource"]
     mode = event["mode"]

@@ -73,8 +73,8 @@ class PFNetSimple(nn.Module):
         track_modules = ActivationTracker()
 
         assert isinstance(batch, dict) and 'data' in batch
-        logits, layer_infos = track_modules.collect_stats(self.embedded_model, batch['data'], module)
-        out = {'logits' : logits, 'layer_infos' : layer_infos}
+        output, module_dicts = track_modules.collect_stats(self.embedded_model, batch['data'], module)
+        out = {'logits' : output, 'module_dicts' : module_dicts}
         return out
 
             

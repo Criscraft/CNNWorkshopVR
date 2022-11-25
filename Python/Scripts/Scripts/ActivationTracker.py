@@ -114,7 +114,7 @@ class ActivationTracker():
         for module, info_list in self._layer_info_dict.items():
             #one info_list can have multiple entries, for example if one relu module is applied several times in a network
             for info_item in info_list:
-                module_dict = module.meta
+                module_dict = module.meta.copy() # Copy important because we do not want the module_dict to be a reference to the tracker module.
                 module_dict['module'] = module
                 module_dict['activation'] = info_item.in_data[0]
                 module_dicts.append(module_dict)

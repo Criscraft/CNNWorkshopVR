@@ -45,11 +45,11 @@ class DLNetwork(object):
             module_dict = {}
             
             # assumtion, that the input tracker is the first one and the output tracker is the last one 
-            self.input_tracker_module_id = out_dict['layer_infos'][0]['module_id']
-            self.output_tracker_module_id = out_dict['layer_infos'][-1]['module_id']
+            self.input_tracker_module_id = out_dict['module_dicts'][0]['module_id']
+            self.output_tracker_module_id = out_dict['module_dicts'][-1]['module_id']
             
             # record info about each tracker module
-            for item in out_dict['layer_infos']:
+            for item in out_dict['module_dicts']:
                 item['size'] = item['activation'].shape
                 if item['channel_labels'] == "classes":
                     item['channel_labels'] = self.class_names
@@ -66,9 +66,9 @@ class DLNetwork(object):
             image = image.unsqueeze(0)
             out_dict = self.model.forward_features({'data' : image})
             # record info about each tracker module
-            for item in out_dict['layer_infos']:
-                module = self.module_dict[item['module_id']]
-                module['activation'] = item.get('activation')
+            for sub_module_dict_new in out_dict['module_dicts']:
+                sub_module_dict = self.module_dict[sub_module_dict_new['module_id']]
+                sub_module_dict['activation'] = sub_module_dict_new['activation'].cpu()
 
 
     def get_architecture(self):
@@ -102,7 +102,7 @@ class DLNetwork(object):
     def get_activation(self, module_id):
         # returns cpu tensor
         if self.module_dict:
-            return self.module_dict[module_id]['activation'].cpu()
+            return self.module_dict[module_id]['activation']
         else:
             raise RuntimeError("need to do the initial forward pass first")
 
@@ -118,7 +118,7 @@ class DLNetwork(object):
         n_channels = self.module_dict[module_id]["size"][1]
         created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
         out_images = self.feature_visualizer.export_transformation(created_images)
-        
+
         return out_images
 
 

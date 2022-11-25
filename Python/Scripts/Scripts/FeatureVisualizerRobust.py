@@ -28,7 +28,8 @@ class FeatureVisualizer(object):
         degrees = 10, 
         blur_sigma = 0.5,
         roll = 4,
-        epochs_without_robustness = 10):
+        epochs_without_robustness = 10,
+        fraction_to_maximize=0.5):
         
         super().__init__()
         self.lr = lr
@@ -39,6 +40,7 @@ class FeatureVisualizer(object):
         self.regularize_transformation = Regularizer(distribution_reg_blend, target_size, scale, degrees, blur_sigma, roll)
         self.export_transformation = ExportTransform()
         self.epochs_without_robustness = epochs_without_robustness
+        self.fraction_to_maximize = fraction_to_maximize
 
 
     def visualize(self, model, module, device, init_image, n_channels, channels=None):
@@ -59,22 +61,32 @@ class FeatureVisualizer(object):
         for batchid in range(n_batches):
             channels_batch = channels[batchid * BATCHSIZE : (batchid + 1) * BATCHSIZE]
             n_batch_items = len(channels_batch)
-            created_image = init_image.repeat(n_batch_items, 1, 1, 1).detach()
+            created_image = init_image.repeat(n_batch_items, 1, 1, 1).detach().clone()
 
             for epoch in range(self.epochs):
                 if epoch < self.epochs - self.epochs_without_robustness:
                     with torch.no_grad():
                         created_image = self.regularize_transformation(created_image)
                 
-                created_image = created_image.detach().clone()
+                created_image = created_image.detach()#.clone()
                 created_image.requires_grad = True
                 if hasattr(created_image, 'grad') and created_image.grad is not None:
                     created_image.grad.data.zero_()
+                # model.zero_grad could be unnecessary, but I am not sure
                 model.zero_grad()
 
                 out_dict = model.forward_features({'data' : created_image}, module)
-                output = out_dict['layer_infos'][0]['activation']
-                loss_max = -torch.stack([output[i, j].mean() for i, j in enumerate(channels_batch)]).sum()
+                output = out_dict['module_dicts'][0]['activation']
+                output = output.flatten(2)
+                if output.shape[2] == 1:
+                    loss_max = -output.sum()
+                else:
+                    mean_list = []
+                    for i, j in enumerate(channels_batch):
+                        activation = output[i, j]
+                        activation_percentile = torch.quantile(activation, 1. - self.fraction_to_maximize, interpolation='linear')
+                        mean_list.append(activation[activation>activation_percentile].mean())
+                    loss_max = -torch.stack(mean_list).sum()
 
                 loss = loss_max
                 if torch.isnan(loss):
