@@ -27,10 +27,13 @@ func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
 	
 	yield(get_tree(), "idle_frame")
 	# Draw lines
+	var channel_node = get_parent()
+	var own_y_position
 	for i in range(len(weights)):
 		slider = get_child(i)
 		local_from = Vector2(0.0, slider_width/2)
-		local_to = Vector2(-line_width, -slider.rect_global_position.y + (input_indices[i] + 0.5) * (image_height + margin))
+		own_y_position = slider.rect_position.y + channel_node.rect_position.y
+		local_to = Vector2(-line_width, -own_y_position + (input_indices[i] + 0.5) * (image_height + margin))
 		line = get_line(local_from, local_to)
 		line.name = "Line"
 		slider.add_child(line)

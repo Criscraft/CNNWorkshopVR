@@ -79,16 +79,19 @@ class FeatureVisualizer(object):
                 output = out_dict['module_dicts'][0]['activation']
                 output = output.flatten(2)
                 if output.shape[2] == 1:
-                    loss_max = -output.sum()
+                    loss = -output.sum()
                 else:
                     mean_list = []
                     for i, j in enumerate(channels_batch):
                         activation = output[i, j]
                         activation_percentile = torch.quantile(activation, 1. - self.fraction_to_maximize, interpolation='linear')
-                        mean_list.append(activation[activation>activation_percentile].mean())
-                    loss_max = -torch.stack(mean_list).sum()
+                        mean_new = activation[activation>activation_percentile].mean()
+                        if torch.isnan(mean_new):
+                            mean_new = activation.mean()
+                        mean_list.append(mean_new)
+                        
+                    loss = -torch.stack(mean_list).sum()
 
-                loss = loss_max
                 if torch.isnan(loss):
                     print("loss is none, reset image")
                     created_image = init_image.repeat(n_batch_items, 1, 1, 1).detach()
@@ -100,7 +103,7 @@ class FeatureVisualizer(object):
                 created_image = created_image - gradients * self.lr
 
                 if epoch % 20 == 0:
-                    print(epoch, loss_max.item())
+                    print(epoch, loss.item())
 
                 if self.export and (epoch % self.export_interval == 0 or epoch == self.epochs - 1):
                     with torch.no_grad():
@@ -129,7 +132,7 @@ class ExportTransform(object):
         minimum = x.min((1,2,3), keepdims=True)
         maximum = x.max((1,2,3), keepdims=True)
         x = x - minimum
-        x = x / (maximum - minimum)
+        x = x / (maximum - minimum + 1e-6)
         x = x * 255
         x = x.astype(np.uint8)
 
@@ -178,7 +181,7 @@ class DistributionRegularizer(nn.Module):
     def forward(self, x):
         mean = x.mean((1,2,3), keepdims=True)
         std = x.std((1,2,3), keepdims=True)
-        x_reg = ((x - mean) / std)
+        x_reg = (x - mean) / (std + 1e-6)
         x_new = ((1. - self.blend) * x) +  self.blend * x_reg
         return x_new
 

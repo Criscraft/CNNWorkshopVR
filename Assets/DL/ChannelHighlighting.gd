@@ -80,4 +80,4 @@ func transfer_highlights(current, precursor):
 	else:
 		for out_channel_ind in range(current.input_mapping.size()):
 			in_channel_ind = current.input_mapping[out_channel_ind][0]
-			precursor_highlights[in_channel_ind] = current_highlights[in_channel_ind]
+			precursor_highlights[in_channel_ind] = current_highlights[out_channel_ind]

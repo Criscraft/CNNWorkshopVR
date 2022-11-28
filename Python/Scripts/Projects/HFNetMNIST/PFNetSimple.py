@@ -117,7 +117,12 @@ class LayerNorm(nn.Module):
         dims = tuple(range(x.ndim))[1:]
         mean = x.mean(dim=dims, keepdims=True)
         std = x.std(dim=dims, keepdims=True)
-        return (x - mean) / (std + 1e-6)
+        out = (x - mean) / (std + 1e-6)
+        if torch.isnan(out).sum():
+            print("Error")
+            print(std)
+            return ValueError
+        return out
     
 
 class RewireModule(nn.Module):
