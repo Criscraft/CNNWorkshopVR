@@ -9,7 +9,7 @@ export var margin = 10
 var left_limit
 var right_limit
 
-func set_initial_weights(weights, left_limit_, right_limit_, first_input_channel):
+func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
 	left_limit = left_limit_
 	right_limit = right_limit_
 	var slider
@@ -21,7 +21,7 @@ func set_initial_weights(weights, left_limit_, right_limit_, first_input_channel
 		slider.rect_min_size.y = int((image_height - 10 * len(weights)) / len(weights))
 		slider.min_value = left_limit
 		slider.max_value = right_limit
-		slider.value = weights[i]
+		slider.value = weights[i][0][0] # It is a 1x1 kernel.
 		add_child(slider)
 		slider.connect("value_changed", get_parent(), "on_weight_changed", [i])
 	
@@ -30,11 +30,11 @@ func set_initial_weights(weights, left_limit_, right_limit_, first_input_channel
 	for i in range(len(weights)):
 		slider = get_child(i)
 		local_from = Vector2(0.0, slider_width/2)
-		local_to = Vector2(-line_width, -slider.rect_global_position.y + (first_input_channel + 0.5 + i) * (image_height + margin))
+		local_to = Vector2(-line_width, -slider.rect_global_position.y + (input_indices[i] + 0.5) * (image_height + margin))
 		line = get_line(local_from, local_to)
 		line.name = "Line"
 		slider.add_child(line)
-		set_weight(i, weights[i])
+		set_weight(i, weights[i][0][0])
 
 
 func set_weight(child_ind, weight):

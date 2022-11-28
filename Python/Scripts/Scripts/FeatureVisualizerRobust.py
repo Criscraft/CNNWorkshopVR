@@ -29,7 +29,7 @@ class FeatureVisualizer(object):
         blur_sigma = 0.5,
         roll = 4,
         epochs_without_robustness = 10,
-        fraction_to_maximize=0.5):
+        fraction_to_maximize=0.25):
         
         super().__init__()
         self.lr = lr

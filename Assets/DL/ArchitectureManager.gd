@@ -64,6 +64,7 @@ func create_network_module_resources(network_module_dicts):
 			precursor = id_to_network_module_resource_dict[id2]
 			network_module_resource.precursor_module_resources.append(precursor)
 			precursor.successor_module_resources.append(network_module_resource)
+		network_module_resource.create_input_mapping()
 	
 	channel_highlighting.initialize()
 	emit_signal("created_network_module_resources")

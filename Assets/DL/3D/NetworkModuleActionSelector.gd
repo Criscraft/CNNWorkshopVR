@@ -67,8 +67,9 @@ func set_network_module_details_manager(network_module_details_manager_):
 	active_action_ind = 0
 	set_active_action_ind(active_action_ind)
 	
-	connect("zero_weights", network_module_details_manager, "zero_weights")
-	connect("identity_weights", network_module_details_manager, "identity_weights")
+	var _error
+	_error = connect("zero_weights", network_module_details_manager, "zero_weights")
+	_error = connect("identity_weights", network_module_details_manager, "identity_weights")
 	
 
 func set_active_action_ind(ind):

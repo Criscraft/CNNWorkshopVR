@@ -63,46 +63,21 @@ func update_highlights(module_id=null, channel_id=null):
 func transfer_highlights(current, precursor):
 	var current_highlights = module_id_to_highlights[current.module_id]
 	var precursor_highlights = module_id_to_highlights[precursor.module_id]
+	var in_channel_ind
 	
-	if current.permutation:
-		for i in range(current.permutation.size()):
-			var j = current.permutation[i]
-			precursor_highlights[j] = current_highlights[i]
-	elif current.weights:
-		var in_channels_per_group = current.weights[0].size()
-		var out_channels = current.size[1]
-		var in_channels = precursor.size[1]
-		var n_groups = in_channels / in_channels_per_group
-		var out_channels_per_group = out_channels / n_groups
+	if current.weights:
+		var group_weights
+		var in_channels
+		var weight
+		
 		for out_channel_ind in range(current.weights.size()):
-			var group_weights = current.weights[out_channel_ind]
-			var group_ind = int(out_channel_ind / out_channels_per_group)
-			for groupmember_ind in range(in_channels_per_group):
-				var in_channel_ind = group_ind * in_channels_per_group + groupmember_ind
-				var weight = group_weights[groupmember_ind][0][0]
-				# if we have a negative contribution, clip it.
+			group_weights = current.weights[out_channel_ind]
+			in_channels = current.input_mapping[out_channel_ind]
+			for weight_ind in range(group_weights.size()):
+				weight = group_weights[weight_ind][0][0]
+				in_channel_ind = in_channels[weight_ind]
 				precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
 	else:
-		var out_channels = current.size[1]
-		var in_channels = precursor.size[1]
-		if in_channels > out_channels:
-			push_error("Case in_channels > out_channels not implemented.")
-		elif out_channels > in_channels:
-			# We have a copy module.
-			var in_channel_ind
-			if in_channels==1:
-				for out_channel_ind in range(out_channels):
-					precursor_highlights[0] += current_highlights[out_channel_ind]
-			elif current.info_code == "interleave":
-				var out_channels_per_in_channel = int(out_channels / in_channels)
-				for out_channel_ind in range(out_channels):
-					in_channel_ind = int(out_channel_ind / out_channels_per_in_channel)
-					precursor_highlights[in_channel_ind] += current_highlights[out_channel_ind]
-			else:
-				for out_channel_ind in range(out_channels):
-					in_channel_ind = out_channel_ind % int(in_channels)
-					precursor_highlights[in_channel_ind] += current_highlights[out_channel_ind]
-		else:
-			# We have a standard module
-			for i in range(current_highlights.size()):
-				precursor_highlights[i] = current_highlights[i]
+		for out_channel_ind in range(current.input_mapping.size()):
+			in_channel_ind = current.input_mapping[out_channel_ind][0]
+			precursor_highlights[in_channel_ind] = current_highlights[in_channel_ind]

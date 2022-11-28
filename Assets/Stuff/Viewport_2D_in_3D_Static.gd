@@ -4,10 +4,10 @@ extends Spatial
 export var screen_size = Vector2(3.0, 2.0) setget set_screen_size
 export var viewport_size = Vector2(300.0, 200.0) setget set_viewport_size
 export var transparent = true setget set_transparent
-export (PackedScene) var scene = null setget set_scene, get_scene
+export var scene : PackedScene = null setget set_scene, get_scene
 
 var is_ready : bool = false
-var scene_node : Node = null
+var scene_node : Node
 
 
 func set_screen_size(new_size: Vector2):
