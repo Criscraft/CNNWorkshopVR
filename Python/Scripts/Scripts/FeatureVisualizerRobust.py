@@ -7,6 +7,7 @@ from torchvision import transforms
 import torchgeometry as tgm
 import numpy as np
 import random
+from enum import Enum
 
 
 BATCHSIZE = 32
@@ -41,6 +42,8 @@ class FeatureVisualizer(object):
         self.export_transformation = ExportTransform()
         self.epochs_without_robustness = epochs_without_robustness
         self.fraction_to_maximize = fraction_to_maximize
+
+        self.mode = Mode.PERCENTILE
 
 
     def visualize(self, model, module, device, init_image, n_channels, channels=None):
@@ -77,20 +80,28 @@ class FeatureVisualizer(object):
 
                 out_dict = model.forward_features({'data' : created_image}, module)
                 output = out_dict['module_dicts'][0]['activation']
-                output = output.flatten(2)
                 if output.shape[2] == 1:
                     loss = -output.sum()
                 else:
-                    mean_list = []
-                    for i, j in enumerate(channels_batch):
-                        activation = output[i, j]
-                        activation_percentile = torch.quantile(activation, 1. - self.fraction_to_maximize, interpolation='linear')
-                        mean_new = activation[activation>activation_percentile].mean()
-                        if torch.isnan(mean_new):
-                            mean_new = activation.mean()
-                        mean_list.append(mean_new)
-                        
-                    loss = -torch.stack(mean_list).sum()
+                    loss_list = []
+                    if self.mode == Mode.AVERAGE:
+                        for i, j in enumerate(channels_batch):
+                            activation = output[i, j]
+                            loss_list.append(activation.mean())
+                    elif self.mode == Mode.CENTERPIXEL:
+                        for i, j in enumerate(channels_batch):
+                            activation = output[i, j]
+                            loss_list.append(activation[activation.shape[0]//2, activation.shape[1]//2])
+                    elif self.mode == Mode.PERCENTILE:
+                        for i, j in enumerate(channels_batch):
+                            activation = output[i, j]
+                            activation_percentile = torch.quantile(activation, 1. - self.fraction_to_maximize, interpolation='linear')
+                            mean_new = activation[activation>activation_percentile].mean()
+                            if torch.isnan(mean_new):
+                                mean_new = activation.mean()
+                            loss_list.append(mean_new)
+
+                    loss = -torch.stack(loss_list).sum()
 
                 if torch.isnan(loss):
                     print("loss is none, reset image")
@@ -122,6 +133,11 @@ class FeatureVisualizer(object):
         
         return created_image, export_meta
 
+
+class Mode(str, Enum):
+    AVERAGE = "AVERAGE"
+    CENTERPIXEL = "CENTERPIXEL"
+    PERCENTILE = "PERCENTILE"
 
 class ExportTransform(object):
 

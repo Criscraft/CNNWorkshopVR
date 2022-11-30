@@ -40,6 +40,7 @@ class PFNetSimple(nn.Module):
             } for i in range(3)],
         avgpool_after_firstlayer: bool = False,
         init_mode: str = 'kaiming_normal',
+        activation: str = 'leaky_relu',
         statedict: str = '',
         ):
         super().__init__()
@@ -49,6 +50,7 @@ class PFNetSimple(nn.Module):
             start_config=start_config,
             blockconfig_list=blockconfig_list, 
             avgpool_after_firstlayer=avgpool_after_firstlayer,
+            activation=activation,
             init_mode=init_mode)
 
         self.tracker_module_groups_info = {group.meta['group_id'] : {key : group.meta[key] for key in ['precursors', 'label']} for group in TRACKERMODULEGROUPS}
@@ -115,13 +117,9 @@ class LayerNorm(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         dims = tuple(range(x.ndim))[1:]
-        mean = x.mean(dim=dims, keepdims=True)
-        std = x.std(dim=dims, keepdims=True)
+        mean = x.mean(dim=dims, keepdims=True).detach()
+        std = x.std(dim=dims, keepdims=True).detach()
         out = (x - mean) / (std + 1e-6)
-        if torch.isnan(out).sum():
-            print("Error")
-            print(std)
-            return ValueError
         return out
     
 

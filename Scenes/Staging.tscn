@@ -15,7 +15,6 @@
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
-debug = true
 
 [node name="Player" type="Spatial" parent="."]
 

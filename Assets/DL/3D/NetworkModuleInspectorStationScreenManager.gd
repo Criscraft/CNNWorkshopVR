@@ -1,4 +1,3 @@
-tool
 extends Spatial
 
 export var network_module_details_screen2D_scene : PackedScene = preload("res://Assets/DL/2D/NetworkModuleDetailsScreen2D.tscn")
