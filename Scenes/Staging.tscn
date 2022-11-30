@@ -10,23 +10,21 @@
 [ext_resource path="res://Assets/DL/3D/NetworkGroupDetailsScreen.tscn" type="PackedScene" id=8]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleDetailsScreen.tscn" type="PackedScene" id=9]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStation.tscn" type="PackedScene" id=10]
-[ext_resource path="res://Assets/DL/3D/SelectedImageSpawner.tscn" type="PackedScene" id=11]
-[ext_resource path="res://Assets/DL/3D/NoiseImageSpawner.tscn" type="PackedScene" id=12]
+[ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStationCurved.tscn" type="PackedScene" id=11]
+[ext_resource path="res://Assets/Stuff/Elevator.tscn" type="PackedScene" id=12]
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
+debug = true
 
 [node name="Player" type="Spatial" parent="."]
 
 [node name="Environment" type="Spatial" parent="."]
 
-[node name="ImageShelf" parent="Environment" instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.609235, 0, 0 )
-
 [node name="Ground" parent="Environment" instance=ExtResource( 4 )]
 
 [node name="NetworkStation" parent="Environment" instance=ExtResource( 5 )]
-transform = Transform( 1, 0, 2.98023e-08, 0, 1, 0, -2.98023e-08, 0, 1, -0.011224, 0, -0.612517 )
+transform = Transform( 0.710002, 0, 0.704201, 0, 1, 0, -0.704201, 0, 0.710002, -0.402721, 0, -0.401458 )
 
 [node name="TimedGrabableEliminationArea" parent="Environment" instance=ExtResource( 6 )]
 
@@ -42,13 +40,29 @@ transform = Transform( -3.23931e-08, -0.34325, -0.939244, -3.87074e-08, 0.939244
 [node name="ModuleProvider" parent="Environment" instance=ExtResource( 7 )]
 transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0.389869, 0, -0.00608498 )
 
-[node name="ModuleInspectorStation" parent="Environment" instance=ExtResource( 10 )]
-transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0.603 )
+[node name="SmallModuleInspectorStation" parent="Environment" instance=ExtResource( 10 )]
+transform = Transform( 0.953911, 0, -0.30009, 0, 1, 0, 0.30009, 0, 0.953911, 0.147499, 0, -0.411578 )
+n_slots = 1
 
-[node name="NoiseImageSpawner" parent="Environment" instance=ExtResource( 12 )]
-transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -0.415, 0.907, 0 )
+[node name="Screen" parent="Environment/SmallModuleInspectorStation" index="0"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1 )
+screen_size = Vector2( 2, 2 )
+viewport_size = Vector2( 1280, 1280 )
 
-[node name="SelectedImageSpawner" parent="Environment" instance=ExtResource( 11 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.415167, 0.907221, -0.399064 )
+[node name="Elevator" parent="Environment" instance=ExtResource( 12 )]
+
+[node name="ImageShelf" parent="Environment/Elevator/Platform" index="0" instance=ExtResource( 2 )]
+transform = Transform( 0.317569, 0, 0.948235, 0, 1, 0, -0.948235, 0, 0.317569, -0.186, 0, 0.495 )
+
+[node name="NetworkModuleInspectorStationCurved" parent="Environment/Elevator/Platform" index="1" instance=ExtResource( 11 )]
+transform = Transform( 0.887462, 0, -0.460881, 0, 1, 0, 0.460881, 0, 0.887462, 0, -2.5, 0 )
+
+[node name="Controls" parent="Environment/Elevator" index="1"]
+transform = Transform( -0.709054, 0, -0.705154, 0, 1, 0, 0.705154, 0, -0.709054, 0.237288, 0, 0.261937 )
 
 [node name="SpawnedItems" type="Spatial" parent="."]
+
+[editable path="Environment/SmallModuleInspectorStation"]
+[editable path="Environment/Elevator"]
+[editable path="Environment/Elevator/Controls/ButtonUp"]
+[editable path="Environment/Elevator/Controls/ButtonDown"]

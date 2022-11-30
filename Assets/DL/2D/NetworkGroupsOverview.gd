@@ -16,9 +16,9 @@ func create_group_nodes():
 	var group_node_instance
 	var network_group_resource
 	
-	for group_id in ArchitectureManager.id_to_network_group_resource_dict:
+	for group_id in ArchitectureManager.group_id_to_network_group_resource_dict:
 		
-		network_group_resource = ArchitectureManager.id_to_network_group_resource_dict[group_id]
+		network_group_resource = ArchitectureManager.group_id_to_network_group_resource_dict[group_id]
 		
 		group_node_instance = network_group_scene.instance()
 		group_node_instance.id = network_group_resource.group_id

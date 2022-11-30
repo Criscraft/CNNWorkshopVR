@@ -1,12 +1,17 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://Assets/DL/3D/NoiseImageSpawner.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/3D/PickableImage.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/DL/3D/SingleImageSpawner.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=4]
 
 [node name="NoiseImageSpawner" instance=ExtResource( 3 )]
 script = ExtResource( 1 )
 pickable_image_scene = ExtResource( 2 )
+
+[node name="QuickLabel3" parent="." index="2" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.0270691, 0.0879803 )
+text = "Noise Image"
 
 [editable path="MySnapTray"]
 [editable path="MySnapTray/Snap_Zone"]

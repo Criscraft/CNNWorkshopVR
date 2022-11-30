@@ -9,4 +9,3 @@ func add_duplicate_to(new_parent) -> Spatial:
 	# set image resource (only possible after being added to scene tree)
 	instance_new.get_node("ModuleLogic").network_module_resource = get_node("ModuleLogic").network_module_resource
 	return instance_new
-

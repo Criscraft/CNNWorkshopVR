@@ -8,16 +8,16 @@
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=7]
 
 [sub_resource type="CubeMesh" id=1]
-size = Vector3( 0.35, 1, 0.2 )
+size = Vector3( 0.25, 1, 0.2 )
 
 [sub_resource type="BoxShape" id=2]
-extents = Vector3( 0.175, 0.5, 0.1 )
+extents = Vector3( 0.125, 0.5, 0.1 )
 
 [sub_resource type="CubeMesh" id=3]
-size = Vector3( 0.35, 0.05, 0.1 )
+size = Vector3( 0.25, 0.05, 0.1 )
 
 [sub_resource type="BoxShape" id=4]
-extents = Vector3( 0.175, 0.025, 0.05 )
+extents = Vector3( 0.125, 0.025, 0.05 )
 
 [node name="NetworkModuleInspectorTable" type="StaticBody"]
 script = ExtResource( 4 )
@@ -32,44 +32,45 @@ material/0 = ExtResource( 1 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
-[node name="MeshInstance2" type="MeshInstance" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.15 )
-mesh = SubResource( 3 )
-material/0 = ExtResource( 1 )
-
-[node name="CollisionShape2" type="CollisionShape" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.15 )
-shape = SubResource( 4 )
-
 [node name="ModuleTray" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0730973, 1.009, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0623394, 1.009, 0 )
 
 [node name="Snap_Zone" parent="ModuleTray" index="1"]
 copies_on_pick_up = false
 
 [node name="LeverSwitchLayout" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, 0.0501506, 1, 0 )
+transform = Transform( 0.3, 0, 0, 0, -1.31134e-08, 0.3, 0, -0.3, -1.31134e-08, 0.0261238, 1, 0 )
 
 [node name="QuickLabel" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.0501506, 1.006, -0.0792705 )
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.026467, 1.02, -0.079 )
 text = "Grid"
 
 [node name="QuickLabel2" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.0501506, 1.006, 0.0830049 )
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.026467, 1.02, 0.0774358 )
 text = "Row"
 
 [node name="LeverSwitchActivationFV" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.2, 0, 0, 0, -8.74228e-09, 0.2, 0, -0.2, -8.74228e-09, 0.12615, 1, 0 )
+transform = Transform( 0.3, 0, 0, 0, -1.31134e-08, 0.3, 0, -0.3, -1.31134e-08, 0.0916058, 1, 0 )
 
 [node name="QuickLabel3" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, 0.084 )
-text = "Feat. map"
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.0919119, 1.02, 0.074 )
+text = "F-map"
 
 [node name="QuickLabel4" parent="." instance=ExtResource( 7 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0.12615, 1.006, -0.079 )
-text = "Feat. Vis."
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.0919119, 1.02, -0.0791513 )
+text = "F-Vis"
 
 [node name="NetworkModuleActionSelector" parent="." instance=ExtResource( 5 )]
+transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, -0.00373888, 0.969647, 0.137404 )
+
+[node name="MeshInstance2" type="MeshInstance" parent="."]
+transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0.947941, 0.11607 )
+mesh = SubResource( 3 )
+material/0 = ExtResource( 1 )
+
+[node name="CollisionShape2" type="CollisionShape" parent="."]
+transform = Transform( 1, 0, 0, 0, 0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0.947941, 0.11607 )
+shape = SubResource( 4 )
 
 [connection signal="has_dropped" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_dropped"]
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]

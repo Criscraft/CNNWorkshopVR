@@ -1,7 +1,8 @@
 extends Node
 
-export var id_to_network_group_resource_dict = {}
-export var id_to_network_module_resource_dict = {}
+export var group_id_to_network_group_resource_dict = {}
+export var module_id_to_network_module_resource_dict = {}
+export var group_id_to_network_module_resources = {}
 onready var channel_highlighting_script = preload("res://Assets/DL/ChannelHighlighting.gd")
 var channel_highlighting
 
@@ -23,13 +24,13 @@ func create_network_group_resources(network_group_dicts):
 		# Create NetworkGroupResource
 		network_group_dict = network_group_dicts[id]
 		network_group_resource = create_network_group_resource(network_group_dict, id)
-		id_to_network_group_resource_dict[int(id)] = network_group_resource
+		group_id_to_network_group_resource_dict[int(id)] = network_group_resource
 	
-	for id in id_to_network_group_resource_dict:
-		network_group_resource = id_to_network_group_resource_dict[id]
+	for id in group_id_to_network_group_resource_dict:
+		network_group_resource = group_id_to_network_group_resource_dict[id]
 		network_group_resource.precursor_group_resources = []
 		for id2 in network_group_resource.precursors:
-			network_group_resource.precursor_group_resources.append(id_to_network_group_resource_dict[id2])
+			network_group_resource.precursor_group_resources.append(group_id_to_network_group_resource_dict[id2])
 			
 	emit_signal("created_network_group_resources")
 	
@@ -55,13 +56,18 @@ func create_network_module_resources(network_module_dicts):
 	for id in network_module_dicts:
 		network_module_dict = network_module_dicts[id]
 		network_module_resource = create_network_module_resource(network_module_dict, id)
-		id_to_network_module_resource_dict[int(id)] = network_module_resource
+		module_id_to_network_module_resource_dict[int(id)] = network_module_resource
+		
+		if not network_module_resource.group_id in group_id_to_network_module_resources:
+			group_id_to_network_module_resources[network_module_resource.group_id] = []
+		group_id_to_network_module_resources[network_module_resource.group_id].append(network_module_resource)
+		
 	
 	# Add precursors and successors to network module resources
-	for id in id_to_network_module_resource_dict:
-		network_module_resource = id_to_network_module_resource_dict[id]
+	for id in module_id_to_network_module_resource_dict:
+		network_module_resource = module_id_to_network_module_resource_dict[id]
 		for id2 in network_module_resource.precursors:
-			precursor = id_to_network_module_resource_dict[id2]
+			precursor = module_id_to_network_module_resource_dict[id2]
 			network_module_resource.precursor_module_resources.append(precursor)
 			precursor.successor_module_resources.append(network_module_resource)
 		network_module_resource.create_input_mapping()

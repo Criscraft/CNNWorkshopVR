@@ -1,3 +1,4 @@
+tool
 extends Spatial
 
 export var network_module_details_screen2D_scene : PackedScene = preload("res://Assets/DL/2D/NetworkModuleDetailsScreen2D.tscn")
@@ -5,10 +6,10 @@ export var image_tile_scene : PackedScene = preload("res://Assets/DL/2D/ImageTil
 export var n_slots : int = 3
 export var network_module_inspector_table_scene : PackedScene = preload("res://Assets/DL/3D/NetworkModuleInspectorTable.tscn")
 export var network_module_inspector_table_width : float = 0.36
+onready var container = $Screen.get_scene_instance().get_node("Container")
 
 
 func _ready():
-	var container = $Screen.get_scene_instance().get_node("Container")
 	var slot
 	var table
 	var center = network_module_inspector_table_width * (n_slots - 1) / 2
@@ -25,5 +26,5 @@ func _ready():
 
 
 func get_slot(screen_id):
-	return $Container.get_child(screen_id)
+	return container.get_child(screen_id)
 	

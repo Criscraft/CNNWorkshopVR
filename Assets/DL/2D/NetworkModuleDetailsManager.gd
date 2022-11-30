@@ -31,6 +31,7 @@ func _ready():
 	_error = connect("request_image_data", DLManager, "on_request_image_data")
 	set_n_cols(n_cols_inspector)
 	
+	
 func set_details_layout(mode : bool):
 	details_layout = mode
 	if details_layout:

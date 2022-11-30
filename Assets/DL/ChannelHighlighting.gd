@@ -4,7 +4,7 @@ var module_id_to_highlights = {}
 
 # Called by architecture manager
 func initialize():
-	var id_to_network_module_resource_dict = get_parent().id_to_network_module_resource_dict
+	var id_to_network_module_resource_dict = get_parent().module_id_to_network_module_resource_dict
 	var network_module_resource
 	for module_id in id_to_network_module_resource_dict:
 		network_module_resource = id_to_network_module_resource_dict[module_id]
@@ -35,7 +35,7 @@ func update_highlights(module_id=null, channel_id=null):
 	
 	if module_id == null:
 		module_id = module_id_to_highlights.size()
-	var id_to_network_module_resource_dict = get_parent().id_to_network_module_resource_dict
+	var id_to_network_module_resource_dict = get_parent().module_id_to_network_module_resource_dict
 	var module_id_to_visits_counter = {}
 	for module_id in id_to_network_module_resource_dict:
 		module_id_to_visits_counter[module_id] = 0

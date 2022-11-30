@@ -12,4 +12,3 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49919, -1.89211 )
 screen_size = Vector2( 5, 3 )
 viewport_size = Vector2( 2133, 1280 )
 scene = ExtResource( 3 )
-collision_layer = 8

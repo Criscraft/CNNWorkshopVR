@@ -1,7 +1,7 @@
 
 extends Camera
 
-onready var Player = get_parent()
+onready var player = get_parent()
 
 ## Increase this value to give a slower turn speed
 const CAMERA_TURN_SPEED = 200
@@ -44,7 +44,7 @@ func look_leftright_rotation(rotation = 0):
 	Returns a new Vector3 which contains only the y direction
 	We'll use this vector to compute the final 3D rotation later
 	"""
-	return Player.get_rotation() + Vector3(0, rotation, 0)
+	return player.get_rotation() + Vector3(0, rotation, 0)
 
 func _input(event):
 	"""
@@ -59,7 +59,7 @@ func _input(event):
 	## We'll use the parent node "Player" to set our left-right rotation
 	## This prevents us from adding the x-rotation to the y-rotation
 	## which would result in a kind of flight-simulator camera
-	Player.set_rotation(look_leftright_rotation(event.relative.x / -CAMERA_TURN_SPEED))
+	player.set_rotation(look_leftright_rotation(event.relative.x / -CAMERA_TURN_SPEED))
 
 	##
 	## Now we can simply set our y-rotation for the camera, and let godot

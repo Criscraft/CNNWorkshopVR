@@ -25,13 +25,13 @@ func _ready():
 	all_actions.append(action)
 	
 	action = Action.new()
-	action.label = "set weights zero"
+	action.label = "zero weights"
 	action.requirements = ["weights"]
 	action.action = "zero_weights"
 	all_actions.append(action)
 	
 	action = Action.new()
-	action.label = "identity weights"
+	action.label = "ident. weights"
 	action.requirements = ["weights"]
 	action.action = "identity_weights"
 	all_actions.append(action)
