@@ -14,36 +14,52 @@ BATCHSIZE = 32
 imagecount = 0
 
 
+class FeatureVisualizationParams(object):
+    
+    class Mode(str, Enum):
+        AVERAGE = "AVERAGE"
+        CENTERPIXEL = "CENTERPIXEL"
+        PERCENTILE = "PERCENTILE"
+        
+    def __init__(self,
+        target_size=(28, 28),
+        mode=Mode.CENTERPIXEL,
+        epochs=200,
+        epochs_without_robustness_transforms=10,
+        lr=20.,
+        degrees=10,
+        blur_sigma=0.5,
+        roll=4,
+        fraction_to_maximize=0.25,
+        ):
+
+        self.target_size = target_size
+        self.mode = mode
+        self.epochs = epochs
+        self.epochs_without_robustness_transforms = epochs_without_robustness_transforms
+        self.lr = lr
+        self.degrees = degrees
+        self.blur_sigma = blur_sigma
+        self.roll = roll
+        self.fraction_to_maximize = fraction_to_maximize
+
+
 class FeatureVisualizer(object):
     
     def __init__(self,
         export = False,
         export_path = '',
         export_interval=50,
-        target_size = (150, 175),
-        epochs = 200,
-        lr=20.,
-        distribution_reg_blend=0.05,
-        # Scale inactive
-        scale = 0.05,
-        degrees = 10, 
-        blur_sigma = 0.5,
-        roll = 4,
-        epochs_without_robustness = 10,
-        fraction_to_maximize=0.25):
+        fv_settings=FeatureVisualizationParams()):
         
         super().__init__()
-        self.lr = lr
         self.export = export
         self.export_interval = export_interval
         self.export_path = export_path
-        self.epochs = epochs
-        self.regularize_transformation = Regularizer(distribution_reg_blend, target_size, scale, degrees, blur_sigma, roll)
-        self.export_transformation = ExportTransform()
-        self.epochs_without_robustness = epochs_without_robustness
-        self.fraction_to_maximize = fraction_to_maximize
+        self.fv_settings = fv_settings
 
-        self.mode = Mode.PERCENTILE
+        self.regularizer = self.create_regularizer()
+        self.export_transformation = ExportTransform()
 
 
     def visualize(self, model, module, device, init_image, n_channels, channels=None):
@@ -64,15 +80,17 @@ class FeatureVisualizer(object):
         for batchid in range(n_batches):
             channels_batch = channels[batchid * BATCHSIZE : (batchid + 1) * BATCHSIZE]
             n_batch_items = len(channels_batch)
-            created_image = init_image.repeat(n_batch_items, 1, 1, 1).detach().clone()
+            created_image = init_image.detach().clone().repeat(n_batch_items, 1, 1, 1)
 
-            for epoch in range(self.epochs):
-                if epoch < self.epochs - self.epochs_without_robustness:
+            for epoch in range(self.fv_settings.epochs):
+                if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
                     with torch.no_grad():
-                        created_image = self.regularize_transformation(created_image)
+                        created_image = self.regularizer(created_image)
                 
                 created_image = created_image.detach()#.clone()
                 created_image.requires_grad = True
+
+                # Set gradients zero
                 if hasattr(created_image, 'grad') and created_image.grad is not None:
                     created_image.grad.data.zero_()
                 # model.zero_grad could be unnecessary, but I am not sure
@@ -84,18 +102,18 @@ class FeatureVisualizer(object):
                     loss = -output.sum()
                 else:
                     loss_list = []
-                    if self.mode == Mode.AVERAGE:
+                    if self.fv_settings.mode == FeatureVisualizationParams.Mode.AVERAGE:
                         for i, j in enumerate(channels_batch):
                             activation = output[i, j]
                             loss_list.append(activation.mean())
-                    elif self.mode == Mode.CENTERPIXEL:
+                    elif self.fv_settings.mode == FeatureVisualizationParams.Mode.CENTERPIXEL:
                         for i, j in enumerate(channels_batch):
                             activation = output[i, j]
                             loss_list.append(activation[activation.shape[0]//2, activation.shape[1]//2])
-                    elif self.mode == Mode.PERCENTILE:
+                    elif self.fv_settings.mode == FeatureVisualizationParams.Mode.PERCENTILE:
                         for i, j in enumerate(channels_batch):
                             activation = output[i, j]
-                            activation_percentile = torch.quantile(activation, 1. - self.fraction_to_maximize, interpolation='linear')
+                            activation_percentile = torch.quantile(activation, 1. - self.settings.fraction_to_maximize, interpolation='linear')
                             mean_new = activation[activation>activation_percentile].mean()
                             if torch.isnan(mean_new):
                                 mean_new = activation.mean()
@@ -103,15 +121,10 @@ class FeatureVisualizer(object):
 
                     loss = -torch.stack(loss_list).sum()
 
-                if torch.isnan(loss):
-                    print("loss is none, reset image")
-                    created_image = init_image.repeat(n_batch_items, 1, 1, 1).detach()
-                    continue
-
                 loss.backward()
 
                 gradients = created_image.grad / (torch.sqrt((created_image.grad**2).sum((1,2,3), keepdims=True)) + 1e-6)
-                created_image = created_image - gradients * self.lr
+                created_image = created_image - gradients * self.fv_settings.lr
 
                 if epoch % 20 == 0:
                     print(epoch, loss.item())
@@ -134,10 +147,14 @@ class FeatureVisualizer(object):
         return created_image, export_meta
 
 
-class Mode(str, Enum):
-    AVERAGE = "AVERAGE"
-    CENTERPIXEL = "CENTERPIXEL"
-    PERCENTILE = "PERCENTILE"
+    def create_regularizer(self):
+        return Regularizer(
+            self.fv_settings.target_size, 
+            self.fv_settings.degrees, 
+            self.fv_settings.blur_sigma, 
+            self.fv_settings.roll
+        )
+
 
 class ExportTransform(object):
 
@@ -157,32 +174,32 @@ class ExportTransform(object):
 
 class Regularizer(object):
 
-    def __init__(self, distribution_reg_blend, target_size, scale, degrees, blur_sigma, roll):
-        # if scale > 0.:
-        #     scale = (1., 1. + scale)
-        # else:
-        #     scale = None
+    def __init__(self, target_size, degrees, blur_sigma, roll):
+        
+        transform_list = []
+        if degrees > 0:
+            padding = int((degrees / 45.) * target_size[1] / (2. * np.sqrt(2.))) # approximately the size of the blank spots created by image rotation.
+            rotation = transforms.RandomApply(torch.nn.ModuleList([
+                transforms.Pad(padding, padding_mode='edge'),
+                transforms.RandomRotation(degrees=degrees),
+                transforms.CenterCrop(target_size[1:]),
+                ]), p=0.3)
+            transform_list.append(rotation)
 
         if blur_sigma > 0.:
-            blurring = tgm.image.GaussianBlur((5, 5), (blur_sigma, blur_sigma))# transforms.GaussianBlur(5, sigma=(0.1, blur_sigma))
-        else:
-            blurring = Identity()
+            blurring = tgm.image.GaussianBlur((5, 5), (blur_sigma, blur_sigma))
+            # transforms.GaussianBlur(5, sigma=(0.1, blur_sigma))
+            transform_list.append(blurring)
 
-        self.transformation = transforms.Compose([
-            transforms.Pad(roll*2, padding_mode='edge'),
-            transforms.RandomApply(torch.nn.ModuleList([
-                transforms.RandomRotation(degrees=degrees),
-                ]), p=0.3),
-            # transforms.RandomApply(torch.nn.ModuleList([
-            #     transforms.RandomAffine(degrees=0, scale=scale, interpolation=transforms.InterpolationMode.BILINEAR),
-            #     ]), p=0.05),
-            blurring,
-            transforms.CenterCrop(target_size[1:]),
-            transforms.RandomApply(torch.nn.ModuleList([
+        if roll > 0:
+            rolling = transforms.RandomApply(torch.nn.ModuleList([
                 RandomRoll(roll),
-                ]), p=0.3),
-            DistributionRegularizer(distribution_reg_blend)
-        ])
+                ]), p=0.3)
+            transform_list.append(rolling)
+        
+        transform_list.append(DistributionRegularizer())
+
+        self.transformation = transforms.Compose(transform_list)
 
     def __call__(self, x):
         return self.transformation(x)
@@ -190,16 +207,16 @@ class Regularizer(object):
 
 class DistributionRegularizer(nn.Module):
 
-    def __init__(self, blend):
+    def __init__(self):
         super().__init__()
-        self.blend = blend
 
     def forward(self, x):
-        mean = x.mean((1,2,3), keepdims=True)
-        std = x.std((1,2,3), keepdims=True)
-        x_reg = (x - mean) / (std + 1e-6)
-        x_new = ((1. - self.blend) * x) +  self.blend * x_reg
-        return x_new
+        # mean = x.mean((1,2,3), keepdims=True)
+        # std = x.std((1,2,3), keepdims=True)
+        # x_reg = (x - mean) / (std + 1e-6)
+        # x_new = ((1. - self.blend) * x) +  self.blend * x_reg
+        x = x.clamp(-2, 2)
+        return x
 
 
 class RandomRoll(nn.Module):
@@ -210,13 +227,4 @@ class RandomRoll(nn.Module):
 
     def forward(self, x):
         x = torch.roll(x, (random.randint(-self.roll, self.roll), random.randint(-self.roll, self.roll)), dims=(2, 3))
-        return x
-
-
-class Identity(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
         return x

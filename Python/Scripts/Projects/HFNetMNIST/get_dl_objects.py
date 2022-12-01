@@ -44,6 +44,7 @@ def get_network():
             } for i in range(3)],
         avgpool_after_firstlayer=False,
         #init_mode = 'zero',
+        activation='relu',
         statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_pfnet_simple.pt'),
     )
         

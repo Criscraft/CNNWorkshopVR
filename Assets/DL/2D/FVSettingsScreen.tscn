@@ -1,0 +1,189 @@
+[gd_scene load_steps=8 format=2]
+
+[ext_resource path="res://Assets/Stuff/TextLine.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/ThemesAndFonts/ScrollBarTheme.tres" type="Theme" id=2]
+[ext_resource path="res://Assets/ThemesAndFonts/AzeretMono-Medium.ttf" type="DynamicFontData" id=3]
+[ext_resource path="res://Assets/DL/2D/FVSettingsScreen.gd" type="Script" id=4]
+[ext_resource path="res://Assets/Stuff/DebouncingTimer.tscn" type="PackedScene" id=5]
+
+[sub_resource type="StyleBoxFlat" id=3]
+bg_color = Color( 0.227451, 0.301961, 0.552941, 1 )
+
+[sub_resource type="DynamicFont" id=2]
+size = 48
+font_data = ExtResource( 3 )
+
+[node name="FVSettingsScreen" type="PanelContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+rect_min_size = Vector2( 1280, 0 )
+custom_styles/panel = SubResource( 3 )
+script = ExtResource( 4 )
+
+[node name="DebouncingTimer" parent="." instance=ExtResource( 5 )]
+wait_time = 2.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+margin_right = 1280.0
+margin_bottom = 948.0
+
+[node name="Header" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_right = 1280.0
+margin_bottom = 57.0
+custom_fonts/font = SubResource( 2 )
+text = "Feature Visualization Settings"
+align = 1
+
+[node name="LabelMode" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 61.0
+margin_right = 1280.0
+margin_bottom = 101.0
+text = "Mode"
+
+[node name="OptionButtonMode" type="OptionButton" parent="VBoxContainer"]
+margin_top = 105.0
+margin_right = 1280.0
+margin_bottom = 125.0
+text = "Select mode"
+flat = true
+
+[node name="LabelEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 129.0
+margin_right = 1280.0
+margin_bottom = 169.0
+text = "Epochs"
+
+[node name="SliderEpochs" type="HSlider" parent="VBoxContainer"]
+margin_top = 173.0
+margin_right = 1280.0
+margin_bottom = 213.0
+theme = ExtResource( 2 )
+min_value = 50.0
+max_value = 500.0
+step = 50.0
+value = 200.0
+
+[node name="ValueEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 217.0
+margin_right = 1280.0
+margin_bottom = 257.0
+text = "200"
+align = 1
+
+[node name="LabelLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 261.0
+margin_right = 1280.0
+margin_bottom = 301.0
+text = "Learning rate"
+
+[node name="SliderLearningRate" type="HSlider" parent="VBoxContainer"]
+margin_top = 305.0
+margin_right = 1280.0
+margin_bottom = 345.0
+theme = ExtResource( 2 )
+min_value = 1.0
+max_value = 50.0
+value = 20.0
+
+[node name="ValueLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 349.0
+margin_right = 1280.0
+margin_bottom = 389.0
+text = "20"
+align = 1
+
+[node name="LabelRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 393.0
+margin_right = 1280.0
+margin_bottom = 433.0
+text = "Rotation in degrees"
+
+[node name="SliderRotation" type="HSlider" parent="VBoxContainer"]
+margin_top = 437.0
+margin_right = 1280.0
+margin_bottom = 477.0
+theme = ExtResource( 2 )
+max_value = 45.0
+value = 10.0
+
+[node name="ValueRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 481.0
+margin_right = 1280.0
+margin_bottom = 521.0
+text = "10"
+align = 1
+
+[node name="LabelBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 525.0
+margin_right = 1280.0
+margin_bottom = 565.0
+text = "Blur sigma"
+
+[node name="SliderBlurSigma" type="HSlider" parent="VBoxContainer"]
+margin_top = 569.0
+margin_right = 1280.0
+margin_bottom = 609.0
+theme = ExtResource( 2 )
+max_value = 2.0
+step = 0.1
+value = 0.5
+
+[node name="ValueBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 613.0
+margin_right = 1280.0
+margin_bottom = 653.0
+text = "0.25"
+align = 1
+
+[node name="LabelRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 657.0
+margin_right = 1280.0
+margin_bottom = 697.0
+text = "Roll"
+
+[node name="SliderRoll" type="HSlider" parent="VBoxContainer"]
+margin_top = 701.0
+margin_right = 1280.0
+margin_bottom = 741.0
+theme = ExtResource( 2 )
+max_value = 10.0
+value = 4.0
+
+[node name="ValueRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 745.0
+margin_right = 1280.0
+margin_bottom = 785.0
+text = "4"
+align = 1
+
+[node name="LabelFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 789.0
+margin_right = 1280.0
+margin_bottom = 860.0
+text = "Percentile mode: 
+Fraction of pixels to maximize"
+
+[node name="SliderFractionToMaximize" type="HSlider" parent="VBoxContainer"]
+margin_top = 864.0
+margin_right = 1280.0
+margin_bottom = 904.0
+theme = ExtResource( 2 )
+max_value = 1.0
+step = 0.05
+value = 0.25
+
+[node name="ValueFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 908.0
+margin_right = 1280.0
+margin_bottom = 948.0
+text = "0.25"
+align = 1
+
+[connection signal="timeout" from="DebouncingTimer" to="." method="_on_DebouncingTimer_timeout"]
+[connection signal="item_selected" from="VBoxContainer/OptionButtonMode" to="." method="_on_OptionButtonMode_item_selected"]
+[connection signal="value_changed" from="VBoxContainer/SliderEpochs" to="." method="_on_SliderEpochs_value_changed"]
+[connection signal="value_changed" from="VBoxContainer/SliderLearningRate" to="." method="_on_SliderLearningRate_value_changed"]
+[connection signal="value_changed" from="VBoxContainer/SliderRotation" to="." method="_on_SliderRotation_value_changed"]
+[connection signal="value_changed" from="VBoxContainer/SliderBlurSigma" to="." method="_on_SliderBlurSigma_value_changed"]
+[connection signal="value_changed" from="VBoxContainer/SliderRoll" to="." method="_on_SliderRoll_value_changed"]
+[connection signal="value_changed" from="VBoxContainer/SliderFractionToMaximize" to="." method="_on_SliderFractionToMaximize_value_changed"]

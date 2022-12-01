@@ -2,9 +2,8 @@ extends Spatial
 
 export var network_module_details_screen2D_scene : PackedScene = preload("res://Assets/DL/2D/NetworkModuleDetailsScreen2D.tscn")
 export var image_tile_scene : PackedScene = preload("res://Assets/DL/2D/ImageTile.tscn")
+export var fv_settings_screen_scene : PackedScene = preload("res://Assets/DL/2D/FVSettingsScreen.tscn")
 
-var network_module_resource : Resource setget set_network_module_resource
-var image_resource : Resource setget set_image_resource
 var layout_details_mode = true
 var feature_visualization_mode = false
 var screen_slot : Control
@@ -16,31 +15,30 @@ func _on_Snap_Zone_has_picked_up(pickable_object):
 	var module_logic = pickable_object.get_node_or_null("ModuleLogic")
 	if is_instance_valid(module_logic):
 		# A pickable module was placed into the snap tray
-		set_network_module_resource(module_logic.network_module_resource)
+		on_receive_network_module_resource(module_logic.network_module_resource)
 		return
 	
 	var image_logic = pickable_object.get_node_or_null("ImageLogic")
 	if is_instance_valid(image_logic):
 		# A pickable image was placed into the snap tray
-		set_image_resource(image_logic.image_resource)
+		on_receive_image_resource(image_logic.image_resource)
+		return
+		
+	var fv_settings = pickable_object.get_node_or_null("FVSettings")
+	if is_instance_valid(fv_settings):
+		# A pickable feature visualization setting was placed into the snap tray
+		on_receive_fv_settings_resource(fv_settings.fv_settings_resource)
 		return
 
 
 func _on_Snap_Zone_has_dropped():
-	set_network_module_resource(null)
-	set_image_resource(null)
-	
-	
-func set_network_module_resource(network_module_resource_):
-	if network_module_resource == network_module_resource_:
-		return
-		
-	network_module_resource = network_module_resource_
-	
-	# Note that when lever_switch_layout_status is true we want to see details
-	# Note that when feature_visualization_mode is false we want to show activations
 	for child in screen_slot.get_children():
 		child.queue_free()
+	
+	
+func on_receive_network_module_resource(network_module_resource):
+	# Note that when lever_switch_layout_status is true we want to see details
+	# Note that when feature_visualization_mode is false we want to show activations
 	if network_module_resource != null:
 		screen_slot.add_child(network_module_details_screen2D_scene.instance())
 		var network_module_details_manager = get_network_module_details_manager()
@@ -55,17 +53,19 @@ func set_network_module_resource(network_module_resource_):
 		network_module_action_selector.network_module_details_manager = null
 	
 
-func set_image_resource(image_resource_):
-	if image_resource == image_resource_:
-		return
-	image_resource = image_resource_
-	for child in screen_slot.get_children():
-		child.queue_free()
+func on_receive_image_resource(image_resource):
 	if image_resource != null:
 		var image_tile = image_tile_scene.instance()
 		screen_slot.add_child(image_tile)
 		image_tile.image_resource = image_resource
 		image_tile.set_size_of_children(512)
+
+
+func on_receive_fv_settings_resource(fv_settings_resource):
+	if fv_settings_resource != null:
+		var new_instance = fv_settings_screen_scene.instance()
+		screen_slot.add_child(new_instance)
+		new_instance.fv_settings_resource = fv_settings_resource
 
 
 func _on_lever_switch_layout_status_change(status_):

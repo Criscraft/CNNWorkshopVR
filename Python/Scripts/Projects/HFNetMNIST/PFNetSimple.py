@@ -559,9 +559,13 @@ class PFNet_(nn.Module):
         )
         
         # Pooling
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
-        self.avgpool_after_first_layer = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool_after_firstlayer else nn.Identity()
-        self.tracker_avgpool_after_first_layer = TrackerModule(label="AvgPool")
+        if avgpool_after_firstlayer:
+            TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
+            self.avgpool_after_first_layer = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
+            self.tracker_avgpool_after_first_layer = TrackerModule(label="AvgPool")
+        else:
+            self.avgpool_after_first_layer = nn.Identity()
+            self.tracker_avgpool_after_first_layer = nn.Identity()
 
         # Copy
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Copy Channels"))

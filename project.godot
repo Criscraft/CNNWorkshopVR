@@ -14,6 +14,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://addons/godot-xr-tools/misc/ARVR_Helpers.gd"
 }, {
+"base": "Resource",
+"class": "FVSettingsResource",
+"language": "GDScript",
+"path": "res://Assets/DL/FVSettingsResource.gd"
+}, {
 "base": "MovementProvider",
 "class": "Function_ClimbMovement",
 "language": "GDScript",
@@ -231,6 +236,7 @@ _global_script_classes=[ {
 } ]
 _global_script_class_icons={
 "ARVRHelpers": "",
+"FVSettingsResource": "",
 "Function_ClimbMovement": "",
 "Function_CrouchMovement": "",
 "Function_DirectMovement": "",

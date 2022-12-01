@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://Assets/DL/3D/ItemSpawnerTray.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets/DL/3D/FVSettingsSpawner.gd" type="Script" id=3]
+
+[node name="FVSettingsSpawner" instance=ExtResource( 1 )]
+script = ExtResource( 3 )
+
+[node name="QuickLabel" parent="." index="2" instance=ExtResource( 2 )]
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0, 0.0257419, 0.0778048 )
+text = "Feat. Vis. Options"
+
+[editable path="MySnapTray"]
+[editable path="MySnapTray/Snap_Zone"]

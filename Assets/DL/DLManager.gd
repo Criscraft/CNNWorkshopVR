@@ -6,6 +6,7 @@ export var websocket_url = "ws://127.0.0.1:8000/"
 # Our WebSocketClient instance
 var _client = WebSocketClient.new()
 var network_module_resources_weights_changed = []
+var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/DeathTimer.tscn")
 
 signal on_connected()
 signal on_receive_dataset_images(image_resource_data)
@@ -19,27 +20,25 @@ Establish connection.
 
 func _ready():
 	# Connect base signals to get notified of connection open, close, and errors.
-	_client.connect("connection_closed", self, "_closed")
-	_client.connect("connection_error", self, "_closed")
-	_client.connect("connection_established", self, "_connected")
+	var _err
+	_err = _client.connect("connection_closed", self, "_closed")
+	_err = _client.connect("connection_error", self, "_closed")
+	_err = _client.connect("connection_established", self, "_connected")
 	# This signal is emitted when not using the Multiplayer API every time
 	# a full packet is received.
 	# Alternatively, you could check get_peer(1).get_available_packets() in a loop.
-	_client.connect("data_received", self, "_on_data")
+	_err = _client.connect("data_received", self, "_on_data")
 	
 	# Add debouncing timer for reacting on changes in network weights
-	var timer = Timer.new()
-	timer.name = "NetworkWeightsDebouncingTimer"
-	timer.one_shot = true
+	var timer = debouncing_timer_scene.instance()
 	timer.wait_time = 2
-	timer.set_script(load("res://Assets/Stuff/DebouncingTimer.gd"))
 	add_child(timer)
-	timer.connect("timeout", self, "send_network_weights")
+	_err = timer.connect("timeout", self, "send_network_weights")
 	add_to_group("on_weight_changed")
 
 	# Initiate connection to the given URL.
-	var err = _client.connect_to_url(websocket_url, []) # No subprotocoll used yet.
-	if err != OK:
+	_err = _client.connect_to_url(websocket_url, []) # No subprotocoll used yet.
+	if _err != OK:
 		print("Unable to connect")
 		set_process(false)
 
@@ -111,7 +110,7 @@ func _on_data():
 
 """
 #################################
-Request data
+Request or send data
 #################################
 """
 
@@ -175,6 +174,13 @@ func on_set_fv_image_resource(image_resource : Dictionary):
 func request_noise_image():
 	var message = {"resource" : "request_noise_image"}
 	send_request(message)
+	
+	
+# Called by FVSettingsScreen when settings are changed.
+func set_fv_settings(fv_settings_dict : Dictionary):
+	var message = {"resource" : "fv_settings_dict", "fv_settings" : fv_settings_dict}
+	send_request(message)
+
 
 """
 #################################

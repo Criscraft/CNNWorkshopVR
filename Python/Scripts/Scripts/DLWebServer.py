@@ -55,6 +55,8 @@ async def handler(websocket):
             response = set_fv_image_resource(event)
         elif event["resource"] == "request_noise_image":
             response = request_noise_image(event)
+        elif event["resource"] == "set_fv_settings":
+            response = set_fv_settings(event)
         
         if response:
             await websocket.send(response)
@@ -96,6 +98,7 @@ def perform_forward_pass(image_resource=None):
         return ""
     
     # Perform the forward pass
+    global network
     network.forward_pass(image_resource)
     
     # Get network results and make response.
@@ -175,6 +178,14 @@ def set_fv_image_resource(event):
     global current_fv_image_resource
     current_fv_image_resource = image_resource
     print("set_fv_image_resource")
+    return ""
+
+
+def set_fv_settings(event):
+    fv_settings_dict = event["fv_settings"]
+    global network
+    network.set_feature_visualization_params(fv_settings_dict)
+    print("set_fv_settings")
     return ""
 
 

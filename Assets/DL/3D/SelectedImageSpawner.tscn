@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=2]
 
-[ext_resource path="res://Assets/DL/3D/SingleImageSpawner.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/DL/3D/ItemSpawnerTray.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Assets/DL/3D/PickableImage.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/3D/SelectedImageSpawner.gd" type="Script" id=4]
@@ -10,7 +10,7 @@ script = ExtResource( 4 )
 pickable_image_scene = ExtResource( 2 )
 
 [node name="QuickLabel4" parent="." index="2" instance=ExtResource( 3 )]
-transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.0257419, 0.0867236 )
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0, 0.0257419, 0.0778048 )
 text = "Selection"
 
 [editable path="MySnapTray"]

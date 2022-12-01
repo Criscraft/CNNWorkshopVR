@@ -69,7 +69,6 @@ func on_fastfill_pressed(group_id : int):
 		if i == n_slots:
 			break
 		var network_module_resource = network_module_resources[i]
-		var slot = get_slot(i) 
 		var snap_zone = tables.get_child(i).get_node("ModuleTray/Snap_Zone")
 		var pickable_module = create_portable_module_at(network_module_resource)
 		pickable_module.global_transform = snap_zone.global_transform

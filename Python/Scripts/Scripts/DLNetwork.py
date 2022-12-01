@@ -7,7 +7,7 @@ from enum import Enum
 import cv2
 import copy
 import Scripts.utils as utils
-from Scripts.FeatureVisualizerRobust import FeatureVisualizer
+from Scripts.FeatureVisualizerRobust import FeatureVisualizer, FeatureVisualizationParams
 from Scripts.ImageResource import ImageResource
 
 # TODO: module_id is an id, not an index. I need a dictionary to link it with the layers. 
@@ -27,7 +27,8 @@ class DLNetwork(object):
             param.requires_grad = False
         self.model.eval()
 
-        self.feature_visualizer = FeatureVisualizer(target_size=input_size)
+        self.feature_visualizer = FeatureVisualizer()
+        self.feature_visualizer.fv_settings.target_size = input_size
         self.module_dict = {}
 
         self.output_tracker_module_id = ""
@@ -120,6 +121,12 @@ class DLNetwork(object):
         out_images = self.feature_visualizer.export_transformation(created_images)
 
         return out_images
+
+
+    def set_feature_visualization_params(self, param_dict):
+        fv_settings = FeatureVisualizationParams(**param_dict)
+        fv_settings.mode = FeatureVisualizationParams.Mode(param_dict["mode"])
+        self.feature_visualizer.fv_settings = fv_settings
 
 
     def get_classification_result(self):

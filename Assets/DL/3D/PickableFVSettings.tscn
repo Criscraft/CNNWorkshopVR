@@ -1,0 +1,29 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://Assets/VRInteraction/MyPickableObject.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets/Materials/test_material.tres" type="Material" id=2]
+[ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Assets/DL/3D/PickableFVSettings.gd" type="Script" id=4]
+[ext_resource path="res://Assets/DL/3D/FVSettings.gd" type="Script" id=5]
+
+[sub_resource type="CubeMesh" id=1]
+size = Vector3( 0.1, 0.1, 0.1 )
+
+[node name="PickableFVSettings" instance=ExtResource( 1 )]
+script = ExtResource( 4 )
+reset_transform_on_pickup = true
+
+[node name="CollisionShape" parent="." index="1"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0 )
+
+[node name="MeshInstance" type="MeshInstance" parent="." index="3"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0 )
+mesh = SubResource( 1 )
+material/0 = ExtResource( 2 )
+
+[node name="QuickLabel" parent="." index="4" instance=ExtResource( 3 )]
+transform = Transform( 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.05, 0.051 )
+text = "FV Options"
+
+[node name="FVSettings" type="Node" parent="." index="5"]
+script = ExtResource( 5 )
