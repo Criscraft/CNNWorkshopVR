@@ -6,7 +6,7 @@ export var websocket_url = "ws://127.0.0.1:8000/"
 # Our WebSocketClient instance
 var _client = WebSocketClient.new()
 var network_module_resources_weights_changed = []
-var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/DeathTimer.tscn")
+var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/DebouncingTimer.tscn")
 
 signal on_connected()
 signal on_receive_dataset_images(image_resource_data)
@@ -31,6 +31,7 @@ func _ready():
 	
 	# Add debouncing timer for reacting on changes in network weights
 	var timer = debouncing_timer_scene.instance()
+	timer.name = "NetworkWeightsDebouncingTimer"
 	timer.wait_time = 2
 	add_child(timer)
 	_err = timer.connect("timeout", self, "send_network_weights")
@@ -60,6 +61,8 @@ func _connected(proto = ""):
 	emit_signal("on_connected")
 	request_architecture()
 	request_noise_image()
+	# Send settings for feature visualization. The default configuration is stored in the FVSettingsResource.
+	set_fv_settings(FVSettingsResource.new().get_dict())
 	
 	
 func _process(_delta):
@@ -126,7 +129,7 @@ func on_request_forward_pass(image_resource : Dictionary):
 	send_request(message)
 	
 	
-# Called in _ready()
+# Called by this class when connected.
 func request_architecture():
 	var message = {"resource" : "request_architecture"}
 	send_request(message)
@@ -157,8 +160,7 @@ func send_network_weights():
 	
 func send_request(request_dictionary : Dictionary):
 	var message = JSON.print(request_dictionary)
-	if message.length() < 100:
-		print(message)
+	print(message.substr(0, 50))
 	_client.get_peer(1).put_packet(message.to_utf8())
 	
 
@@ -170,15 +172,16 @@ func on_set_fv_image_resource(image_resource : Dictionary):
 	get_tree().call_group("on_set_fv_image_resource", "set_fv_image_resource", image_resource)
 
 
-# Called in _ready()
+# Called by this class when connected.
 func request_noise_image():
 	var message = {"resource" : "request_noise_image"}
 	send_request(message)
 	
 	
 # Called by FVSettingsScreen when settings are changed.
+# Called by this class when connected.
 func set_fv_settings(fv_settings_dict : Dictionary):
-	var message = {"resource" : "fv_settings_dict", "fv_settings" : fv_settings_dict}
+	var message = {"resource" : "set_fv_settings", "fv_settings" : fv_settings_dict}
 	send_request(message)
 
 

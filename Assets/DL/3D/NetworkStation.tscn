@@ -7,7 +7,8 @@
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Assets/DL/3D/NoiseImageSpawner.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/DL/3D/SelectedImageSpawner.tscn" type="PackedScene" id=7]
-[ext_resource path="res://Assets/DL/3D/FVSettingsSpawner.tscn" type="PackedScene" id=8]
+[ext_resource path="res://Assets/DL/3D/PickableFVSettingsSpawner.tscn" type="PackedScene" id=8]
+
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 0.5, 1, 0.2 )

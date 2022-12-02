@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://Assets/Stuff/TextLine.tscn" type="PackedScene" id=1]
 [ext_resource path="res://Assets/ThemesAndFonts/ScrollBarTheme.tres" type="Theme" id=2]
 [ext_resource path="res://Assets/ThemesAndFonts/AzeretMono-Medium.ttf" type="DynamicFontData" id=3]
 [ext_resource path="res://Assets/DL/2D/FVSettingsScreen.gd" type="Script" id=4]
 [ext_resource path="res://Assets/Stuff/DebouncingTimer.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/ThemesAndFonts/my_theme.tres" type="Theme" id=6]
 
 [sub_resource type="StyleBoxFlat" id=3]
 bg_color = Color( 0.227451, 0.301961, 0.552941, 1 )
@@ -21,11 +22,11 @@ custom_styles/panel = SubResource( 3 )
 script = ExtResource( 4 )
 
 [node name="DebouncingTimer" parent="." instance=ExtResource( 5 )]
-wait_time = 2.0
+wait_time = 4.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 margin_right = 1280.0
-margin_bottom = 948.0
+margin_bottom = 968.0
 
 [node name="Header" parent="VBoxContainer" instance=ExtResource( 1 )]
 margin_right = 1280.0
@@ -43,20 +44,21 @@ text = "Mode"
 [node name="OptionButtonMode" type="OptionButton" parent="VBoxContainer"]
 margin_top = 105.0
 margin_right = 1280.0
-margin_bottom = 125.0
+margin_bottom = 145.0
+theme = ExtResource( 6 )
 text = "Select mode"
 flat = true
 
 [node name="LabelEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 129.0
+margin_top = 149.0
 margin_right = 1280.0
-margin_bottom = 169.0
+margin_bottom = 189.0
 text = "Epochs"
 
 [node name="SliderEpochs" type="HSlider" parent="VBoxContainer"]
-margin_top = 173.0
+margin_top = 193.0
 margin_right = 1280.0
-margin_bottom = 213.0
+margin_bottom = 233.0
 theme = ExtResource( 2 )
 min_value = 50.0
 max_value = 500.0
@@ -64,118 +66,118 @@ step = 50.0
 value = 200.0
 
 [node name="ValueEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 217.0
+margin_top = 237.0
 margin_right = 1280.0
-margin_bottom = 257.0
+margin_bottom = 277.0
 text = "200"
 align = 1
 
 [node name="LabelLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 261.0
+margin_top = 281.0
 margin_right = 1280.0
-margin_bottom = 301.0
+margin_bottom = 321.0
 text = "Learning rate"
 
 [node name="SliderLearningRate" type="HSlider" parent="VBoxContainer"]
-margin_top = 305.0
+margin_top = 325.0
 margin_right = 1280.0
-margin_bottom = 345.0
+margin_bottom = 365.0
 theme = ExtResource( 2 )
 min_value = 1.0
 max_value = 50.0
 value = 20.0
 
 [node name="ValueLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 349.0
+margin_top = 369.0
 margin_right = 1280.0
-margin_bottom = 389.0
+margin_bottom = 409.0
 text = "20"
 align = 1
 
 [node name="LabelRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 393.0
+margin_top = 413.0
 margin_right = 1280.0
-margin_bottom = 433.0
+margin_bottom = 453.0
 text = "Rotation in degrees"
 
 [node name="SliderRotation" type="HSlider" parent="VBoxContainer"]
-margin_top = 437.0
+margin_top = 457.0
 margin_right = 1280.0
-margin_bottom = 477.0
+margin_bottom = 497.0
 theme = ExtResource( 2 )
 max_value = 45.0
 value = 10.0
 
 [node name="ValueRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 481.0
+margin_top = 501.0
 margin_right = 1280.0
-margin_bottom = 521.0
+margin_bottom = 541.0
 text = "10"
 align = 1
 
 [node name="LabelBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 525.0
+margin_top = 545.0
 margin_right = 1280.0
-margin_bottom = 565.0
+margin_bottom = 585.0
 text = "Blur sigma"
 
 [node name="SliderBlurSigma" type="HSlider" parent="VBoxContainer"]
-margin_top = 569.0
+margin_top = 589.0
 margin_right = 1280.0
-margin_bottom = 609.0
+margin_bottom = 629.0
 theme = ExtResource( 2 )
 max_value = 2.0
 step = 0.1
 value = 0.5
 
 [node name="ValueBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 613.0
+margin_top = 633.0
 margin_right = 1280.0
-margin_bottom = 653.0
+margin_bottom = 673.0
 text = "0.25"
 align = 1
 
 [node name="LabelRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 657.0
+margin_top = 677.0
 margin_right = 1280.0
-margin_bottom = 697.0
+margin_bottom = 717.0
 text = "Roll"
 
 [node name="SliderRoll" type="HSlider" parent="VBoxContainer"]
-margin_top = 701.0
+margin_top = 721.0
 margin_right = 1280.0
-margin_bottom = 741.0
+margin_bottom = 761.0
 theme = ExtResource( 2 )
 max_value = 10.0
 value = 4.0
 
 [node name="ValueRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 745.0
+margin_top = 765.0
 margin_right = 1280.0
-margin_bottom = 785.0
+margin_bottom = 805.0
 text = "4"
 align = 1
 
 [node name="LabelFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 789.0
+margin_top = 809.0
 margin_right = 1280.0
-margin_bottom = 860.0
+margin_bottom = 880.0
 text = "Percentile mode: 
 Fraction of pixels to maximize"
 
 [node name="SliderFractionToMaximize" type="HSlider" parent="VBoxContainer"]
-margin_top = 864.0
+margin_top = 884.0
 margin_right = 1280.0
-margin_bottom = 904.0
+margin_bottom = 924.0
 theme = ExtResource( 2 )
 max_value = 1.0
 step = 0.05
 value = 0.25
 
 [node name="ValueFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 908.0
+margin_top = 928.0
 margin_right = 1280.0
-margin_bottom = 948.0
+margin_bottom = 968.0
 text = "0.25"
 align = 1
 

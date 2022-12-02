@@ -113,7 +113,7 @@ class FeatureVisualizer(object):
                     elif self.fv_settings.mode == FeatureVisualizationParams.Mode.PERCENTILE:
                         for i, j in enumerate(channels_batch):
                             activation = output[i, j]
-                            activation_percentile = torch.quantile(activation, 1. - self.settings.fraction_to_maximize, interpolation='linear')
+                            activation_percentile = torch.quantile(activation, 1. - self.fv_settings.fraction_to_maximize, interpolation='linear')
                             mean_new = activation[activation>activation_percentile].mean()
                             if torch.isnan(mean_new):
                                 mean_new = activation.mean()
