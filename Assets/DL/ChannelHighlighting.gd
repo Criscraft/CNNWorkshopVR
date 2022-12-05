@@ -1,7 +1,7 @@
 extends Node
 
 var module_id_to_highlights = {}
-var weight_has_been_changed : bool = false
+var update_required : bool = false
 var last_selected_module_id : int
 var last_selected_channel_id : int
 var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/DebouncingTimer.tscn")
@@ -11,7 +11,7 @@ func _ready():
 	# Add debouncing timer for reacting on changes in network weights
 	var timer = debouncing_timer_scene.instance()
 	timer.name = "NetworkWeightsDebouncingTimer"
-	timer.wait_time = 2
+	timer.wait_time = 3
 	add_child(timer)
 	var _err = timer.connect("timeout", self, "update_highlights", [], CONNECT_DEFERRED)
 	add_to_group("on_weight_changed")
@@ -101,7 +101,8 @@ func update_highlights(module_id : int = -1, channel_id : int = -1):
 			module_id_to_visits_counter[precursor_network_module_resource.module_id] += 1
 			if module_id_to_visits_counter[precursor_network_module_resource.module_id] == module_id_to_n_successors[precursor_network_module_resource.module_id]:
 				frontier_module_ids.append(precursor_network_module_resource.module_id)
-				
+	
+	update_required = false
 	get_tree().call_group("on_update_highlights", "update_highlights")
 		
 			
@@ -124,6 +125,6 @@ func transfer_highlights(current, precursor):
 				
 
 # Called via group when a weight is changed.
-func on_weight_changed(network_module_resource):
-	weight_has_been_changed = true
+func weight_changed(network_module_resource):
+	update_required = true
 	$NetworkWeightsDebouncingTimer._on_trigger()

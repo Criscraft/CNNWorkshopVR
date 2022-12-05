@@ -191,7 +191,7 @@ Submit changes invoced by client
 #################################
 """
 
-# Called by NetworkModuleDetailsManager via group
+# Called by NetworkModuleDetailsManager or weight sliders via group
 func weight_changed(network_module_resource):
 	if not network_module_resource in network_module_resources_weights_changed:
 		network_module_resources_weights_changed.append(network_module_resource)
