@@ -18,6 +18,7 @@ func set_image_resource(image_resource : ImageResource):
 func set_network_module_resource(network_module_resource : NetworkModuleResource):
 	for child in get_children():
 		if child.name != "ChannelImageTile":
+			remove_child(child)
 			child.queue_free()
 	if network_module_resource != null:
 		add_details(network_module_resource)

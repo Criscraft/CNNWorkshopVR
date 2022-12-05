@@ -8,7 +8,6 @@ export var label : String = ""
 export var precursors : Array = []
 export var precursor_module_resources : Array = []
 export var successor_module_resources : Array = []
-export var has_data : bool = false
 export var info_code : String = ""
 export var size : Array = []
 export var input_mapping : Array = []
@@ -21,8 +20,8 @@ export var weights_max : float = -1
 export var permutation : Array = []
 export var kernels : Array = []
 export var padding : int = -1
-
-
+	
+	
 func _init():
 	# Initialize arrays as they can sometimes share memory otherwise.
 	precursors = []

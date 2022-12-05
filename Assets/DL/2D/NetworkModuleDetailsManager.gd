@@ -243,6 +243,7 @@ func set_legend_visible(mode : bool):
 	legend_visible = mode
 	$ImagePanel/VBoxContainer/Legend.visible = mode
 
+
 # Called by signal when a weight is changed by a channel node.
 func on_weight_changed(weight, channel_ind, group_ind):
 	#var group_size = network_module_resource.weights[0].size()
@@ -253,9 +254,13 @@ func on_weight_changed(weight, channel_ind, group_ind):
 # Called by NetworkModuleActionSelector
 func zero_weights():
 	if "weights" in network_module_resource:
-		for channel_weights in network_module_resource.weights:
-			for group_weight in channel_weights:
-				group_weight[0][0] = 0.0
+		var module_id_to_highlights = ArchitectureManager.channel_highlighting.module_id_to_highlights
+		var highlights = module_id_to_highlights[network_module_resource.module_id]
+		for channel_id in range(network_module_resource.weights.size()):
+			if highlights[channel_id] == 0.0:
+				var channel_weights = network_module_resource.weights[channel_id]
+				for group_weight in channel_weights:
+					group_weight[0][0] = 0.0
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 	update_details_layout()
 	

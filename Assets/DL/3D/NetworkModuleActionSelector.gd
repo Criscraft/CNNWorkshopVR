@@ -25,7 +25,7 @@ func _ready():
 	all_actions.append(action)
 	
 	action = Action.new()
-	action.label = "zero weights"
+	action.label = "zero non-marked"
 	action.requirements = ["weights"]
 	action.action = "zero_weights"
 	all_actions.append(action)

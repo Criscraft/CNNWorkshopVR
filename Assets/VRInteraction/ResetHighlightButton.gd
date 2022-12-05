@@ -6,4 +6,4 @@ func _on_pointer_pressed(_at=null):
 	
 	
 func request_highlight_update():
-	ArchitectureManager.channel_highlighting.update_highlights()
+	ArchitectureManager.channel_highlighting.set_highlights_zero_and_apply()

@@ -44,7 +44,7 @@ func create_module_nodes():
 		
 		module_node_instance = network_module_scene.instance()
 		module_node_instance.id = network_module_resource.module_id
-		module_node_instance.precursors = network_module_resource.precursors
+		module_node_instance.precursors = network_module_resource.precursors.duplicate()
 		module_node_instance.network_module_resource = network_module_resource
 		
 		if not network_module_resource.group_id in group_id_to_network_module_instances:
