@@ -5,7 +5,6 @@ import json
 import os
 import torch
 import numpy as np
-import base64
 import Scripts.utils as utils
 from Scripts.utils import get_module
 
@@ -57,6 +56,8 @@ async def handler(websocket):
             response = request_noise_image(event)
         elif event["resource"] == "set_fv_settings":
             response = set_fv_settings(event)
+        elif event["resource"] == "request_test_results":
+            response = request_test_results(event)
         
         if response:
             await websocket.send(response)
@@ -220,6 +221,36 @@ def request_noise_image(event):
     )
     image_resource = image_resource.__dict__
     response = {"resource" : "request_noise_image", "image_resource" : image_resource}
+    response = json.dumps(response, indent=1, ensure_ascii=True)
+    print("send: " + "request_noise_image")
+    return response
+
+
+def request_test_results(event):
+    loader = torch.utils.data.DataLoader(dataset.dataset, batch_size=64)
+    targets = []
+    preds = []
+    n_images = 0
+    
+    with torch.no_grad():
+        for data_ in loader:
+            target = data_['label']
+            data = data_['data']
+            targets.append(target)
+            n_images += len(target)
+            data = data.to(network.device)
+            target = target.to(network.device)
+            outputs = network.model({"data" : data})
+            pred = outputs['logits'].argmax(1)
+            preds.append(pred.cpu())
+        
+    preds = np.concatenate(preds)
+    targets = np.concatenate(targets)
+    accuracy = (preds == targets).mean()
+    fig, _ = utils.draw_confusion_matrix(targets, preds, dataset.class_names)
+    encoded_image = utils.get_image_from_fig(fig)
+    
+    response = {"resource" : "request_test_results", "accuracy" : accuracy, "conf_matrix" : encoded_image}
     response = json.dumps(response, indent=1, ensure_ascii=True)
     print("send: " + "request_noise_image")
     return response

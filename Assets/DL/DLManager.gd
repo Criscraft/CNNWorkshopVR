@@ -11,6 +11,7 @@ var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/Debouncin
 signal on_connected()
 signal on_receive_dataset_images(image_resource_data)
 signal on_receive_noise_image(image_resource)
+signal on_receive_test_results(accuracy, conv_mat)
 
 """
 #################################
@@ -107,6 +108,10 @@ func _on_data():
 			print("DLManager reveived noise image.")
 			emit_signal("on_receive_noise_image", data["image_resource"])
 			
+		"request_test_results":
+			print("DLManager reveived test results.")
+			emit_signal("on_receive_test_results", data["accuracy"], data["conf_matrix"])
+			
 		_:
 			print("No match in DLManager.")
 
@@ -182,6 +187,11 @@ func request_noise_image():
 # Called by this class when connected.
 func set_fv_settings(fv_settings_dict : Dictionary):
 	var message = {"resource" : "set_fv_settings", "fv_settings" : fv_settings_dict}
+	send_request(message)
+	
+	
+func request_test_results():
+	var message = {"resource" : "request_test_results"}
 	send_request(message)
 
 

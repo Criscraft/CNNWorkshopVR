@@ -2,9 +2,13 @@ import torch
 import numpy as np
 import os
 import base64
+from io import BytesIO
 import cv2
 import sys
-import importlib.util as util 
+import importlib.util as util
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import sklearn.metrics as skmetrics
 
 
 class TransformToUint(object):
@@ -82,3 +86,70 @@ def normalize(activations):
     maximum = activations.max()
     activations = (activations - minimum) / (maximum - minimum + 1e-8)
     return activations, minimum, maximum
+
+
+""" Plotting, accepts data structures created by functions above that compute performance metrics """ 
+def draw_confusion_matrix(targets, preds, labels=[], label_of_positive=None, vmax=None, show_numbers=True, show_colorbar=True, figsize=(7, 6)):
+    conf_mat = skmetrics.confusion_matrix(targets, preds)
+    n_classes = len(conf_mat[0])
+    
+    if labels:
+        assert(n_classes == len(labels)), "Labels do not fit number of classes! n_classes: " + str(n_classes) + " labels: " + ', '.join(labels)
+    
+    if label_of_positive is not None and label_of_positive > 0:
+        #permute conf_mat such that the 'positive' class is at top left corner
+        assert(labels)
+        conf_mat = bring_to_topleft_corner(conf_mat, label_of_positive)
+        labels[label_of_positive], labels[0] = labels[0], labels[label_of_positive] 
+    
+    colors = ["bisque", "darkorange"]
+    fig, ax = plt.subplots(figsize=figsize)
+    if vmax is None:
+        vmax = conf_mat.max()
+    myimage = ax.imshow(conf_mat, cmap=mpl.colors.LinearSegmentedColormap.from_list("mycmap", colors), norm=mpl.colors.Normalize(vmin=0, vmax=vmax, clip=True), origin='upper')
+    if show_colorbar:
+        fig.colorbar(myimage, ticks=np.linspace(0, vmax, 6))
+    if show_numbers:
+        for i in range(n_classes):
+            for j in range(n_classes):
+                plt.text(x=j, y=i, s=f"{conf_mat[i][j]:{1}}", ha='center', va='center', fontsize=11)
+    ax.set_xticks(np.arange(n_classes))
+    if labels:
+        ax.set_xticklabels(labels, ha='center', va='center')
+        ax.set_yticklabels(labels, rotation=90, ha='center', va='center')
+    ax.set_yticks(np.arange(n_classes))
+    ax.set_ylim(bottom=n_classes - 0.5, top=-0.5)
+    plt.tick_params(
+    axis='x',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False,
+    labeltop=True) # labels along the bottom edge are off
+    plt.tick_params(
+    axis='y',          # changes apply to the x-axis
+    which='both',      # both major and minor ticks are affected
+    left=False,
+    labelleft=True) # labels along the bottom edge are off
+    ax.set(xlabel='predicted', ylabel='actual')
+    fig.tight_layout()
+    return fig, ax
+
+
+def bring_to_topleft_corner(conf_mat, label_of_positive):
+    if label_of_positive == 0:
+        return conf_mat
+    conf_mat = conf_mat.copy()
+    conf_mat[np.array([0, label_of_positive])] = conf_mat[np.array([label_of_positive, 0])]
+    conf_mat[:,np.array([0, label_of_positive])] = conf_mat[:,np.array([label_of_positive, 0])]
+    return conf_mat
+
+
+def get_image_from_fig(fig):
+    buffer = BytesIO()
+    fig.savefig(buffer, format="png")
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    image_encoded = base64.b64encode(image_png).decode('utf-8')
+    return image_encoded

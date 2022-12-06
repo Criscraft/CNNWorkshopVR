@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/VRInteraction/MySnapTray.tscn" type="PackedScene" id=2]
@@ -8,7 +8,7 @@
 [ext_resource path="res://Assets/DL/3D/NoiseImageSpawner.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/DL/3D/SelectedImageSpawner.tscn" type="PackedScene" id=7]
 [ext_resource path="res://Assets/DL/3D/PickableFVSettingsSpawner.tscn" type="PackedScene" id=8]
-
+[ext_resource path="res://Assets/VRInteraction/PointablePushButton.tscn" type="PackedScene" id=9]
 
 [sub_resource type="CubeMesh" id=1]
 size = Vector3( 0.5, 1, 0.2 )
@@ -38,7 +38,7 @@ copies_on_pick_up = false
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.384, -0.097182 )
 
 [node name="QuickLabel" parent="." instance=ExtResource( 5 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, -0.13036, 1.0011, 0.0743872 )
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, -0.140316, 1.0011, 0.0843428 )
 text = "Network Input"
 
 [node name="FeatVisTray" parent="." instance=ExtResource( 2 )]
@@ -48,7 +48,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 1, 0 )
 copies_on_pick_up = false
 
 [node name="QuickLabel2" parent="." instance=ExtResource( 5 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.140429, 1.0011, 0.0743872 )
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.141756, 1.0011, 0.0873295 )
 text = "Feat. Vis. Input"
 
 [node name="NoiseImageSpawner" parent="." instance=ExtResource( 6 )]
@@ -60,10 +60,20 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.85, 0.195 )
 [node name="FVSettingsSpawner" parent="." instance=ExtResource( 8 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.645, 0.2 )
 
+[node name="TestResultsButton" parent="." instance=ExtResource( 9 )]
+transform = Transform( 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1.00497, 0 )
+
+[node name="QuickLabel3" parent="." instance=ExtResource( 5 )]
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.00165924, 1.001, 0.0394206 )
+text = "Test accuracy"
+
 [connection signal="has_picked_up" from="NetworkInputTray/Snap_Zone" to="." method="_on_network_input_tray_picked_up"]
 [connection signal="has_picked_up" from="FeatVisTray/Snap_Zone" to="." method="_on_feat_vis_tray_picked_up"]
+[connection signal="pointer_pressed" from="TestResultsButton/Button" to="." method="_on_TestResultsButton_pressed"]
+[connection signal="button_pressed" from="TestResultsButton/InteractableAreaButton" to="." method="_on_TestResultsButton_pressed"]
 
 [editable path="NetworkInputTray"]
 [editable path="NetworkInputTray/Snap_Zone"]
 [editable path="FeatVisTray"]
 [editable path="FeatVisTray/Snap_Zone"]
+[editable path="TestResultsButton"]

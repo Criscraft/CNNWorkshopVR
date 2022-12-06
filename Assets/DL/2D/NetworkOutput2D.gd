@@ -1,6 +1,6 @@
-extends Node2D
+extends Control
 
-onready var results = $Panel/VBoxContainer/Results
+onready var results = $VBoxContainer/Results
 var result_label_scene : PackedScene = preload("res://Assets/Stuff/TextLine.tscn")
 
 
@@ -16,6 +16,10 @@ func add_result_line(result_line : String):
 	var new_line = result_label_scene.instance()
 	new_line.text = result_line
 	results.add_child(new_line)
+	
+	
+func add_result_node(node : Node):
+	results.add_child(node)
 	
 
 func clear_results():

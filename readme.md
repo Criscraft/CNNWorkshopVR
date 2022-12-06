@@ -17,7 +17,7 @@ Important: The python executable has to be located directly in Python/PythonInst
 Upgrade pip.
     ./python.exe -m pip install --upgrade pip
 Then, install the required packages. If you desire GPU support, visit https://pytorch.org/ to get the correct extra-index-url for your system and install cuda https://developer.nvidia.com/cuda-downloads.
-    ./python.exe -m pip install torch torchvision torchgeometry opencv-python websockets --extra-index-url https://download.pytorch.org/whl/cu116 
+    ./python.exe -m pip install torch torchvision torchgeometry opencv-python websockets matplotlib scikit-learn --extra-index-url https://download.pytorch.org/whl/cu116 
 The new Python installation has to know where the Python scripts for this application are located. In the Lib/site-packages directory of the local Python installation add a new text file "mypath.pth". Write a single line into the file that contains the path to the Scripts folder. For example:
 PathToYourProjectFolder/CNNWorkshopVR/Python/Scripts
 Then you can start the Godot application.
