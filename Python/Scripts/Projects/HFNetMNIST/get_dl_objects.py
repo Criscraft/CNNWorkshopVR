@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import os
-from Projects.HFNetMNIST.PFNetSimple import PFNetSimple
+from Projects.HFNetMNIST.MixRollCompareNet import MixRollCompareNet
 from Projects.HFNetMNIST.TransformTestGS import TransformTestGS
 from Projects.HFNetMNIST.TransformToTensor import TransformToTensor
 from Projects.HFNetMNIST.MNIST import MNIST
@@ -12,15 +12,15 @@ from Scripts.NoiseGenerator import NoiseGenerator
 N_CLASSES = 10
 SEED = 42
 IMAGE_SHAPE = (1, 28, 28)
-NORM_MEAN = [0.13]
-NORM_STD = [0.31]
+NORM_MEAN = [0.]
+NORM_STD = [1.]
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 
 def get_network():
 
-    model = PFNetSimple(
+    model = MixRollCompareNet(
         n_classes=10,
         start_config={
             'n_channels_in' : 1,
@@ -32,20 +32,13 @@ def get_network():
             'stride' : 1,
         },
         blockconfig_list=[
-            {'n_channels_in' : 16,
+            {'n_channels_in' : 4 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
-            'filter_mode' : 'Uneven',
-            'n_angles' : 2,
-            'f' : 1,
-            'k' : 3, 
-            'handcrafted_filters_require_grad' : False,
-            'shuffle_conv_groups' : 16 // 4,
-            'avgpool' : True if i>0 else False,
-            } for i in range(3)],
-        avgpool_after_firstlayer=False,
-        #init_mode = 'zero',
-        activation='relu',
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_pfnet_simple.pt'),
+            'conv_groups' : 16 // 4,
+            'avgpool' : True if i in [0, 2] else False,
+            } for i in range(4)],
+        init_mode='identity',
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_pfnet_simple.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

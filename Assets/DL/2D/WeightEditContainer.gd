@@ -20,7 +20,7 @@ func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
 		slider = slider_scene.instance()
 		slider.rect_min_size.y = int((image_height - 10 * len(weights)) / len(weights))
 		slider.min_value = left_limit
-		slider.max_value = right_limit
+		slider.max_value = right_limit + slider.step
 		slider.value = weights[i][0][0] # It is a 1x1 kernel.
 		add_child(slider)
 		slider.connect("value_changed", get_parent(), "on_weight_changed", [i])
@@ -31,7 +31,7 @@ func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
 	var own_y_position
 	for i in range(len(weights)):
 		slider = get_child(i)
-		local_from = Vector2(0.0, slider_width/2)
+		local_from = Vector2(0.0, slider.rect_size.y/2)
 		own_y_position = slider.rect_position.y + channel_node.rect_position.y
 		local_to = Vector2(-line_width, -own_y_position + (input_indices[i] + 0.5) * (image_height + margin))
 		line = get_line(local_from, local_to)

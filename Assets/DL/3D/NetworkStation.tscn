@@ -35,7 +35,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 1, 0 )
 copies_on_pick_up = false
 
 [node name="NetworkOutputScreen" parent="." instance=ExtResource( 3 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.384, -0.097182 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.39933, -0.097182 )
 
 [node name="QuickLabel" parent="." instance=ExtResource( 5 )]
 transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, -0.140316, 1.0011, 0.0843428 )

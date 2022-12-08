@@ -15,8 +15,8 @@ export var input_mapping : Array = []
 # Optional properties
 export var channel_labels : Array = []
 export var weights : Array = []
-export var weights_min : float = -1
-export var weights_max : float = -1
+export var weights_min : float = 0.0
+export var weights_max : float = 1.0
 export var permutation : Array = []
 export var kernels : Array = []
 export var padding : int = -1

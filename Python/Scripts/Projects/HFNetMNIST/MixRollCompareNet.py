@@ -3,6 +3,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.cuda.amp import custom_bwd, custom_fwd
 import numpy as np
 import enum
 
@@ -11,11 +12,11 @@ from typing import Type, Any, Callable, Union, List, Tuple, Optional
 from torch.nn.modules import module
 from Scripts.ActivationTracker import ActivationTracker, TrackerModule, TrackerModuleGroup, reset_ids
 
-# More frequent skip connections. The 3x3 and 1x1 convs switch places.
+# No padding.
 
 TRACKERMODULEGROUPS = []
 
-class PFNetSimple(nn.Module):
+class MixRollCompareNet(nn.Module):
     def __init__(self,
         n_classes: int = 10,
         start_config: dict = {
@@ -28,29 +29,20 @@ class PFNetSimple(nn.Module):
             'stride' : 1,
         },
         blockconfig_list: List[dict] = [
-            {'n_channels_in' : 20,
-            'n_channels_out' : 20, # n_channels_out % shuffle_conv_groups == 0
-            'filter_mode' : 'Uneven',
-            'n_angles' : 2,
-            'f' : 1,
-            'k' : 3, 
-            'handcrafted_filters_require_grad' : False,
-            'shuffle_conv_groups' : 20 // 4,
-            'avgpool' : True if i>0 else False,
-            } for i in range(3)],
-        avgpool_after_firstlayer: bool = False,
-        init_mode: str = 'kaiming_normal',
-        activation: str = 'leaky_relu',
+            {'n_channels_in' : 4 if i==0 else 16,
+            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
+            'conv_groups' : 16 // 4,
+            'avgpool' : True if i in [0, 2] else False,
+            } for i in range(4)],
+        init_mode: str = 'identity',
         statedict: str = '',
         ):
         super().__init__()
 
-        self.embedded_model = PFNet_(
+        self.embedded_model = MixRollCompareNet_(
             n_classes=n_classes,
             start_config=start_config,
             blockconfig_list=blockconfig_list, 
-            avgpool_after_firstlayer=avgpool_after_firstlayer,
-            activation=activation,
             init_mode=init_mode)
 
         self.tracker_module_groups_info = {group.meta['group_id'] : {key : group.meta[key] for key in ['precursors', 'label']} for group in TRACKERMODULEGROUPS}
@@ -84,6 +76,15 @@ class PFNetSimple(nn.Module):
         torch.save(self.state_dict(), statedict_name)
 
 
+    def regularize(self):
+        for m in self.modules():
+            if hasattr(m, "weight"):
+                if hasattr(m, "weights_min"):
+                    m.weight.data = torch.clamp(m.weight.data, m.weights_min, m.weights_max)
+                else:
+                    m.weight.data = torch.clamp(m.weight.data, -1., 1.)
+
+
 class CopyModule(nn.Module):
     def __init__(
         self,
@@ -111,19 +112,27 @@ class CopyModule(nn.Module):
         return out
 
 
-class LayerNorm(nn.Module):
+class NormalizationModule(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
+        self.tracker_norm = TrackerModule(label="ScaleNorm")    
+
     def forward(self, x: Tensor) -> Tensor:
         dims = tuple(range(x.ndim))[1:]
-        mean = x.mean(dim=dims, keepdims=True).detach()
-        std = x.std(dim=dims, keepdims=True).detach()
-        out = (x - mean) / (std + 1e-6)
+        minimum = x
+        maximum = x
+        for dim in dims:
+            minimum = minimum.min(dim, keepdims=True)[0]
+            maximum = maximum.max(dim, keepdims=True)[0]
+        minimum = minimum.detach()
+        maximum = maximum.detach()
+        out = (x - minimum) / (maximum - minimum + 1e-6)
+        _ = self.tracker_norm(out)
         return out
     
 
-class RewireModule(nn.Module):
+class PermutationModule(nn.Module):
     def __init__(self, indices):
         super().__init__()
         self.indices = nn.Parameter(indices, False)
@@ -149,26 +158,23 @@ class PredefinedConv(nn.Module):
     def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1) -> None:
         super().__init__()
 
-        self.padding: int = 1
-        self.w: nn.Parameter = None
+        #self.padding: int = 1
+        self.weight: nn.Parameter = None
         self.n_channels_in = n_channels_in
         self.n_channels_out = n_channels_out
         self.stride = stride
-        #self.permutation = nn.Parameter(torch.randperm(n_channels_out), False)
         assert self.n_channels_out >= self.n_channels_in
 
     
     def forward(self, x: Tensor) -> Tensor:
-        #assert self.n_channels_out % self.n_kernels == 0
         n_channels_per_kernel = self.n_channels_out // self.n_kernels
 
-        w_tmp = self.w.repeat((n_channels_per_kernel, 1, 1, 1)) # this involves copying
-        #w_tmp = w_tmp[self.permutation]
-        # w_tmp has shape (out_channels,in_channels​/groups,kH,kW)
+        w_tmp = self.weight.repeat((n_channels_per_kernel, 1, 1, 1)) # this involves copying
         groups = self.n_channels_in
 
-        out = F.conv2d(x, w_tmp, None, self.stride, self.padding, groups=groups)
-        #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.w.shape[1]*self.w.shape[2]}")
+        #x = F.pad(x, (self.padding, self.padding, self.padding, self.padding), "replicate")
+        out = F.conv2d(x, w_tmp, None, self.stride, groups=groups)
+        #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
         return out
 
 
@@ -190,12 +196,6 @@ def saddle(x, y, phi, sigma, uneven=True):
     return out
 
 
-def smooth(x, y, sigma):
-    r = np.sqrt(x**2 + y**2)
-    out =  np.exp(-0.5*(r/sigma)**2)
-    return out
-
-
 def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None, phi:float=0.):
     border = 0.5*(k-1.)
     x = np.linspace(-border, border, k)
@@ -207,36 +207,10 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     elif filter_mode==ParameterizedFilterMode.Uneven:
         data = saddle(xx, yy, phi, sigma=0.3*k, uneven=True)
         data = data - data.mean()
-    elif filter_mode==ParameterizedFilterMode.Smooth:
-        data = smooth(xx, yy, sigma=0.25*k)
     
     data = data / np.abs(data).sum()
 
     return data
-
-
-class SmoothConv(nn.Module):
-    def __init__(
-        self,
-        k: int = 3,
-        stride: int = 1,
-    ) -> None:
-        super().__init__()
-
-        self.padding = k//2
-        self.stride = stride
-
-        w = [get_parameterized_filter(k, ParameterizedFilterMode.Smooth)]
-        w = torch.FloatTensor(np.array(w))
-        w = w.unsqueeze(1)
-        self.w = nn.Parameter(w, False)
-
-
-    def forward(self, x: Tensor) -> Tensor:
-        n_channels_in = x.shape[1]
-        w_tmp = self.w.repeat((n_channels_in, 1, 1, 1))
-        out = F.conv2d(x, w_tmp, None, self.stride, self.padding, groups=n_channels_in)
-        return out
     
 
 class PredefinedConvnxn(PredefinedConv):
@@ -260,44 +234,7 @@ class PredefinedConvnxn(PredefinedConv):
         self.n_kernels = len(w)
         w = torch.FloatTensor(np.array(w))
         w = w.unsqueeze(1)
-        self.w = nn.Parameter(w, requires_grad)
-
-
-class PredefinedFilterModule1x1Part(nn.Module):
-    def __init__(
-        self,
-        n_channels_in: int,
-        n_channels_out: int,
-        conv: module = nn.Conv2d,
-        shuffle_conv_groups: int = 1,
-        activation_layer : nn.Module = nn.ReLU,
-    ) -> None:
-        super().__init__()
-        
-        # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
-        if n_channels_in < n_channels_out:
-            self.copymodule = CopyModule(n_channels_in, n_channels_out, interleave=False)
-        else:
-            self.copymodule = nn.Identity()
-
-        self.conv1x1 = conv(n_channels_in, n_channels_out, kernel_size=1, stride=1, bias=False, groups=shuffle_conv_groups)
-
-        self.tracker_conv1x1 = TrackerModule(label="1x1 Conv", tracked_module=self.conv1x1)
-
-        self.activation_layer = activation_layer(inplace=False)
-        if not isinstance(self.activation_layer, nn.Identity):
-            self.activation_layer_tracker = TrackerModule(label="ReLU")
-        else:
-            self.activation_layer_tracker = nn.Identity()
-
-
-    def forward(self, x: Tensor) -> Tensor:
-        _ = self.copymodule(x)
-        x = self.conv1x1(x)
-        _ = self.tracker_conv1x1(x)
-        x = self.activation_layer(x)
-        _ = self.activation_layer_tracker(x)
-        return x
+        self.weight = nn.Parameter(w, requires_grad)
     
 
 class PredefinedFilterModule3x3Part(nn.Module):
@@ -326,9 +263,6 @@ class PredefinedFilterModule3x3Part(nn.Module):
         else:
             self.activation_layer_tracker = nn.Identity()
 
-        self.norm = LayerNorm()
-        self.tracker_norm = TrackerModule(label="LayerNorm")
-
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.copymodule(x)
@@ -336,171 +270,291 @@ class PredefinedFilterModule3x3Part(nn.Module):
         _ = self.tracker_predev_conv(x)
         x = self.activation_layer(x)
         _ = self.activation_layer_tracker(x)
-        x = self.norm(x)
-        _ = self.tracker_norm(x)
         return x
     
 
-class PredefinedFilterModule(nn.Module):
+class Conv2d1x1WeightsSumToOne(nn.Module):
     def __init__(
         self,
-        n_channels_in: int,
-        n_channels_out: int,
-        filter_mode: ParameterizedFilterMode,
-        n_angles: int,
-        f: int = 1,
-        k: int = 3,
-        stride: int = 1,
-        activation_layer : nn.Module = nn.ReLU,
-        handcrafted_filters_require_grad: bool = False,
-        conv: module = nn.Conv2d,
-        shuffle_conv_groups: int = 1,
-        activation_for_3x3: bool = False
+        n_channels : int, 
+        groups : int = 1,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.zeros((n_channels, n_channels//groups, 1, 1))
+        self.weight = nn.Parameter(w, True)
+        self.weights_min = 0.
+        self.weights_max = 1.
+        self.groups = groups
+        self.tracker_conv = TrackerModule(label="1x1 Conv", tracked_module=self)
+
+    def forward(self, x):
+        w = self.weight / (self.weight.sum(1, keepdim=True) + 1e-6).detach()
+        x = F.conv2d(x, w, groups=self.groups)
+        _ = self.tracker_conv(x)
+        return x
+
+
+class NotModule(nn.Module):
+    def __init__(
+        self,
+        n_channels : int,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.zeros(1, n_channels, 1, 1)
+        self.weight = nn.Parameter(w, True)
+        self.weights_min = 0.
+        self.weights_max = 1.
+        self.tracker_conv = TrackerModule(label="Not", tracked_module=self, info_code="pass_highlight")
+
+    def forward(self, x):
+        x = x + self.weight - 2.0*self.weight*x
+        _ = self.tracker_conv(x)
+        return x
+
+
+class MixGroup(nn.Module):
+    def __init__(
+        self,
+        n_channels : int,
+        conv_groups : int = 1,
     ) -> None:
         super().__init__()
 
         global TRACKERMODULEGROUPS
 
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="PFModule"))
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Mix"))
 
         self.tracker_input = TrackerModule(label="Input")
-        self.predefined_filter_module_1x1_part = PredefinedFilterModule1x1Part(
-            n_channels_in=n_channels_in,
-            n_channels_out=n_channels_out,
-            conv=conv,
-            shuffle_conv_groups=shuffle_conv_groups,
-            activation_layer=activation_layer,
-        )
-        self.predefined_filter_module_3x3_part = PredefinedFilterModule3x3Part(
-            n_channels_in=n_channels_out,
-            filter_mode=filter_mode,
-            n_angles=n_angles,
-            handcrafted_filters_require_grad=handcrafted_filters_require_grad,
-            f=f,
-            k=k,
-            stride=stride,
-            activation_layer=activation_layer if activation_for_3x3 else nn.Identity,
-        )
+        self.conv1x1 = Conv2d1x1WeightsSumToOne(n_channels, conv_groups)
+        self.not_module = NotModule(n_channels)
+
+    def forward(self, x):
+        _ = self.tracker_input(x)
+        x = self.conv1x1(x)
+        x = self.not_module(x)
+        return x
+
+
+class MergeModule(nn.Module):
+    def __init__(
+        self,
+        n_channels : int,
+        module_id_1 : int,
+        module_id_2 : int,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.zeros(1, n_channels, 1, 1)
+        self.weight = nn.Parameter(w, True)
+        self.weights_min = 0.
+        self.weights_max = 1.
+        self.tracker_merge = TrackerModule(label="Merge", tracked_module=self, precursors=[module_id_1, module_id_2])
+
+    def forward(self, x, y):
+        out = self.weight * y + (1.0 - self.weight) * x
+        _ = self.tracker_merge(out)
+        return out
+
+
+class MergeModuleHiddenSymmetric(nn.Module):
+    def __init__(
+        self,
+        weight_pointer,
+    ) -> None:
+        super().__init__()
+
+        self.weight = weight_pointer
+
+    def forward(self, x, y):
+        w = torch.abs(self.weight - 0.5) * 2.0
+        out = w * y + (1.0 - w) * x
+        return out
+
+
+class RollModuleH(nn.Module):
+    def __init__(
+        self,
+        n_channels : int,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.ones(1, n_channels, 1, 1) * 0.5
+        self.weight = nn.Parameter(w, True)
+        self.weights_min = 0.
+        self.weights_max = 1.
+        self.tracker_roll = TrackerModule(label="Roll H", tracked_module=self, info_code="pass_highlight")
+        self.merge = MergeModuleHiddenSymmetric(self.weight)
+
+    def forward(self, x):
+        x_1 = torch.roll(x, 1, 3)
+        x_1[:,:,:,0] = x_1[:,:,:,1].detach()
+        x_2 = torch.roll(x, -1, 3)
+        x_2[:,:,:,-1] = x_2[:,:,:,-2].detach()
+        out = self.weight * x_1 + (1. - self.weight) * x_2
+        out = self.merge(x, out)
+        _ = self.tracker_roll(out)
+        return out
+
+
+class RollModuleV(nn.Module):
+    def __init__(
+        self,
+        n_channels : int,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.ones(1, n_channels, 1, 1) * 0.5
+        self.weight = nn.Parameter(w, True)
+        self.weights_min = 0.
+        self.weights_max = 1.
+        self.tracker_roll = TrackerModule(label="Roll V", tracked_module=self, info_code="pass_highlight")
+        self.merge = MergeModuleHiddenSymmetric(self.weight)
+
+    def forward(self, x):
+        x_1 = torch.roll(x, 1, 2)
+        x_1[:,:,0,:] = x_1[:,:,1,:].detach()
+        x_2 = torch.roll(x, -1, 2)
+        x_2[:,:,-1,:] = x_2[:,:,-2,:].detach()
+        out = self.weight * x_1 + (1. - self.weight) * x_2
+        out = self.merge(x, out)
+        _ = self.tracker_roll(out)
+        return out
+
+
+class RollGroup(nn.Module):
+    def __init__(
+        self,
+        n_channels: int,
+    ) -> None:
+        super().__init__()
+
+        global TRACKERMODULEGROUPS
+
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Roll"))
+
+        self.tracker_input = TrackerModule(label="Input")
+        self.roll_h = RollModuleH(n_channels)
+        self.roll_v = RollModuleV(n_channels)
 
         
     def forward(self, x):
         _ = self.tracker_input(x)
-        x = self.predefined_filter_module_1x1_part(x)
-        x = self.predefined_filter_module_3x3_part(x)
+        x = self.roll_h(x)
+        x = self.roll_v(x)
         return x
 
 
-class ResidualModule(nn.Module):
+class DifferentiableClamp(torch.autograd.Function):
+    """
+    In the forward pass this operation behaves like torch.clamp.
+    But in the backward pass its gradient is 1 everywhere, as if instead of clamp one had used the identity function.
+    """
+
+    @staticmethod
+    @custom_fwd
+    def forward(ctx, input, min, max):
+        return input.clamp(min=min, max=max)
+
+    @staticmethod
+    @custom_bwd
+    def backward(ctx, grad_output):
+        return grad_output.clone(), None, None
+
+
+class CompareGroup(nn.Module):
+    def __init__(
+        self,
+        n_channels: int,
+    ) -> None:
+        super().__init__()
+
+        global TRACKERMODULEGROUPS
+
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Compare"))
+
+        self.tracker_input = TrackerModule(label="Input")
+        self.tracker_out = TrackerModule(label="AND, OR")
+        self.merge = MergeModule(n_channels, self.tracker_input.module_id, self.tracker_out.module_id)
+
+
+    def forward(self, x):
+        _ = self.tracker_input(x)
+        x_skip = x
+        x_and = x[:,::2] * x[:,1::2]
+        x_or = x[:,::2] + x[:,1::2]
+        x_or = DifferentiableClamp.apply(x_or, 0.0, 1.0)
+        x_stacked = self.zip_tensors(x_and, x_or)
+        _ = self.tracker_out(x_stacked)
+        x_merged = self.merge(x_skip, x_stacked)
+        return x_merged
+
+    def zip_tensors(self, x1, x2):
+        shape = x1.shape
+        x1 = x1.unsqueeze(2)
+        x2 = x2.unsqueeze(2)
+        out = torch.cat([x1, x2], 2)
+        out = out.reshape((shape[0], -1, shape[2], shape[3]))
+        return out
+
+
+class MixRollCompareBlock(nn.Module):
     def __init__(
         self,
         n_channels_in: int,
         n_channels_out: int,
-        filter_mode: ParameterizedFilterMode,
-        n_angles: int,
-        f: int = 1,
-        k: int = 3,
-        stride: int = 1,
-        activation_layer : nn.Module = nn.ReLU,
-        handcrafted_filters_require_grad: bool = False,
-        conv: module = nn.Conv2d,
-        shuffle_conv_groups: int = 1,
+        conv_groups: int = 1,
         avgpool: bool = True,
     ) -> None:
         super().__init__()
 
         global TRACKERMODULEGROUPS
 
+        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Preprocessing"))
+
         # Pooling
         self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool else nn.Identity()
         if avgpool:
             self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
-            TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
             self.tracker_avgpool = TrackerModule(label="AvgPool")
         else:
             self.avgpool = nn.Identity()
             self.tracker_avgpool = nn.Identity()
 
-        # Rewiring
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Channel Permutation"))
-        summand_group_id = TRACKERMODULEGROUPS[-1].group_id
-        group_size = n_channels_in // shuffle_conv_groups
-        self.rewire_module = RewireModule(torch.arange(n_channels_in).roll(group_size // 2))
-        summand_module_id = self.rewire_module.tracker_permutation.module_id
+        # Norm
+        self.norm_module = NormalizationModule()
+
+        # Permutation
+        group_size = n_channels_in // conv_groups
+        self.permutation_module = PermutationModule(torch.arange(n_channels_in).roll(group_size // 2))
         #self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
 
         # Copy channels.
         if n_channels_in != n_channels_out:
-            self.copymodule = CopyModule(n_channels_in, n_channels_out, interleave=True)
-            summand_group_id = TRACKERMODULEGROUPS[-1].group_id
-            summand_module_id = self.copymodule.tracker_copymodule.module_id
+            self.copymodule = CopyModule(n_channels_in, n_channels_out, interleave=False)
         else:
             self.copymodule = nn.Identity()
 
-        # HFModule
-        self.pfmodule = PredefinedFilterModule(
-            n_channels_in=n_channels_in,
-            n_channels_out=n_channels_out,
-            filter_mode=filter_mode,
-            n_angles=n_angles,
-            f=f,
-            k=k,
-            stride=stride,
-            activation_layer=activation_layer,
-            handcrafted_filters_require_grad=handcrafted_filters_require_grad,
-            conv=conv,
-            shuffle_conv_groups=shuffle_conv_groups,
-            activation_for_3x3=False
-            )
-        pf_module_id = self.pfmodule.predefined_filter_module_3x3_part.tracker_norm.module_id
-
-        # Skip
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[summand_group_id], label="Skip"))
-        self.skip = conv(n_channels_out, n_channels_out, kernel_size=1, stride=1, bias=False, groups=n_channels_out)
-        self.tracker_skip = TrackerModule(label="1x1 Conv", tracked_module=self.skip, precursors=[summand_module_id])
-        skip_module_id = self.tracker_skip.module_id
-
-        # Sum
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(precursors=[-1, -2], label="Sum"))
-
-        self.tracker_sum_summand1 = TrackerModule(label="Summand 1", precursors=[pf_module_id])
-        self.tracker_sum_summand2 = TrackerModule(label="Summand 2", precursors=[skip_module_id])
-        self.tracker_sum = TrackerModule(label="Sum", precursors=[-1, -2])
-
-        # ReLU and norm
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Activation and Norm"))
-
-        self.activation_layer = activation_layer(inplace=False)
-        self.tracker_activation_layer = TrackerModule(label="ReLU")
-
-        self.norm = LayerNorm()
-        self.tracker_norm = TrackerModule(label="LayerNorm")       
+        # Mix Roll and Compare
+        self.mix = MixGroup(n_channels_out, conv_groups)
+        self.roll = RollGroup(n_channels_out)
+        self.compare = CompareGroup(n_channels_out)
 
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.avgpool(x)
         _ = self.tracker_avgpool(x)
-        x = self.rewire_module(x)
-        _ = self.copymodule(x)
-
-        out = self.pfmodule(x)
-
-        x = self.skip(x)
-        _ = self.tracker_skip(x)
-        
-        _ = self.tracker_sum_summand1(out)
-        _ = self.tracker_sum_summand2(x)
-        out = out + x
-        _ = self.tracker_sum(out)
-
-        out = self.activation_layer(out)
-        _ = self.tracker_activation_layer(out)
-        out = self.norm(out)
-        _ = self.tracker_norm(out)
-
-        return out
+        x = self.norm_module(x)
+        x = self.permutation_module(x)
+        x = self.copymodule(x)
+        x = self.mix(x)
+        x = self.roll(x)
+        x = self.compare(x)
+        return x
     
 
-class PFNet_(nn.Module):
+class MixRollCompareNet_(nn.Module):
 
     def __init__(
         self,
@@ -515,30 +569,15 @@ class PFNet_(nn.Module):
             'stride' : 1,
         },
         blockconfig_list: List[dict] = [
-            {'n_channels_in' : 20,
-            'n_channels_out' : 20, # n_channels_out % shuffle_conv_groups == 0
-            'filter_mode' : 'Uneven',
-            'n_angles' : 2,
-            'f' : 1,
-            'k' : 3, 
-            'handcrafted_filters_require_grad' : False,
-            'shuffle_conv_groups' : 20 // 4,
-            'avgpool' : True if i>0 else False,
-            } for i in range(3)],
-        activation: str = 'relu',
-        avgpool_after_firstlayer: bool = True,
-        init_mode: str = 'kaiming_normal',
+            {'n_channels_in' : 4 if i==0 else 16,
+            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
+            'conv_groups' : 16 // 4,
+            'avgpool' : True if i in [0, 2] else False,
+            } for i in range(4)],
+        init_mode: str = 'identity',
     ) -> None:
         super().__init__()
-
-        if activation == 'relu':
-            activation_layer = nn.ReLU
-        elif activation == 'leaky_relu':
-            activation_layer = nn.LeakyReLU
-        elif activation == 'identity':
-            activation_layer = nn.Identity
-        self._activation_layer = activation_layer
-
+        
         global TRACKERMODULEGROUPS
         # reset, because a second network instance could change the globals
         TRACKERMODULEGROUPS = []
@@ -547,7 +586,7 @@ class PFNet_(nn.Module):
 
         # Input
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Input", precursors=[]))
-        self.tracker_input_1 = TrackerModule(label="Input", precursors=[])
+        self.tracker_input = TrackerModule(label="Input", precursors=[])
 
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="First Convolution"))
         self.conv1 = PredefinedFilterModule3x3Part(
@@ -558,37 +597,15 @@ class PFNet_(nn.Module):
             f=start_config['f'],
             k=start_config['k'],
             stride=start_config['stride'],
-            activation_layer=self._activation_layer,
+            activation_layer=nn.ReLU,
         )
-        
-        # Pooling
-        if avgpool_after_firstlayer:
-            TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="AvgPool"))
-            self.avgpool_after_first_layer = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
-            self.tracker_avgpool_after_first_layer = TrackerModule(label="AvgPool")
-        else:
-            self.avgpool_after_first_layer = nn.Identity()
-            self.tracker_avgpool_after_first_layer = nn.Identity()
-
-        # Copy
-        TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Copy Channels"))
-        if start_config['n_channels_in'] * start_config['f'] < blockconfig_list[0]['n_channels_in']:
-            self.copymodule = CopyModule(start_config['n_channels_in'] * start_config['f'], blockconfig_list[0]['n_channels_in'], interleave=False)
-        else:
-            self.copymodule = nn.Identity()
 
         # Blocks
         blocks = [
-            ResidualModule(
+            MixRollCompareBlock(
                 n_channels_in=config['n_channels_in'],
                 n_channels_out=config['n_channels_out'],
-                filter_mode=ParameterizedFilterMode[config['filter_mode']],
-                n_angles=config['n_angles'],
-                f=config['f'],
-                k=config['k'],
-                activation_layer=self._activation_layer,
-                handcrafted_filters_require_grad=config['handcrafted_filters_require_grad'],
-                shuffle_conv_groups=config['shuffle_conv_groups'],
+                conv_groups=config['conv_groups'],
                 avgpool=config['avgpool'],
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
@@ -601,30 +618,30 @@ class PFNet_(nn.Module):
 
         # Classifier
         self.classifier = nn.Conv2d(blockconfig_list[-1]['n_channels_out'], n_classes, kernel_size=1, stride=1, bias=False)
+        # For the regularization we have to give the classifier weights_min and weights_max
+        self.classifier.weights_min = -1.0
+        self.classifier.weights_max = 1.0
         TRACKERMODULEGROUPS.append(TrackerModuleGroup(label="Classifier"))
         self.tracker_classifier = TrackerModule(label="Classifier", tracked_module=self.classifier, channel_labels="classes")
         self.tracker_classifier_softmax = TrackerModule(label="Class Probabilities", channel_labels="classes")
+        
         for m in self.modules():
-            if isinstance(m, nn.Conv2d) and hasattr(m, 'kernel_size') and m.kernel_size[0] == 1:
+            if isinstance(m, nn.Conv2d) or isinstance(m, Conv2d1x1WeightsSumToOne):
                 if init_mode == 'kaiming_normal':
-                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity=activation)
-                elif init_mode == 'kaiming_uniform':
-                    nn.init.kaiming_uniform_(m.weight, mode='fan_out', nonlinearity=activation)
-                elif init_mode == 'sparse':
-                    nn.init.sparse_(m.weight, sparsity=0.1, std=0.01)
-                elif init_mode == 'orthogonal':
-                    nn.init.orthogonal_(m.weight, gain=1)
+                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity=nn.ReLU)
                 elif init_mode == 'zero':
                     nn.init.constant_(m.weight, 0.)
+                elif init_mode == 'identity':
+                    out_channels = m.weight.shape[0]
+                    group_size = m.weight.shape[1]
+                    with torch.no_grad():
+                        for channel_id in range(out_channels):
+                            m.weight[channel_id, channel_id % group_size, 0, 0] = 1.0
         
 
     def forward(self, x: Tensor) -> Tensor:
-        _ = self.tracker_input_1(x)
+        _ = self.tracker_input(x)
         x = self.conv1(x)
-        x = self.avgpool_after_first_layer(x)
-        _ = self.tracker_avgpool_after_first_layer(x)
-
-        x = self.copymodule(x)
         x = self.blocks(x)
 
         x = self.adaptiveavgpool(x)

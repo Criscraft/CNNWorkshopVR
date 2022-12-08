@@ -83,18 +83,24 @@ class DLNetwork(object):
         for module_id, module_info in out_module_dict.items():
             # Add information to special cases
             tracked_module = self.module_dict[module_id]['tracked_module']
+            # Weights (not kernels) are always expected to have the shape [out_channels, groups, 1, 1]
             if tracked_module is not None:
-                if "Conv2d" in str(tracked_module.__class__):
-                    # We have a group convolution.
-                    weights = tracked_module.weight.data.cpu().numpy()
-                    module_info['weights'] = weights.tolist()
-                    module_info['weights_min'] = float(weights.min())
-                    module_info['weights_max'] = float(weights.max())
-                elif "RewireModule" in str(tracked_module.__class__):
-                    module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
-                elif "PredefinedConvnxn" in str(tracked_module.__class__):
-                    module_info['kernels'] = tracked_module.w.data.cpu().numpy().tolist()
+                if "PredefinedConvnxn" in str(tracked_module.__class__):
+                    module_info['kernels'] = tracked_module.weight.data.cpu().numpy().tolist()
                     module_info['padding'] = tracked_module.padding
+                elif "PerturbationModule" in str(tracked_module.__class__):
+                    module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
+                elif hasattr(tracked_module, "weight"):
+                    weights = tracked_module.weight
+                    if weights.shape[0] == 1:
+                        # The first channel is not the channel dimensions.
+                        weights = weights.squeeze(0).unsqueeze(1)
+                    weights = weights.data.cpu().numpy()
+                    module_info['weights'] = weights.tolist()
+                    
+                    module_info['weights_min'] = tracked_module.weights_min
+                    module_info['weights_max'] = tracked_module.weights_max
+                
                 
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out
@@ -167,6 +173,8 @@ class DLNetwork(object):
 
 
     def set_weights(self, module_id, weights):
-        self.module_dict[module_id]['tracked_module'].weight.data = weights
-
-
+        tracked_module = self.module_dict[module_id]['tracked_module']
+        if weights.shape[0] != tracked_module.weight.shape[0]:
+            # Apparantly, weights does not fulfill the shape [out_channels, groups, 1, 1]
+            weights = weights.squeeze(1).unsqueeze(0)
+        tracked_module.weight.data = weights

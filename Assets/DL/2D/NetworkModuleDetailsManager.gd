@@ -85,6 +85,10 @@ func update_text():
 	if network_module_resource.weights:
 		add_text("Weights size:")
 		add_text(String(network_module_resource.weights.size()))
+		add_text("Weight minimum:")
+		add_text(String(network_module_resource.weights_min))
+		add_text("Weight maximum:")
+		add_text(String(network_module_resource.weights_max))
 		
 	if network_module_resource.kernels:
 		add_text("Number of kernels:")

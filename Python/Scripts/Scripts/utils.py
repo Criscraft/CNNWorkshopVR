@@ -89,7 +89,7 @@ def normalize(activations):
 
 
 """ Plotting, accepts data structures created by functions above that compute performance metrics """ 
-def draw_confusion_matrix(targets, preds, labels=[], label_of_positive=None, vmax=None, show_numbers=True, show_colorbar=True, figsize=(7, 6)):
+def draw_confusion_matrix(targets, preds, labels=[], label_of_positive=None, vmax=None, show_numbers=True, show_colorbar=True, figsize=(7, 7)):
     conf_mat = skmetrics.confusion_matrix(targets, preds)
     n_classes = len(conf_mat[0])
     

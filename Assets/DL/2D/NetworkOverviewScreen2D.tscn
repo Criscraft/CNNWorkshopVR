@@ -39,6 +39,9 @@ render_target_update_mode = 3
 
 [node name="NetworkOverview" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport" instance=ExtResource( 2 )]
 
+[node name="Camera2D" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview" index="1"]
+current = true
+
 [node name="CameraFrame" parent="Viewports/VBoxContainer/MainViewportContainer/Viewport/NetworkOverview/Camera2D" index="0"]
 margin_top = -240.0
 margin_bottom = 240.0

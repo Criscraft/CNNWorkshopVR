@@ -20,7 +20,7 @@ onready var value_fraction_to_maximize : Label = $VBoxContainer/ValueFractionToM
 func _ready():
 	option_button_mode.add_item("Average")
 	option_button_mode.add_item("Center pixel")
-	option_button_mode.add_item("Fraction to minimize")
+	option_button_mode.add_item("Fraction to maximize")
 
 
 func set_fv_settings_resource(fv_settings_resource_):
