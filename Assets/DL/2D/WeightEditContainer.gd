@@ -6,6 +6,7 @@ export var slider_width = 60
 export var line_width = 256
 export var image_height = 256
 export var margin = 10
+export var n_steps = 5
 var left_limit
 var right_limit
 
@@ -19,8 +20,10 @@ func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
 	for i in range(len(weights)):
 		slider = slider_scene.instance()
 		slider.rect_min_size.y = int((image_height - 10 * len(weights)) / len(weights))
+		slider.step = (right_limit - left_limit) / (n_steps - 1)
 		slider.min_value = left_limit
 		slider.max_value = right_limit + slider.step
+		slider.page = slider.step
 		slider.value = weights[i][0][0] # It is a 1x1 kernel.
 		add_child(slider)
 		slider.connect("value_changed", get_parent(), "on_weight_changed", [i])

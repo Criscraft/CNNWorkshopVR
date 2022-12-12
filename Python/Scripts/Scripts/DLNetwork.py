@@ -88,7 +88,7 @@ class DLNetwork(object):
                 if "PredefinedConvnxn" in str(tracked_module.__class__):
                     module_info['kernels'] = tracked_module.weight.data.cpu().numpy().tolist()
                     module_info['padding'] = tracked_module.padding
-                elif "PerturbationModule" in str(tracked_module.__class__):
+                elif "PermutationModule" in str(tracked_module.__class__):
                     module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
                 elif hasattr(tracked_module, "weight"):
                     weights = tracked_module.weight
@@ -98,9 +98,10 @@ class DLNetwork(object):
                     weights = weights.data.cpu().numpy()
                     module_info['weights'] = weights.tolist()
                     
-                    module_info['weights_min'] = tracked_module.weights_min
-                    module_info['weights_max'] = tracked_module.weights_max
-                
+                    module_info['weight_limit_min'] = tracked_module.weight_limit_min
+                    module_info['weight_limit_max'] = tracked_module.weight_limit_max
+                    module_info['weight_min'] = weights.min().item()
+                    module_info['weight_max'] = weights.max().item()
                 
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out

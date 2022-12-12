@@ -84,11 +84,22 @@ func update_text():
 		
 	if network_module_resource.weights:
 		add_text("Weights size:")
-		add_text(String(network_module_resource.weights.size()))
+		var my_string = ""
+		var item = network_module_resource.weights
+		while true:
+			if item is Array:
+				my_string = my_string + String(item.size()) + ","
+				item = item[0]
+			else: break
+		add_text(my_string)
+		add_text("Weight lower limit:")
+		add_text(String(network_module_resource.weight_limit_min))
+		add_text("Weight higher limit:")
+		add_text(String(network_module_resource.weight_limit_max))
 		add_text("Weight minimum:")
-		add_text(String(network_module_resource.weights_min))
+		add_text(String(network_module_resource.weight_min))
 		add_text("Weight maximum:")
-		add_text(String(network_module_resource.weights_max))
+		add_text(String(network_module_resource.weight_max))
 		
 	if network_module_resource.kernels:
 		add_text("Number of kernels:")

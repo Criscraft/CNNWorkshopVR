@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os
+from Projects.HFNetMNIST.PredefinedFilterNet import PredefinedFilterNet
 from Projects.HFNetMNIST.MixRollCompareNet import MixRollCompareNet
 from Projects.HFNetMNIST.TransformTestGS import TransformTestGS
 from Projects.HFNetMNIST.TransformToTensor import TransformToTensor
@@ -20,7 +21,7 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 def get_network():
 
-    model = MixRollCompareNet(
+    model = PredefinedFilterNet(
         n_classes=10,
         start_config={
             'n_channels_in' : 1,
@@ -36,9 +37,10 @@ def get_network():
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [0, 2] else False,
+            'antiroll' : False,
             } for i in range(4)],
-        init_mode='identity',
-        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_pfnet_simple.pt'),
+        init_mode='uniform',
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_conv3x3net.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

@@ -49,7 +49,7 @@ func add_details(network_module_resource):
 		var weight_edit = weight_edit_container_scene.instance()
 		add_child(weight_edit)
 		move_child(weight_edit, 0)
-		weight_edit.set_initial_weights(network_module_resource.input_mapping[channel_ind], network_module_resource.weights[channel_ind], network_module_resource.weights_min, network_module_resource.weights_max)
+		weight_edit.set_initial_weights(network_module_resource.input_mapping[channel_ind], network_module_resource.weights[channel_ind], network_module_resource.weight_limit_min, network_module_resource.weight_limit_max)
 		# Draw dummy rect such that the channel connections have enough space to be shown
 		add_dummy_rect()
 		return

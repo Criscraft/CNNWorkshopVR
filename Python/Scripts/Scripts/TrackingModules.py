@@ -1,37 +1,14 @@
-from ast import Add
 import torch.nn as nn
 from contextlib import contextmanager
 from collections import defaultdict
-from enum import Enum
-
-# global variables
-group_id_ = 0
-module_id_ = 0
-
-class TrackerModuleGroup(object):
-    def __init__(self, label="", precursors=[-1]):
-        # precursors is a list of group ids
-        global group_id_
-        group_id_ = group_id_ + 1
-        self.group_id = group_id_
-        precursors = [p if p>=0 else self.group_id + p for p in precursors]
-        self.meta = {
-            'group_id' : self.group_id,
-            'precursors' : precursors,
-            'label' : label,
-        }
 
 
 class TrackerModule(nn.Identity):
-
-    def __init__(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
+    def __init__(self, module_id, group_id, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
         super().__init__()
         # precursors is a list of module ids
-        global module_id_
-        module_id_ = module_id_ + 1
-        self.module_id = module_id_
-        precursors = [p if p>=0 else self.module_id + p for p in precursors]
-        group_id = group_id if group_id>=0 else group_id_
+        self.module_id = module_id
+        self.precursors = precursors
         self.meta = {
             'module_id' : self.module_id,
             'group_id' : group_id,
@@ -42,6 +19,44 @@ class TrackerModule(nn.Identity):
             'channel_labels' : channel_labels,
             'activation' : None,
         }
+        
+
+class TrackerModuleGroup(object):
+    def __init__(self, group_id, label="", precursors=[-1]):
+        # precursors is a list of group ids
+        self.group_id = group_id
+        self.precursors = precursors
+        self.meta = {
+            'group_id' : self.group_id,
+            'precursors' : precursors,
+            'label' : label,
+        }
+
+
+class TrackerModuleProvider(object):
+    def __init__(self):
+        self.group_id = 0
+        self.module_id = 0
+        self.tracker_module_groups = []
+
+    def instance_tracker_module_group(self, label="", precursors=[-1]):
+        self.group_id += 1
+        precursors = [p if p>=0 else self.group_id + p for p in precursors]
+        new_instance = TrackerModuleGroup(self.group_id, label, precursors)
+        self.tracker_module_groups.append(new_instance)
+        return new_instance
+
+    def instance_tracker_module(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
+        self.module_id += 1
+        precursors = [p if p>=0 else self.module_id + p for p in precursors]
+        group_id = group_id if group_id>=0 else self.group_id
+        new_instance = TrackerModule(self.module_id, group_id, label, precursors, tracked_module, info_code, channel_labels)
+        return new_instance
+
+    def reset_ids(self):
+        self.module_id = 0
+        self.group_id = 0
+        self.tracker_module_groups = []
 
 
 class LayerInfo():
@@ -58,9 +73,9 @@ class ActivationTracker():
         
     def register_forward_hook(self, module, name):
 
-        def store_data(module, in_data, out_data):
+        def store_data(module_, in_data, out_data):
             layer = LayerInfo(name, in_data)
-            self._layer_info_dict[module].append(layer)
+            self._layer_info_dict[module_].append(layer)
 
         return module.register_forward_hook(store_data)
 
@@ -82,7 +97,8 @@ class ActivationTracker():
         # them in the function as it needs to be reset each time.
         handles = []
         for name, module in model.named_modules():
-            if isinstance(module, TrackerModule):
+            #if isinstance(module, TrackerModule): # Does not work for some reason I do not understand.
+            if "TrackerModule" in str(module.__class__):
                 handles.append(self.register_forward_hook(module, name))
         yield
         for handle in handles:
@@ -120,12 +136,6 @@ class ActivationTracker():
                 module_dicts.append(module_dict)
         return output, module_dicts
 
-
-def reset_ids():
-    global module_id_
-    module_id_ = 0
-    global group_id_
-    group_id_ = 0
 
 """
 module_dicts is a list with module_dicts.

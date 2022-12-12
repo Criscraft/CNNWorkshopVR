@@ -92,8 +92,10 @@ func create_network_module_resource(network_module_dict, id):
 	network_module_resource.info_code = network_module_dict["info_code"]
 	if "weights" in network_module_dict:
 		network_module_resource.weights = network_module_dict["weights"]
-		network_module_resource.weights_min = network_module_dict["weights_min"]
-		network_module_resource.weights_max = network_module_dict["weights_max"]
+		network_module_resource.weight_limit_min = network_module_dict["weight_limit_min"]
+		network_module_resource.weight_limit_max = network_module_dict["weight_limit_max"]
+		network_module_resource.weight_min = network_module_dict["weight_min"]
+		network_module_resource.weight_max = network_module_dict["weight_max"]
 	if "permutation" in network_module_dict:
 		network_module_resource.permutation = network_module_dict["permutation"]
 	if "kernels" in network_module_dict:
