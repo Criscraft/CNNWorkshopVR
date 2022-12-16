@@ -23,7 +23,9 @@ class PredefinedFilterNet(nn.Module):
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [0, 2] else False,
-            'antiroll' : False,
+            'filter_mode' : "Uneven",
+            'roll_instead_of_3x3': False,
+            'randomroll' : -1,
             } for i in range(4)],
         init_mode: str = 'uniform',
         statedict: str = '',
@@ -114,7 +116,9 @@ class PredefinedFilterNet_(nn.Module):
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],
                 avgpool=config['avgpool'],
-                antiroll=config['antiroll']
+                filter_mode = config['filter_mode'],
+                roll_instead_of_3x3=config['roll_instead_of_3x3'],
+                randomroll=config['randomroll']
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 

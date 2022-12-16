@@ -99,7 +99,8 @@ class FeatureVisualizer(object):
                 out_dict = model.forward_features({'data' : created_image}, module)
                 output = out_dict['module_dicts'][0]['activation']
                 if output.shape[2] == 1:
-                    loss = -output.sum()
+                    output = output.flatten(2)
+                    loss_list = [output[i, j] for i, j in enumerate(channels_batch)]
                 else:
                     loss_list = []
                     if self.fv_settings.mode == FeatureVisualizationParams.Mode.AVERAGE:
@@ -119,7 +120,7 @@ class FeatureVisualizer(object):
                                 mean_new = activation.mean()
                             loss_list.append(mean_new)
 
-                    loss = -torch.stack(loss_list).sum()
+                loss = -torch.stack(loss_list).sum()
 
                 loss.backward()
 

@@ -6,8 +6,7 @@ import torch.nn.functional as F
 import Scripts.PredefinedFilterModules as pfm
 from Scripts.TrackingModules import ActivationTracker
 
-
-class MixRollCompareNet(nn.Module):
+class SpecialTranslationNet(nn.Module):
     def __init__(self,
         n_classes: int = 10,
         start_config: dict = {
@@ -20,17 +19,20 @@ class MixRollCompareNet(nn.Module):
             'stride' : 1,
         },
         blockconfig_list: list = [
-            {'n_channels_in' : 4 if i==0 else 16,
+            {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [0, 2] else False,
+            'filter_mode' : "Uneven",
+            'roll_instead_of_3x3': False,
+            'randomroll' : -1,
             } for i in range(4)],
         init_mode: str = 'uniform',
         statedict: str = '',
         ):
         super().__init__()
 
-        self.embedded_model = MixRollCompareNet_(
+        self.embedded_model = PredefinedFilterNet_(
             n_classes=n_classes,
             start_config=start_config,
             blockconfig_list=blockconfig_list, 
@@ -74,8 +76,8 @@ class MixRollCompareNet(nn.Module):
                     if hasattr(m, "weight_limit_min"):
                         m.weight.data = torch.clamp(m.weight.data, m.weight_limit_min, m.weight_limit_max)
 
-
-class MixRollCompareNet_(nn.Module):
+    
+class PredefinedFilterNet_(nn.Module):
 
     def __init__(
         self,
@@ -96,33 +98,33 @@ class MixRollCompareNet_(nn.Module):
         self.tracker_input = tm.instance_tracker_module(label="Input", precursors=[])
 
         tm.instance_tracker_module_group(label="First Convolution")
-        self.conv1 = pfm.PredefinedFilterModule3x3Part(
-            n_channels_in=start_config['n_channels_in'],
-            filter_mode=pfm.ParameterizedFilterMode[start_config['filter_mode']],
-            n_angles=start_config['n_angles'],
-            handcrafted_filters_require_grad=start_config['handcrafted_filters_require_grad'],
-            f=start_config['f'],
-            k=start_config['k'],
-            stride=start_config['stride'],
-            activation_layer=nn.ReLU,
-            padding=False,
-        )
-
-        self.norm_module = pfm.NormalizationModule()
+        # self.conv1 = pfm.PredefinedFilterModule3x3Part(
+        #     n_channels_in=start_config['n_channels_in'],
+        #     filter_mode=pfm.ParameterizedFilterMode[start_config['filter_mode']],
+        #     n_angles=start_config['n_angles'],
+        #     handcrafted_filters_require_grad=start_config['handcrafted_filters_require_grad'],
+        #     f=start_config['f'],
+        #     k=start_config['k'],
+        #     stride=start_config['stride'],
+        #     activation_layer=nn.ReLU,
+        # )
 
         # Blocks
         blocks = [
-            pfm.MixRollCompareBlock(
+            pfm.SpecialTranslationBlock(
                 n_channels_in=config['n_channels_in'],
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],
                 avgpool=config['avgpool'],
+                filter_mode = config['filter_mode'],
+                roll_instead_of_3x3=config['roll_instead_of_3x3'],
+                randomroll=config['randomroll']
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 
         # AdaptiveAvgPool
         tm.instance_tracker_module_group(label="AvgPool")
-        self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
+        #self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.tracker_adaptiveavgpool = tm.instance_tracker_module(label="AvgPool")
 
         # Classifier
@@ -140,11 +142,12 @@ class MixRollCompareNet_(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_input(x)
-        x = self.conv1(x)
-        x = self.norm_module(x)
+        #x = self.conv1(x)
         x = self.blocks(x)
 
-        x = self.adaptiveavgpool(x)
+        #x = self.adaptiveavgpool(x)
+        x = x[:,:,x.shape[2]//2,x.shape[3]//2]
+        x = x.unsqueeze(2).unsqueeze(3)
         _ = self.tracker_adaptiveavgpool(x)
         x = self.classifier(x)
         _ = self.tracker_classifier(x)
