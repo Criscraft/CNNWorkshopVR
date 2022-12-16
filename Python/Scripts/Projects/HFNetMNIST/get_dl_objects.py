@@ -37,12 +37,13 @@ def get_network():
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [3, 6, 9] else False,
+            'mode': 'parameterized_translation',
             'filter_mode' : "Translation",
-            'roll_instead_of_3x3': True,
+            'translation_k' : 5,
             'randomroll' : -1,
             } for i in range(12)],
         init_mode='uniform',
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_specialtranslationnet_nofirstconv_centerpixelclassification.pt'),
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_specialtranslationnet_centerpixelclassification_paramtrans_k_5.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda.amp import custom_bwd, custom_fwd
 import numpy as np
 import enum
 import random
@@ -45,14 +44,12 @@ class DifferentiableClamp(torch.autograd.Function):
     """
 
     @staticmethod
-    @custom_fwd
     def forward(ctx, input, min, max):
         return input.clamp(min=min, max=max)
 
     @staticmethod
-    @custom_bwd
     def backward(ctx, grad_output):
-        return grad_output.clone(), None, None
+        return grad_output, None, None
 
 
 class NormalizationModule(nn.Module):
@@ -366,13 +363,13 @@ class RollGroupParam(nn.Module):
     ) -> None:
         super().__init__()
         
-        self.tracker_input = tm.instance_tracker_module(label="Input")
+        #self.tracker_input = tm.instance_tracker_module(label="Input")
         self.roll_h = RollModuleHParam(n_channels)
         self.roll_v = RollModuleVParam(n_channels)
 
         
     def forward(self, x):
-        _ = self.tracker_input(x)
+        #_ = self.tracker_input(x)
         x = self.roll_h(x)
         x = self.roll_v(x)
         return x
@@ -433,6 +430,63 @@ class RollGroupRandom(nn.Module):
         x_stacked = zip_tensors([x1, x2, x3, x4])
         _ = self.tracker_roll(x_stacked)
         return x_stacked
+
+
+class ParamTranslationModule(nn.Module):
+    def __init__(
+        self,
+        n_channels : int = 1,
+        k : int = 3,
+        dim : int = 2,
+
+    ) -> None:
+        super().__init__()
+
+        # Initialize trainable internal weights
+        weight = torch.ones(n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
+        self.weight = nn.Parameter(weight, True)
+        self.weight_limit_min = 0.
+        self.weight_limit_max = 1.
+
+        # Initialize helpers
+        kernel_positions = torch.zeros(1,1,k)
+        for i in range(k):
+                kernel_positions[:,:,i] = i/(k-1.)
+        if dim==2:
+            kernel_positions = kernel_positions.unsqueeze(3)
+        else:
+            kernel_positions = kernel_positions.unsqueeze(2)
+        self.kernel_positions = nn.Parameter(kernel_positions, False)
+        self.radius = 1./(k-1.)
+
+        # Create tracker
+        mode = "H" if dim==3 else "V"
+        self.tracker_out = tm.instance_tracker_module(label=f"Translation{mode}", tracked_module=self, info_code="pass_highlight")
+
+    def forward(self, x):
+        w = - torch.abs(self.weight - self.kernel_positions) / self.radius + 1.
+        w = DifferentiableClamp.apply(w, 0., 1.)
+        out = F.conv2d(x, w, padding="same", groups=x.shape[1])
+        _ = self.tracker_out(out)
+        return out
+
+
+class ParamTranslationGroup(nn.Module):
+    def __init__(
+        self,
+        n_channels : int = 1,
+        k : int = 3,
+
+    ) -> None:
+        super().__init__()
+        
+        self.roll_v = ParamTranslationModule(n_channels, k, 2)
+        self.roll_h = ParamTranslationModule(n_channels, k, 3)
+
+    def forward(self, x):
+        x = self.roll_v(x)
+        x = self.roll_h(x)
+        return x
 
 
 class CompareGroup(nn.Module):
@@ -576,8 +630,9 @@ class SpecialTranslationBlock(nn.Module):
         n_channels_out: int,
         conv_groups: int = 1,
         avgpool: bool = True,
+        mode : str = "predefined_filters", # one of predefined_filters, roll, parameterized_translation
         filter_mode: str = "Uneven",
-        roll_instead_of_3x3 : bool = False,
+        translation_k : int = 3,
         randomroll: int = -1,
     ) -> None:
         super().__init__()
@@ -590,12 +645,11 @@ class SpecialTranslationBlock(nn.Module):
         self.merge1 = MergeModule(n_channels_out, self.preprocessing.norm_module.tracker_norm.module_id, tm.module_id, monitor_inputs=False)
         self.randomroll = RollGroupRandom(randomroll) if randomroll>0 else nn.Identity()
         
-        
-        if roll_instead_of_3x3:
+        if mode == "roll":
             tm.instance_tracker_module_group(label="Roll")
             self.input_tracker = tm.instance_tracker_module(label="Input")
-            self.spatial = RollGroupFixed() if roll_instead_of_3x3 else nn.Identity()
-        else:
+            self.spatial = RollGroupFixed()
+        elif mode == "predefined_filters":
             tm.instance_tracker_module_group(label="3x3 Conv")
             self.input_tracker = tm.instance_tracker_module(label="Input")
             self.spatial = PredefinedFilterModule3x3Part(
@@ -608,6 +662,10 @@ class SpecialTranslationBlock(nn.Module):
                 stride=1,
                 activation_layer=nn.LeakyReLU,
             )
+        elif mode == "parameterized_translation":
+            tm.instance_tracker_module_group(label="Translation")
+            self.input_tracker = tm.instance_tracker_module(label="Input")
+            self.spatial = ParamTranslationGroup(n_channels_out, translation_k)
 
         self.merge2 = MergeModule(n_channels_out, self.input_tracker.module_id, tm.module_id, monitor_inputs=False)
 
