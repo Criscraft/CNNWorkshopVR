@@ -4,21 +4,37 @@ from collections import defaultdict
 
 
 class TrackerModule(nn.Identity):
-    def __init__(self, module_id, group_id, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
+    def __init__(self, module_id, group_id, label="", precursors=[-1], tracked_module=None, channel_labels=[], ignore_highlight=True, draw_edges=False):
         super().__init__()
         # precursors is a list of module ids
         self.module_id = module_id
         self.precursors = precursors
-        self.meta = {
+        self.data = {
             'module_id' : self.module_id,
             'group_id' : group_id,
             'label' : label,
             'precursors' : precursors, 
-            'tracked_module' : tracked_module,
-            'info_code' : info_code,
+            #'tracked_module' : tracked_module,
+            'tracker_type' : "default",
+            'tags' : {},
+            'data' : {}, # should be filled by subclass
             'channel_labels' : channel_labels,
-            'activation' : None,
+            'module' : None, # filled by ActivationTracker
+            'activation' : None, # filled by ActivationTracker
         }
+        if ignore_highlight:
+            self.data['tags'].append("ignore_highlight")
+        if draw_edges:
+            self.data['tags'].append("draw_edges")
+
+    def register_data(self, name, data):
+        self.data["data"][name] = data
+
+    def set_data(self, name, data):
+        self.data["data"][name].data = data
+
+    def get_data(self):
+        return self.data["data"]
         
 
 class TrackerModuleGroup(object):
@@ -26,7 +42,7 @@ class TrackerModuleGroup(object):
         # precursors is a list of group ids
         self.group_id = group_id
         self.precursors = precursors
-        self.meta = {
+        self.data = {
             'group_id' : self.group_id,
             'precursors' : precursors,
             'label' : label,
@@ -46,11 +62,11 @@ class TrackerModuleProvider(object):
         self.tracker_module_groups.append(new_instance)
         return new_instance
 
-    def instance_tracker_module(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[]):
+    def instance_tracker_module(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[], ignore_highlight=False, interleave=False):
         self.module_id += 1
         precursors = [p if p>=0 else self.module_id + p for p in precursors]
         group_id = group_id if group_id>=0 else self.group_id
-        new_instance = TrackerModule(self.module_id, group_id, label, precursors, tracked_module, info_code, channel_labels)
+        new_instance = TrackerModule(self.module_id, group_id, label, precursors, tracked_module, info_code, channel_labels, ignore_highlight, interleave)
         return new_instance
 
     def reset_ids(self):
@@ -130,24 +146,8 @@ class ActivationTracker():
         for module, info_list in self._layer_info_dict.items():
             #one info_list can have multiple entries, for example if one relu module is applied several times in a network
             for info_item in info_list:
-                module_dict = module.meta.copy() # Copy important because we do not want the module_dict to be a reference to the tracker module.
+                module_dict = module.data.copy() # Copy important because we do not want the module_dict to be a reference to the tracker module.
                 module_dict['module'] = module
                 module_dict['activation'] = info_item.in_data[0]
                 module_dicts.append(module_dict)
         return output, module_dicts
-
-
-"""
-module_dicts is a list with module_dicts.
-A module_dicts contains:
-'module_id' : module_id,
-'group_id' : group_id, 
-'label' : label,
-'precursors' : precursors, 
-'tracked_module' : tracked_module,
-'info_code' : "",
-'channel_labels' : channel_labels,
-'input_channels' : -1
-'activation' : None,
-'module'
-"""

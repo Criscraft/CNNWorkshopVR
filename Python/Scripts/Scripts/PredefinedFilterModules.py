@@ -10,31 +10,144 @@ from TrackingModules import TrackerModuleProvider
 
 tm = TrackerModuleProvider()
 
-class CopyModule(nn.Module):
+class WeightClampingModule(nn.Module):
+    def __init__(
+        self,
+    ) -> None:
+        super().__init__()
+
+        self.params_to_clip = []
+        self.params_to_cycle = []
+
+    def register_param_to_clamp(self, param, minimum, maximum):
+        self.params_to_clamp.append({'param' : param, 'min' : minimum, 'max' : maximum})
+
+    def register_param_to_cycle(self, param, minimum, maximum):
+        self.params_to_clamp.append({'param' : param, 'min' : minimum, 'max' : maximum})
+
+    def regularize_params(self):
+
+        for item in self.params_to_clip:
+            item['param'].data = torch.clamp(item['param'].data, item['min'], item['max'])
+
+        for item in self.params_to_cycle:
+            item['param'].data = item['param'].data - item['min']
+            item['param'].data = item['param'].data % (item['max'] - item['min'])
+            item['param'].data = item['param'].data + item['min']
+
+
+class CopyModuleInterleave(nn.Module):
     def __init__(
         self,
         n_channels_in : int,
         n_channels_out : int,
-        interleave : bool = True,
     ) -> None:
         super().__init__()
 
         self.factor = n_channels_out // n_channels_in
-        self.interleave = interleave
-        info_code = "interleave" if self.interleave else ""
-        self.tracker_copymodule = tm.instance_tracker_module(label="Copy", info_code=info_code)
+        self.create_trackers(n_channels_in, n_channels_out)
+
+    def create_trackers(self, n_channels_in, n_channels_out):
+        self.tracker_out = tm.instance_tracker_module(label="Copy", draw_edges=True)
+        out_channels_per_in_channel = n_channels_out // n_channels_in
+        out_channel_inds = np.arange(n_channels_out)
+        input_mapping = out_channel_inds // out_channels_per_in_channel
+        self.tracker_out.register_data("input_mapping", input_mapping)
 
     def forward(self, x: Tensor) -> Tensor:
-        if self.interleave:
-            out = x.repeat_interleave(self.factor, dim=1)
-        else:
-            dimensions = [1 for _ in range(x.ndim)]
-            dimensions[1] = self.factor
-            out =  x.repeat(*dimensions)
-        
-        _ = self.tracker_copymodule(out)
-        
+        out = x.repeat_interleave(self.factor, dim=1)
+        _ = self.tracker_out(out)
         return out
+
+
+class CopyModuleNonInterleave(nn.Module):
+    def __init__(
+        self,
+        n_channels_in : int,
+        n_channels_out : int,
+    ) -> None:
+        super().__init__()
+
+        self.factor = n_channels_out // n_channels_in
+        self.create_trackers(n_channels_in, n_channels_out)
+
+    def create_trackers(self, n_channels_in, n_channels_out):
+        self.tracker_out = tm.instance_tracker_module(label="Copy", draw_edges=True)
+        out_channel_inds = np.arange(n_channels_out)
+        input_mapping = out_channel_inds % n_channels_in
+        self.tracker_out.register_data("input_mapping", input_mapping)
+
+    def forward(self, x: Tensor) -> Tensor:
+        dimensions = [1 for _ in range(x.ndim)]
+        dimensions[1] = self.factor
+        out =  x.repeat(*dimensions)
+        _ = self.tracker_out(out)
+        return out
+
+
+class TrackedLeakyReLU(nn.Module):
+    def __init__(
+        self,
+    ) -> None:
+        super().__init__()
+
+        self.relu = nn.LeakyReLU(inplace=False)
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="Leaky ReLU")
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.relu(x)
+        _ = self.tracker_out(out)
+        return out
+
+
+class TrackedConv1x1(nn.Module):
+    def __init__(
+        self, n_channels, conv_groups, clamp_min=-1., clamp_max=1.,
+    ) -> None:
+        super().__init__()
+
+        self.conv1x1 = nn.Conv2d(n_channels, n_channels, 1, 1, 0, groups=conv_groups, bias=False)
+        self.register_param_to_clamp(self.conv1x1.weight, -1., 1.)
+        self.create_trackers(n_channels, n_channels, conv_groups)
+
+    def create_trackers(self, in_channels, out_channels, conv_groups):
+        self.tracker_out = tm.instance_tracker_module(label="1x1 Conv", draw_edges=True, ignore_highlight=False)
+        self.tracker_out.register_data("grouped_conv_weight", self.conv1x1.weight)
+        self.tracker_out.register_data("grouped_conv_weight_range", [-1., 1.])
+        in_channels_per_group = in_channels // conv_groups
+        out_channels_per_group = out_channels // conv_groups
+        input_mapping = []
+        for out_channel in range(out_channels_per_group):
+            group = out_channel // out_channels_per_group
+            input_mapping.append(list(range(group*in_channels_per_group, (group+1)*in_channels_per_group)))
+        self.tracker_out.register_data("input_mapping", input_mapping)
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.conv1x1(x)
+        _ = self.tracker_out(out)
+        return out
+
+
+class TrackedAvgPool2d(nn.Module):
+    def __init__(
+        self, kernel_size=2, stride=2, padding=0
+    ) -> None:
+        super().__init__()
+
+        self.pool = nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=padding)
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="AvgPool", draw_edges=True, ignore_highlight=False)
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.pool(x)
+        _ = self.tracker_out(out)
+        return out
+
 
 
 class DifferentiableClamp(torch.autograd.Function):
@@ -56,13 +169,16 @@ class NormalizationModule(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-        self.tracker_norm = tm.instance_tracker_module(label="ScaleNorm")
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="ScaleNorm")
 
     def forward(self, x: Tensor) -> Tensor:
         minimum = x.amin((1,2,3), keepdims=True).detach()
         maximum = x.amax((1,2,3), keepdims=True).detach()
         out = (x - minimum) / (maximum - minimum + 1e-6) # * 4. - 2. #I changed this for debug
-        _ = self.tracker_norm(out)
+        _ = self.tracker_out(out)
         return out
 
 
@@ -70,26 +186,35 @@ class LayerNorm(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-        self.tracker_norm = tm.instance_tracker_module(label="LayerNorm")
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="LayerNorm")
 
     def forward(self, x: Tensor) -> Tensor:
         dims = tuple(range(x.ndim))[1:]
         mean = x.mean(dim=dims, keepdims=True).detach()
         std = x.std(dim=dims, keepdims=True).detach()
         out = (x - mean) / (std + 1e-6)
-        _ = self.tracker_norm(out)
+        _ = self.tracker_out(out)
         return out
     
 
 class PermutationModule(nn.Module):
     def __init__(self, indices):
         super().__init__()
+
         self.indices = nn.Parameter(indices, False)
-        self.tracker_permutation = tm.instance_tracker_module(label="Permutation", tracked_module=self)
+
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="Permutation", tracked_module=self, draw_edges=True)
+        self.tracker_out.register_data("input_mapping", self.indices)
 
     def forward(self, x):
         x = x[:,self.indices]
-        _ = self.tracker_permutation(x)
+        _ = self.tracker_out(x)
         return x
     
 
@@ -115,6 +240,11 @@ class PredefinedConv(nn.Module):
         self.stride = stride
         assert self.n_channels_out >= self.n_channels_in
 
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="PFModule", tracked_module=self)
+        self.tracker_out.register_data("PFModule_kernels", self.weight)
     
     def forward(self, x: Tensor) -> Tensor:
         n_channels_per_kernel = self.n_channels_out // self.n_kernels
@@ -125,6 +255,8 @@ class PredefinedConv(nn.Module):
         if self.padding:
             x = F.pad(x, (1,1,1,1), "replicate")
         out = F.conv2d(x, w_tmp, None, self.stride, groups=groups)
+
+        _ = self.tracker_out(out)
         #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
         return out
 
@@ -202,34 +334,24 @@ class PredefinedFilterModule3x3Part(nn.Module):
         f: int = 1,
         k: int = 3,
         stride: int = 1,
-        activation_layer : nn.Module = nn.ReLU,
         padding: bool = True,
     ) -> None:
         super().__init__()
 
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
-        self.copymodule = CopyModule(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
-        
+        self.copymodule = CopyModuleInterleave(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
         self.predev_conv = PredefinedConvnxn(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, requires_grad=handcrafted_filters_require_grad, padding=padding)
-        self.tracker_predev_conv = tm.instance_tracker_module(label="3x3 Conv", tracked_module=self.predev_conv)
-        
-        self.activation_layer = activation_layer(inplace=False)
-        if not isinstance(self.activation_layer, nn.Identity):
-            self.activation_layer_tracker = tm.instance_tracker_module(label="ReLU")
-        else:
-            self.activation_layer_tracker = nn.Identity()
+        self.activation_layer = TrackedLeakyReLU(inplace=False)
 
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.copymodule(x)
         x = self.predev_conv(x)
-        _ = self.tracker_predev_conv(x)
         x = self.activation_layer(x)
-        _ = self.activation_layer_tracker(x)
         return x
 
 
-class MixGroup(nn.Module):
+class Conv1x1AndReLUModule(WeightClampingModule):
     def __init__(
         self,
         n_channels : int,
@@ -237,25 +359,99 @@ class MixGroup(nn.Module):
     ) -> None:
         super().__init__()
 
-        self.tracker_input = tm.instance_tracker_module(label="Input")
-        self.conv1x1 = nn.Conv2d(n_channels, n_channels, 1, 1, 0, groups=conv_groups, bias=False)
-        #group_size = n_channels // conv_groups
-        self.conv1x1.weight_limit_min = -1.
-        self.conv1x1.weight_limit_max = 1.
-        self.conv1x1_tracker = tm.instance_tracker_module(label="1x1 Conv", tracked_module=self.conv1x1)
-        self.relu = nn.LeakyReLU(inplace=False)
-        self.relu_tracker = tm.instance_tracker_module(label="ReLU")
+        self.conv1x1 = TrackedConv1x1(n_channels, n_channels, 1, 1, 0, groups=conv_groups, bias=False, clamp_min=-1., clamp_max=1.)
+        self.relu = TrackedLeakyReLU()
 
     def forward(self, x):
-        _ = self.tracker_input(x)
         x = self.conv1x1(x)
-        _ = self.conv1x1_tracker(x)
         x = self.relu(x)
-        _ = self.relu_tracker(x)
         return x
 
 
-class MergeModule(nn.Module):
+class SparseConv2D(WeightClampingModule):
+    def __init__(
+        self,
+        n_channels : int,
+        conv_groups : int,
+        n_selectors : int, 
+        selector_diameter : int,
+    ) -> None:
+        super().__init__()
+
+        self.n_selectors = n_selectors
+
+        self.tracker_input = tm.instance_tracker_module(label="Input")
+        
+        # Initialize trainable internal weights
+        # Shape of weights: [n_selectors, n_channels_out, 1 (group_size), filter height, filter width]
+        weight_selection = torch.ones(self.n_selectors, n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
+        self.weight_selection = nn.Parameter(weight_selection, True)
+        nn.init.uniform_(self.weight_selection, 0., 1.)
+        self.register_param_to_clamp(self.weight_selection, 0., 1.)
+        # Shape of wieghts: [n_selectors, batchsize, n_channels, tensor height, tensor width]
+        weight_group = torch.zeros(self.n_selectors, 1, n_channels, 1, 1)
+        self.weight_group = nn.Parameter(weight_group, True)
+        nn.init.uniform_(self.weight_group, -1., 1.)
+        self.register_param_to_cycle(self.weight_group, -1., 1.)
+
+        # Initialize helpers
+        group_size = n_channels // conv_groups
+        # shape: [1 (n_selectors), 1 (n_channels_out), group_size, 1 (filter height), 1 (filter width)]
+        kernel_positions = torch.zeros(1, 1, group_size)
+        for i in range(group_size):
+                kernel_positions[:,:,i] = i/(group_size-1.)
+        kernel_positions.unsqueeze(2).unsqueeze(3)
+        self.kernel_positions = nn.Parameter(kernel_positions, False)
+        self.radius = 1./(selector_diameter-1.)
+
+        self.create_trackers()
+        self.relu = TrackedLeakyReLU()
+
+    def create_trackers(self, n_channels, conv_groups, n_selectors, selector_diameter):
+        self.conv1x1_tracker = tm.instance_tracker_module(label="SparseConv2D", ignore_highlight=True, draw_edges=True)
+        self.tracker_out.register_data("sparse_conv_weight_selection", self.weight_selection)
+        self.tracker_out.register_data("sparse_conv_weight_selection_range", [0., 1.])
+        self.tracker_out.register_data("sparse_conv_weight_group", self.weight_group)
+        self.tracker_out.register_data("sparse_conv_weight_group_range", [-1., 1.])
+        # input_mapping = []
+        # in_channels_per_group = n_channels // conv_groups
+        # out_channels_per_group = n_channels // conv_groups
+
+        # distances = torch.abs(self.weight_selection - self.kernel_positions)
+        # # make distances circular
+        # distances = torch.minimum(distances, 1. - distances)
+        # distances = distances.flatten(2)
+
+        # for selector in range(n_selectors):
+        #     input_mapping_selector = []
+        #     for out_channel in range(n_channels):
+        #         group = out_channel // out_channels_per_group
+        #         input_mapping_group = list(range(group*in_channels_per_group, (group+1)*in_channels_per_group))
+        #         selected_index = torch.argmin(distances[selector, out_channel].flatten()).cpu().item()
+        #         selected_indices = list(range(selected_index-selector_diameter//2, selected_index+selector_diameter//2+1))
+        #         input_mapping_selector.append([input_mapping_group[i] for i in selected_indices])
+        #     input_mapping.append(input_mapping_selector)
+        # self.tracker_out.register_data("input_mapping", input_mapping)
+
+    def forward(self, x):
+        _ = self.tracker_input(x)
+        distances = torch.abs(self.weight_selection - self.kernel_positions)
+        # make distances circular
+        distances = torch.minimum(distances, 1. - distances)
+        w = 1. - distances / self.radius
+        w = DifferentiableClamp.apply(w, 0., 1.)
+        tensor_list = []
+        for selector in range(self.n_selectors):
+            y = F.conv2d(x, w[selector], groups=x.shape[1])
+            y = y * self.weight_group[selector]
+            tensor_list.append(y)
+        x = torch.sum(*tensor_list)
+        _ = self.conv1x1_tracker(x)
+        x = self.relu(x)
+        return x
+
+
+class BlendModule(WeightClampingModule):
     def __init__(
         self,
         n_channels : int,
@@ -267,158 +463,78 @@ class MergeModule(nn.Module):
         
         w = torch.zeros(1, n_channels, 1, 1)
         self.weight = nn.Parameter(w, True)
-        self.weight_limit_min = 0.
-        self.weight_limit_max = 1.
-        
+        self.register_param_to_clamp(self.weight, 0., 1.)
 
+        self.create_trackers(module_id_1, module_id_2, monitor_inputs)
+
+    def create_trackers(self, module_id_1, module_id_2, monitor_inputs):
         if monitor_inputs:
             self.input_tracker_1 = tm.instance_tracker_module(label="Input A", precursors=[module_id_1])
             self.input_tracker_2 = tm.instance_tracker_module(label="Input B", precursors=[module_id_2])
-            self.tracker_merge = tm.instance_tracker_module(label="Merge", tracked_module=self, precursors=[self.input_tracker_1.module_id, self.input_tracker_2.module_id])
+            precursors = [self.input_tracker_1.module_id, self.input_tracker_2.module_id]
         else:
             self.input_tracker_1 = nn.Identity()
             self.input_tracker_2 = nn.Identity()
-            self.tracker_merge = tm.instance_tracker_module(label="Merge", tracked_module=self, precursors=[module_id_1, module_id_2])
+            precursors = [module_id_1, module_id_2]
+
+        self.tracker_out = tm.instance_tracker_module(label="Blend", tracked_module=self, precursors=precursors, ignore_highlight=False)
+        self.tracker_out.register_data("blend_weight", self.weight)
+        self.tracker_out.register_data("blend_weight_range", [0., 1.])
 
     def forward(self, x, y):
         _ = self.input_tracker_1(x)
         _ = self.input_tracker_2(y)
         out = self.weight * y + (1.0 - self.weight) * x
-        _ = self.tracker_merge(out)
+        _ = self.tracker_out(out)
         return out
 
 
-class MergeModuleHiddenSymmetric(nn.Module):
-    def __init__(
-        self,
-        weight_pointer,
-    ) -> None:
-        super().__init__()
+# class RollGroupFixed(nn.Module):
+#     def __init__(
+#         self,
+#     ) -> None:
+#         super().__init__()
 
-        self.weight = weight_pointer
+#         self.tracker_input = tm.instance_tracker_module(label="Input")
+#         self.tracker_roll = tm.instance_tracker_module(label="Roll")
 
-    def forward(self, x, y):
-        w = torch.abs(self.weight - 0.5) * 2.0
-        out = w * y + (1.0 - w) * x
-        return out
-
-
-class RollModuleHParam(nn.Module):
-    def __init__(
-        self,
-        n_channels : int,
-        roll_range : int = 1,
-    ) -> None:
-        super().__init__()
         
-        w = torch.ones(1, n_channels, 1, 1) * 0.5
-        self.weight = nn.Parameter(w, True)
-        self.weight_limit_min = 0.
-        self.weight_limit_max = 1.
-        self.tracker_roll = tm.instance_tracker_module(label="Roll H", tracked_module=self, info_code="pass_highlight")
-        self.merge = MergeModuleHiddenSymmetric(self.weight)
-        #self.merge = MergeModule(n_channels, self.tracker_roll.module_id, self.tracker_roll.module_id) # this is a lie
+#     def forward(self, x):
+#         _ = self.tracker_input(x)
+#         # has to match the filter combinations in 3x3 part
+#         x1 = torch.roll(x[:,0::4], 1, 3) # right
+#         x1[:,:,:,0] = x1[:,:,:,1].detach()
+#         x2 = torch.roll(x[:,1::4], 1, 2) # bottom
+#         x2[:,:,0,:] = x2[:,:,1,:].detach()
+#         x3 = torch.roll(x[:,2::4], -1, 3) # left
+#         x3[:,:,:,-1] = x3[:,:,:,-2].detach()
+#         x4 = torch.roll(x[:,3::4], -1, 2) # top
+#         x4[:,:,-1,:] = x4[:,:,-2,:].detach()
+#         x_stacked = zip_tensors([x1, x2, x3, x4])
+#         _ = self.tracker_roll(x_stacked)
+#         return x_stacked
+
+
+class RandomRoll(nn.Module):
+    def __init__(
+        self,
+        shift : int = 1,
+    ) -> None:
+        super().__init__()
+
+        self.shift = shift
+
+        self.create_trackers()
+
+    def create_trackers(self):
+        tm.instance_tracker_module_group(label="RandomRoll")
+        self.tracker_in = tm.instance_tracker_module(label="Input")
+        self.tracker_out = tm.instance_tracker_module(label="RandomRoll")
 
     def forward(self, x):
-        x_1 = torch.roll(x, 1, 3)
-        x_1[:,:,:,0] = x_1[:,:,:,1]#.detach()
-        x_2 = torch.roll(x, -1, 3)
-        x_2[:,:,:,-1] = x_2[:,:,:,-2]#.detach()
-        out = self.weight * x_1 + (1. - self.weight) * x_2
-        out = self.merge(x, out)
-        _ = self.tracker_roll(out)
-        return out
-
-
-class RollModuleVParam(nn.Module):
-    def __init__(
-        self,
-        n_channels : int,
-    ) -> None:
-        super().__init__()
-        
-        w = torch.ones(1, n_channels, 1, 1) * 0.5
-        self.weight = nn.Parameter(w, True)
-        self.weight_limit_min = 0.
-        self.weight_limit_max = 1.
-        self.tracker_roll = tm.instance_tracker_module(label="Roll V", tracked_module=self, info_code="pass_highlight")
-        self.merge = MergeModuleHiddenSymmetric(self.weight)
-        #self.merge = MergeModule(n_channels, self.tracker_roll.module_id, self.tracker_roll.module_id) # this is a lie
-
-    def forward(self, x):
-        x_1 = torch.roll(x, 1, 2)
-        x_1[:,:,0,:] = x_1[:,:,1,:]#.detach()
-        x_2 = torch.roll(x, -1, 2)
-        x_2[:,:,-1,:] = x_2[:,:,-2,:]#.detach()
-        out = self.weight * x_1 + (1. - self.weight) * x_2
-        out = self.merge(x, out)
-        _ = self.tracker_roll(out)
-        return out
-
-
-class RollGroupParam(nn.Module):
-    def __init__(
-        self,
-        n_channels: int,
-    ) -> None:
-        super().__init__()
-        
-        #self.tracker_input = tm.instance_tracker_module(label="Input")
-        self.roll_h = RollModuleHParam(n_channels)
-        self.roll_v = RollModuleVParam(n_channels)
-
-        
-    def forward(self, x):
-        #_ = self.tracker_input(x)
-        x = self.roll_h(x)
-        x = self.roll_v(x)
-        return x
-
-
-class RollGroupFixed(nn.Module):
-    def __init__(
-        self,
-    ) -> None:
-        super().__init__()
-
-        self.tracker_input = tm.instance_tracker_module(label="Input")
-        self.tracker_roll = tm.instance_tracker_module(label="Roll")
-
-        
-    def forward(self, x):
-        _ = self.tracker_input(x)
+        _ = self.tracker_in(x)
         # has to match the filter combinations in 3x3 part
-        x1 = torch.roll(x[:,0::4], 1, 3) # right
-        x1[:,:,:,0] = x1[:,:,:,1].detach()
-        x2 = torch.roll(x[:,1::4], 1, 2) # bottom
-        x2[:,:,0,:] = x2[:,:,1,:].detach()
-        x3 = torch.roll(x[:,2::4], -1, 3) # left
-        x3[:,:,:,-1] = x3[:,:,:,-2].detach()
-        x4 = torch.roll(x[:,3::4], -1, 2) # top
-        x4[:,:,-1,:] = x4[:,:,-2,:].detach()
-        x_stacked = zip_tensors([x1, x2, x3, x4])
-        _ = self.tracker_roll(x_stacked)
-        return x_stacked
-
-
-class RollGroupRandom(nn.Module):
-    def __init__(
-        self,
-        randomroll : int = 1,
-    ) -> None:
-        super().__init__()
-
-        self.randomroll = randomroll
-        tm.instance_tracker_module_group(label="Roll")
-
-        self.tracker_input = tm.instance_tracker_module(label="Input")
-        self.tracker_roll = tm.instance_tracker_module(label="Roll")
-
-        
-    def forward(self, x):
-        _ = self.tracker_input(x)
-        # has to match the filter combinations in 3x3 part
-        random_roll_array = [self.randomroll, self.randomroll, -self.randomroll, -self.randomroll]
+        random_roll_array = [self.shift, self.shift, -self.shift, -self.shift]
         random.shuffle(random_roll_array)
         direction_array = [2,2,3,3]
         random.shuffle(direction_array)
@@ -428,11 +544,11 @@ class RollGroupRandom(nn.Module):
         x3 = torch.roll(x[:,2::4], random_roll_array[2], direction_array[2]) # left
         x4 = torch.roll(x[:,3::4], random_roll_array[3], direction_array[3]) # top
         x_stacked = zip_tensors([x1, x2, x3, x4])
-        _ = self.tracker_roll(x_stacked)
+        _ = self.tracker_out(x_stacked)
         return x_stacked
 
 
-class ParamTranslationModule(nn.Module):
+class ParamTranslationModule(WeightClampingModule):
     def __init__(
         self,
         n_channels : int = 1,
@@ -445,8 +561,7 @@ class ParamTranslationModule(nn.Module):
         # Initialize trainable internal weights
         weight = torch.ones(n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
         self.weight = nn.Parameter(weight, True)
-        self.weight_limit_min = 0.
-        self.weight_limit_max = 1.
+        self.register_param_to_clamp(self.weight, 0., 1.)
 
         # Initialize helpers
         kernel_positions = torch.zeros(1,1,k)
@@ -459,9 +574,13 @@ class ParamTranslationModule(nn.Module):
         self.kernel_positions = nn.Parameter(kernel_positions, False)
         self.radius = 1./(k-1.)
 
-        # Create tracker
+        self.create_trackers(dim)
+
+    def create_trackers(self, dim):
         mode = "H" if dim==3 else "V"
-        self.tracker_out = tm.instance_tracker_module(label=f"Translation{mode}", tracked_module=self, info_code="pass_highlight")
+        self.tracker_out = tm.instance_tracker_module(label=f"Translation{mode}")
+        self.tracker_out.register_data("weight_per_channel", self.weight)
+        self.tracker_out.register_data("weight_range", [0., 1.])
 
     def forward(self, x):
         w = - torch.abs(self.weight - self.kernel_positions) / self.radius + 1.
@@ -489,39 +608,39 @@ class ParamTranslationGroup(nn.Module):
         return x
 
 
-class CompareGroup(nn.Module):
-    def __init__(
-        self,
-        n_channels: int,
-        clamp_limit_min : float = 0.,
-        clamp_limit_max : float = 1.,
-    ) -> None:
-        super().__init__()
+# class CompareGroup(nn.Module):
+#     def __init__(
+#         self,
+#         n_channels: int,
+#         clamp_limit_min : float = 0.,
+#         clamp_limit_max : float = 1.,
+#     ) -> None:
+#         super().__init__()
 
-        self.clamp_limit_min = clamp_limit_min
-        self.clamp_limit_max = clamp_limit_max
-        self.tracker_input = tm.instance_tracker_module(label="Input")
-        self.tracker_out = tm.instance_tracker_module(label="AND, OR")
-        self.merge = MergeModule(n_channels, self.tracker_input.module_id, self.tracker_out.module_id)
+#         self.clamp_limit_min = clamp_limit_min
+#         self.clamp_limit_max = clamp_limit_max
+#         self.tracker_input = tm.instance_tracker_module(label="Input")
+#         self.tracker_out = tm.instance_tracker_module(label="AND, OR")
+#         self.merge = MergeModule(n_channels, self.tracker_input.module_id, self.tracker_out.module_id)
 
 
-    def forward(self, x):
-        _ = self.tracker_input(x)
-        x_skip = x
-        x_and = x[:,::2] * x[:,1::2]
-        x_or = x[:,::2] + x[:,1::2]
-        x_or = DifferentiableClamp.apply(x_or, self.clamp_limit_min, self.clamp_limit_max)
-        x_stacked = zip_tensors([x_and, x_or])
-        _ = self.tracker_out(x_stacked)
-        x_merged = self.merge(x_skip, x_stacked)
-        return x_merged
+#     def forward(self, x):
+#         _ = self.tracker_input(x)
+#         x_skip = x
+#         x_and = x[:,::2] * x[:,1::2]
+#         x_or = x[:,::2] + x[:,1::2]
+#         x_or = DifferentiableClamp.apply(x_or, self.clamp_limit_min, self.clamp_limit_max)
+#         x_stacked = zip_tensors([x_and, x_or])
+#         _ = self.tracker_out(x_stacked)
+#         x_merged = self.merge(x_skip, x_stacked)
+#         return x_merged
 
-def zip_tensors(tensors):
-    shape = tensors[0].shape
-    tensors = [x.unsqueeze(2) for x in tensors]
-    out = torch.cat(tensors, 2)
-    out = out.reshape((shape[0], -1, shape[2], shape[3]))
-    return out
+# def zip_tensors(tensors):
+#     shape = tensors[0].shape
+#     tensors = [x.unsqueeze(2) for x in tensors]
+#     out = torch.cat(tensors, 2)
+#     out = out.reshape((shape[0], -1, shape[2], shape[3]))
+#     return out
 
 
 class PreprocessingModule(nn.Module):
@@ -537,14 +656,7 @@ class PreprocessingModule(nn.Module):
         tm.instance_tracker_module_group(label="Preprocessing")
 
         # Pooling
-        self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool else nn.Identity()
-        if avgpool:
-            self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
-            self.tracker_avgpool = tm.instance_tracker_module(label="AvgPool")
-        else:
-
-            self.avgpool = nn.Identity()
-            self.tracker_avgpool = nn.Identity()
+        self.avgpool = TrackedAvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool else nn.Identity()
 
         # Permutation
         group_size = n_channels_in // conv_groups
@@ -553,7 +665,7 @@ class PreprocessingModule(nn.Module):
 
         # Copy channels.
         if n_channels_in != n_channels_out:
-            self.copymodule = CopyModule(n_channels_in, n_channels_out, interleave=False)
+            self.copymodule = CopyModuleNonInterleave(n_channels_in, n_channels_out)
         else:
             self.copymodule = nn.Identity()
             
@@ -562,64 +674,9 @@ class PreprocessingModule(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.avgpool(x)
-        _ = self.tracker_avgpool(x)
         x = self.permutation_module(x)
         x = self.copymodule(x)
         x = self.norm_module(x)
-        return x
-
-        
-
-class PredefinedFilterBlock(nn.Module):
-    def __init__(
-        self,
-        n_channels_in: int,
-        n_channels_out: int,
-        conv_groups: int = 1,
-        avgpool: bool = True,
-        filter_mode: str = "Uneven",
-        roll_instead_of_3x3 : bool = False,
-        randomroll: int = -1,
-    ) -> None:
-        super().__init__()
-
-        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool)
-        
-        # 1x1 Conv
-        tm.instance_tracker_module_group(label="1x1 Conv")
-        self.mix = MixGroup(n_channels_out, conv_groups)
-        
-        # Randomroll
-        if roll_instead_of_3x3:
-            #tm.instance_tracker_module_group(label="Roll")
-            self.randomroll = RollGroupRandom(randomroll) if randomroll>0 else nn.Identity()
-            self.spatial = RollGroupFixed() if roll_instead_of_3x3 else nn.Identity()
-        else:
-            tm.instance_tracker_module_group(label="3x3 Conv")
-            self.randomroll = RollGroupRandom(randomroll) if randomroll>0 else nn.Identity()
-            self.spatial = PredefinedFilterModule3x3Part(
-                n_channels_in=n_channels_out,
-                filter_mode=ParameterizedFilterMode[filter_mode],
-                n_angles=2,
-                handcrafted_filters_require_grad=False,
-                f=1,
-                k=3,
-                stride=1,
-                activation_layer=nn.LeakyReLU,
-            )
-
-        # Merge
-        tm.instance_tracker_module_group(label="Merge", precursors=[tm.tracker_module_groups[-3].group_id, tm.tracker_module_groups[-1].group_id])
-        self.merge = MergeModule(n_channels_out, self.preprocessing.norm_module.tracker_norm.module_id, tm.module_id, monitor_inputs=True)
-
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.preprocessing(x)
-        x_skip = x
-        x = self.mix(x)
-        x = self.randomroll(x)
-        x = self.spatial(x)
-        x = self.merge(x_skip, x)
         return x
 
 
@@ -641,17 +698,17 @@ class SpecialTranslationBlock(nn.Module):
         
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")
-        self.mix = MixGroup(n_channels_out, conv_groups)
-        self.merge1 = MergeModule(n_channels_out, self.preprocessing.norm_module.tracker_norm.module_id, tm.module_id, monitor_inputs=False)
-        self.randomroll = RollGroupRandom(randomroll) if randomroll>0 else nn.Identity()
+        self.conv1x1 = Conv1x1AndReLUModule(n_channels_out, conv_groups)
+        self.blend1 = BlendModule(n_channels_out, self.preprocessing.norm_module.tracker_norm.module_id, tm.module_id, monitor_inputs=False)
+        self.randomroll = RandomRoll(randomroll) if randomroll>0 else nn.Identity()
         
-        if mode == "roll":
-            tm.instance_tracker_module_group(label="Roll")
-            self.input_tracker = tm.instance_tracker_module(label="Input")
-            self.spatial = RollGroupFixed()
-        elif mode == "predefined_filters":
+        # if mode == "roll":
+        #     tm.instance_tracker_module_group(label="Roll")
+        #     self.tracker = tm.instance_tracker_module(label="Input")
+        #     self.spatial = RollGroupFixed()
+        if mode == "predefined_filters":
             tm.instance_tracker_module_group(label="3x3 Conv")
-            self.input_tracker = tm.instance_tracker_module(label="Input")
+            self.tracker = tm.instance_tracker_module(label="Input")
             self.spatial = PredefinedFilterModule3x3Part(
                 n_channels_in=n_channels_out,
                 filter_mode=ParameterizedFilterMode[filter_mode],
@@ -660,14 +717,13 @@ class SpecialTranslationBlock(nn.Module):
                 f=1,
                 k=3,
                 stride=1,
-                activation_layer=nn.LeakyReLU,
             )
         elif mode == "parameterized_translation":
             tm.instance_tracker_module_group(label="Translation")
-            self.input_tracker = tm.instance_tracker_module(label="Input")
+            self.tracker = tm.instance_tracker_module(label="Input")
             self.spatial = ParamTranslationGroup(n_channels_out, translation_k)
 
-        self.merge2 = MergeModule(n_channels_out, self.input_tracker.module_id, tm.module_id, monitor_inputs=False)
+        self.blend2 = BlendModule(n_channels_out, self.input_tracker.module_id, tm.module_id, monitor_inputs=False)
 
         #tm.instance_tracker_module_group(label="Merge", precursors=[tm.tracker_module_groups[-3].group_id, tm.tracker_module_groups[-1].group_id])
 
@@ -675,13 +731,13 @@ class SpecialTranslationBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = self.preprocessing(x)
         x_skip = x
-        x = self.mix(x)
-        x = self.merge1(x_skip, x)
+        x = self.conv1x1(x)
+        x = self.blend1(x_skip, x)
         x = self.randomroll(x)
         x_skip = x
-        _ = self.input_tracker(x)
+        _ = self.tracker(x)
         x = self.spatial(x)
-        x = self.merge2(x_skip, x)
+        x = self.blend2(x_skip, x)
         return x
 
 
@@ -698,6 +754,6 @@ def initialize_weights(modules, init_mode):
                 with torch.no_grad():
                     for channel_id in range(out_channels):
                         m.weight[channel_id, channel_id % group_size, 0, 0] = 1.0
-        elif isinstance(m, RollModuleHParam) or isinstance(m, RollModuleVParam):
-            if init_mode == 'uniform':
-                nn.init.uniform_(m.weight, m.weight_limit_min, m.weight_limit_max)
+        # elif isinstance(m, RollModuleHParam) or isinstance(m, RollModuleVParam):
+        #     if init_mode == 'uniform':
+        #         nn.init.uniform_(m.weight, m.weight_limit_min, m.weight_limit_max)

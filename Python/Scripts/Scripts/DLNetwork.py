@@ -10,9 +10,6 @@ import Scripts.utils as utils
 from Scripts.FeatureVisualizerRobust import FeatureVisualizer, FeatureVisualizationParams
 from Scripts.ImageResource import ImageResource
 
-# TODO: module_id is an id, not an index. I need a dictionary to link it with the layers. 
-# TODO: dictionary from groupids to groups 
-
 class DLNetwork(object):
     
     def __init__(self, model, device, classification, input_size, softmax=False, class_names=[], export_path=os.path.join("export", "network")):
@@ -80,29 +77,13 @@ class DLNetwork(object):
         # get tracker_module information
         out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'channel_labels', 'size', 'info_code')} for module_id, module_info in self.module_dict.items()}
         
-        for module_id, module_info in out_module_dict.items():
-            # Add information to special cases
-            tracked_module = self.module_dict[module_id]['tracked_module']
-            # Weights (not kernels) are always expected to have the shape [out_channels, groups, 1, 1]
-            if tracked_module is not None:
-                if "PredefinedConvnxn" in str(tracked_module.__class__):
-                    module_info['kernels'] = tracked_module.weight.data.cpu().numpy().tolist()
-                    module_info['padding'] = tracked_module.padding
-                elif "PermutationModule" in str(tracked_module.__class__):
-                    module_info['permutation'] = tracked_module.indices.data.cpu().numpy().tolist()
-                elif hasattr(tracked_module, "weight"):
-                    weights = tracked_module.weight
-                    if weights.shape[0] == 1:
-                        # The first channel is not the channel dimensions.
-                        weights = weights.squeeze(0).unsqueeze(1)
-                    weights = weights.data.cpu().numpy()
-                    module_info['weights'] = weights.tolist()
-                    
-                    module_info['weight_limit_min'] = tracked_module.weight_limit_min
-                    module_info['weight_limit_max'] = tracked_module.weight_limit_max
-                    module_info['weight_min'] = weights.min().item()
-                    module_info['weight_max'] = weights.max().item()
-                
+        # get module information
+        for module_info in out_module_dict.values():
+            data = module_info["data"]
+            if data:
+                for k, v in data.items():
+                    if isinstance(v, torch.Tensor):
+                        data[k] = v.cpu().numpy().tolist()
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out
 
@@ -173,9 +154,6 @@ class DLNetwork(object):
         return self.module_dict[module_id]['channel_labels']
 
 
-    def set_weights(self, module_id, weights):
-        tracked_module = self.module_dict[module_id]['tracked_module']
-        if weights.shape[0] != tracked_module.weight.shape[0]:
-            # Apparantly, weights does not fulfill the shape [out_channels, groups, 1, 1]
-            weights = weights.squeeze(1).unsqueeze(0)
-        tracked_module.weight.data = weights
+    def set_data(self, module_id, name, data):
+        module_info = self.module_dict[module_id]
+        module_info["data"][name][:] = data

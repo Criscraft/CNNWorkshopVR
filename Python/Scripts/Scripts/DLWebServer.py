@@ -48,8 +48,8 @@ async def handler(websocket):
             response = request_architecture(event)
         elif event["resource"] == "request_image_data":
             response = request_image_data(event)
-        elif event["resource"] == "request_network_weights":
-            response = request_network_weights(event)
+        elif event["resource"] == "set_network_weights":
+            response = set_network_weights(event)
         elif event["resource"] == "set_fv_image_resource":
             response = set_fv_image_resource(event)
         elif event["resource"] == "request_noise_image":
@@ -164,13 +164,13 @@ def request_image_data(event):
     return response
 
 
-def request_network_weights(event):
-    for module_id, weights in event['weight_dicts'].items():
-        weights = torch.FloatTensor(weights)
-        weights = weights.to(network.device)
-        network.set_weights(int(module_id), weights)
+def set_network_weights(event):
+    for name, data in event['data'].items():
+        data = torch.FloatTensor(data)
+        data = data.to(network.device)
+        network.set_data(int(event['module_id']), name, data)
     response = perform_forward_pass()
-    print("send: " + "request_forward_pass")
+    print("send: " + "set_network_weights, request_forward_pass")
     return response
 
 
