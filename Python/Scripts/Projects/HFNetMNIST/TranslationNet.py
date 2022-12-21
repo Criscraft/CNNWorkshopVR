@@ -6,18 +6,18 @@ import torch.nn.functional as F
 import Scripts.PredefinedFilterModules as pfm
 from Scripts.TrackingModules import ActivationTracker
 
-class SpecialTranslationNet(nn.Module):
+class TranslationNet(nn.Module):
     def __init__(self,
         n_classes: int = 10,
-        start_config: dict = {
-            'n_channels_in' : 1,
-            'filter_mode' : 'Uneven',
-            'n_angles' : 2,
-            'handcrafted_filters_require_grad' : False,
-            'f' : 4,
-            'k' : 3, 
-            'stride' : 1,
-        },
+        # start_config: dict = {
+        #     'n_channels_in' : 1,
+        #     'filter_mode' : 'Uneven',
+        #     'n_angles' : 2,
+        #     'handcrafted_filters_require_grad' : False,
+        #     'f' : 4,
+        #     'k' : 3, 
+        #     'stride' : 1,
+        # },
         blockconfig_list: list = [
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
@@ -33,13 +33,13 @@ class SpecialTranslationNet(nn.Module):
         ):
         super().__init__()
 
-        self.embedded_model = PredefinedFilterNet_(
+        self.embedded_model = TranslationNet_(
             n_classes=n_classes,
-            start_config=start_config,
+            #start_config=start_config,
             blockconfig_list=blockconfig_list, 
             init_mode=init_mode)
 
-        self.tracker_module_groups_info = {group.meta['group_id'] : {key : group.meta[key] for key in ['precursors', 'label']} for group in pfm.tm.tracker_module_groups}
+        self.tracker_module_groups_info = {group.data['group_id'] : {key : group.data[key] for key in ['precursors', 'label']} for group in pfm.tm.tracker_module_groups}
 
         if statedict:
             pretrained_dict = torch.load(statedict, map_location=torch.device('cpu'))
@@ -78,12 +78,12 @@ class SpecialTranslationNet(nn.Module):
                         m.weight.data = torch.clamp(m.weight.data, m.weight_limit_min, m.weight_limit_max)
 
     
-class PredefinedFilterNet_(nn.Module):
+class TranslationNet_(nn.Module):
 
     def __init__(
         self,
         n_classes: int,
-        start_config: dict,
+        #start_config: dict,
         blockconfig_list: list,
         init_mode: str = 'uniform',
     ) -> None:
@@ -98,7 +98,7 @@ class PredefinedFilterNet_(nn.Module):
         tm.instance_tracker_module_group(label="Input", precursors=[])
         self.tracker_input = tm.instance_tracker_module(label="Input", precursors=[])
 
-        tm.instance_tracker_module_group(label="First Convolution")
+        #tm.instance_tracker_module_group(label="First Convolution")
         # self.conv1 = pfm.PredefinedFilterModule3x3Part(
         #     n_channels_in=start_config['n_channels_in'],
         #     filter_mode=pfm.ParameterizedFilterMode[start_config['filter_mode']],
@@ -112,7 +112,7 @@ class PredefinedFilterNet_(nn.Module):
 
         # Blocks
         blocks = [
-            pfm.SpecialTranslationBlock(
+            pfm.TranslationBlock(
                 n_channels_in=config['n_channels_in'],
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],
@@ -130,13 +130,9 @@ class PredefinedFilterNet_(nn.Module):
         self.tracker_adaptiveavgpool = tm.instance_tracker_module(label="AvgPool")
 
         # Classifier
-        n_channels_in = blockconfig_list[-1]['n_channels_out']
-        self.classifier = nn.Conv2d(n_channels_in, n_classes, kernel_size=1, stride=1, bias=False)
-        # For the regularization we have to give the classifier weight_limit_min and weight_limit_max
-        self.classifier.weight_limit_min = -n_channels_in
-        self.classifier.weight_limit_max = n_channels_in
         tm.instance_tracker_module_group(label="Classifier")
-        self.tracker_classifier = tm.instance_tracker_module(label="Classifier", tracked_module=self.classifier, channel_labels="classes")
+        n_channels_in = blockconfig_list[-1]['n_channels_out']
+        self.classifier = pfm.TrackedConv1x1(n_channels_in, n_classes, 1)
         self.tracker_classifier_softmax = tm.instance_tracker_module(label="Class Probabilities", channel_labels="classes")
         
         pfm.initialize_weights(self.modules(), init_mode)
@@ -152,7 +148,6 @@ class PredefinedFilterNet_(nn.Module):
         x = x.unsqueeze(2).unsqueeze(3)
         _ = self.tracker_adaptiveavgpool(x)
         x = self.classifier(x)
-        _ = self.tracker_classifier(x)
         _ = self.tracker_classifier_softmax(F.softmax(x, 1))
         x = torch.flatten(x, 1)
 

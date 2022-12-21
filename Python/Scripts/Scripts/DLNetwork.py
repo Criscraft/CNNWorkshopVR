@@ -75,8 +75,8 @@ class DLNetwork(object):
         # get group information
         group_dict = copy.deepcopy(self.model.tracker_module_groups_info)
         # get tracker_module information
-        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'channel_labels', 'size', 'info_code')} for module_id, module_info in self.module_dict.items()}
-        
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'tags', 'data', 'channel_labels', 'size')} for module_id, module_info in self.module_dict.items()}
+
         # get module information
         for module_info in out_module_dict.values():
             data = module_info["data"]
@@ -84,6 +84,8 @@ class DLNetwork(object):
                 for k, v in data.items():
                     if isinstance(v, torch.Tensor):
                         data[k] = v.cpu().numpy().tolist()
+                    if isinstance(v, np.ndarray):
+                        data[k] = v.tolist()
         out = {'group_dict' : group_dict, 'module_dict' : out_module_dict}
         return out
 
@@ -156,4 +158,5 @@ class DLNetwork(object):
 
     def set_data(self, module_id, name, data):
         module_info = self.module_dict[module_id]
+        # Inplace operation injects the change of weights into the network.
         module_info["data"][name][:] = data

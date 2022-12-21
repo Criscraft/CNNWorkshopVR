@@ -157,8 +157,11 @@ func send_network_weights():
 		return
 	var weight_dicts = {}
 	for network_module_resource in network_module_resources_weights_changed:
-		weight_dicts[network_module_resource.module_id] = network_module_resource.weights
-	var message = {"resource" : "request_network_weights", "weight_dicts" : weight_dicts}
+		weight_dicts[network_module_resource.module_id] = {}
+		for weight_name in network_module_resource.weight_names:
+			if weight_name in network_module_resource.data:
+				weight_dicts[network_module_resource.module_id][weight_name] = network_module_resource.data[weight_name]
+	var message = {"resource" : "set_network_weights", "weight_dicts" : weight_dicts}
 	network_module_resources_weights_changed = []
 	send_request(message)
 	

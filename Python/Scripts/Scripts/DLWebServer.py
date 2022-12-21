@@ -165,10 +165,11 @@ def request_image_data(event):
 
 
 def set_network_weights(event):
-    for name, data in event['data'].items():
-        data = torch.FloatTensor(data)
-        data = data.to(network.device)
-        network.set_data(int(event['module_id']), name, data)
+    for module_id, data in event['weight_dicts'].items():
+        for weight_name, weights in data.items():
+            weights = torch.FloatTensor(weights)
+            weights = weights.to(network.device)
+            network.set_data(int(module_id), weight_name, weights)
     response = perform_forward_pass()
     print("send: " + "set_network_weights, request_forward_pass")
     return response

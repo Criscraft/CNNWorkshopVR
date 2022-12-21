@@ -30,12 +30,12 @@ static func array_to_grayscaleimage(array : Array):
 	return image
 
 
-static func get_weight_color(weight):
+static func get_colormap_color(value, value_range=[0.0, 1.0]):
 	var color : Color
-	if weight < 0:
-		color = Color(0, 0, weight / (-1.0 + 1e-6))
+	if value < 0:
+		color = Color(0, 0, value / (value_range[0] + 1e-6))
 	else:
-		color = Color(weight / (1.0 + 1e-6), 0, 0)
+		color = Color(value / (value_range[1] + 1e-6), 0, 0)
 	return color
 
 

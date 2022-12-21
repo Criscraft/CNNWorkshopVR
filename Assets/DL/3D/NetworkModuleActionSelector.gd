@@ -26,13 +26,13 @@ func _ready():
 	
 	action = Action.new()
 	action.label = "zero non-marked"
-	action.requirements = ["weights"]
+	action.requirements = []
 	action.action = "zero_weights"
 	all_actions.append(action)
 	
 	action = Action.new()
 	action.label = "ident. weights"
-	action.requirements = ["weights"]
+	action.requirements = ["grouped_conv_weight"]
 	action.action = "identity_weights"
 	all_actions.append(action)
 	
@@ -54,10 +54,7 @@ func set_network_module_details_manager(network_module_details_manager_):
 	for action in all_actions:
 		requirements_fulfilled = true
 		for requirement in action.requirements:
-			if not requirement in network_module_resource:
-				requirements_fulfilled = false
-				break
-			if not network_module_resource.get(requirement):
+			if not requirement in network_module_resource.data:
 				requirements_fulfilled = false
 				break
 		if requirements_fulfilled:

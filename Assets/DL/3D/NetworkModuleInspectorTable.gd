@@ -7,6 +7,8 @@ export var fv_settings_screen_scene : PackedScene = preload("res://Assets/DL/2D/
 var layout_details_mode = true
 var feature_visualization_mode = false
 var screen_slot : Control
+var previous_screen_slot : Control
+var next_screen_slot : Control
 
 onready var network_module_action_selector = $NetworkModuleActionSelector
 	
@@ -34,6 +36,10 @@ func _on_Snap_Zone_has_picked_up(pickable_object):
 func _on_Snap_Zone_has_dropped():
 	for child in screen_slot.get_children():
 		child.queue_free()
+	if next_screen_slot != null:
+		var next_manager = next_screen_slot.get_node_or_null("NetworkModuleDetailsScreen2D/NetworkModuleDetailsManager")
+		if next_manager != null:
+			next_manager.previous_network_module_details_manager = null
 	
 	
 func on_receive_network_module_resource(network_module_resource):
@@ -49,6 +55,11 @@ func on_receive_network_module_resource(network_module_resource):
 		network_module_details_manager.module_notes_panel_visibility = false
 		
 		network_module_action_selector.network_module_details_manager = network_module_details_manager
+		
+		if previous_screen_slot != null:
+			var previous_manager = previous_screen_slot.get_node_or_null("NetworkModuleDetailsScreen2D/NetworkModuleDetailsManager")
+			if previous_manager != null:
+				network_module_details_manager.previous_network_module_details_manager = previous_manager
 	else:
 		network_module_action_selector.network_module_details_manager = null
 	

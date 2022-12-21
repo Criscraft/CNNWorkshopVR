@@ -7,57 +7,29 @@ export var line_width = 256
 export var image_height = 256
 export var margin = 10
 export var n_steps = 5
-var left_limit
-var right_limit
-
-func set_initial_weights(input_indices, weights, left_limit_, right_limit_):
-	left_limit = left_limit_
-	right_limit = right_limit_
-	var slider
-	var local_from
-	var local_to
-	var line
-	for i in range(len(weights)):
-		slider = slider_scene.instance()
-		slider.rect_min_size.y = int((image_height - 10 * len(weights)) / len(weights))
-		slider.step = (right_limit - left_limit) / (n_steps - 1)
-		slider.min_value = left_limit
-		slider.max_value = right_limit + slider.step
+	
+func create_weights(weights, weight_range, weight_name, channel_instance, vertical=true):
+	var n_weights = len(weights)
+	for i in range(n_weights):
+		var slider = slider_scene.instance()
+		slider.rect_min_size.y = int((image_height - 10 * n_weights) / n_weights)
+		slider.step = (weight_range[1] - weight_range[0]) / (n_steps - 1)
+		slider.min_value = weight_range[0]
+		slider.max_value = weight_range[1] + slider.step
 		slider.page = slider.step
-		slider.value = weights[i][0][0] # It is a 1x1 kernel.
+		slider.value = weights[i]
+		var color = ImageProcessing.get_colormap_color(weights[i], [slider.min_value, slider.max_value])
+		slider.get("custom_styles/scroll/StyleBoxFlat").bg_color = color
 		add_child(slider)
-		slider.connect("value_changed", get_parent(), "on_weight_changed", [i])
-	
-	yield(get_tree(), "idle_frame")
-	# # If we have multiple weights, display the channel connections.
-	if weights[0].size()>1:
-		var channel_node = get_parent()
-		var own_y_position
-		for i in range(len(weights)):
-			slider = get_child(i)
-			local_from = Vector2(0.0, slider.rect_size.y/2)
-			own_y_position = slider.rect_position.y + channel_node.rect_position.y
-			local_to = Vector2(-line_width, -own_y_position + (input_indices[i] + 0.5) * (image_height + margin))
-			line = get_line(local_from, local_to)
-			line.name = "Line"
-			slider.add_child(line)
-	# Set weights.
-	for i in range(len(weights)):	
-		set_weight(i, weights[i][0][0])
+		var _err = slider.connect("value_changed", channel_instance, "on_weight_changed", [i, weight_name])
+		_err = slider.connect("value_changed", self, "on_weight_changed", [i])
 
 
-func set_weight(child_ind, weight):
-	var color = ImageProcessing.get_weight_color(weight)
-	var slider = get_child(child_ind)
+# Called by this node via signal.
+func on_weight_changed(weight, weight_ind):
+	var slider = get_child(weight_ind)
+	var color = ImageProcessing.get_colormap_color(weight, [slider.min_value, slider.max_value])
 	slider.get("custom_styles/scroll/StyleBoxFlat").bg_color = color
-	var line = slider.get_node_or_null("Line")
-	if line != null:
-		line.set_color(color)
-	
-	
-func set_value(child_ind, value):
-	var slider = get_child(child_ind)
-	slider.value = value
 
 
 func get_line(from : Vector2, to : Vector2):

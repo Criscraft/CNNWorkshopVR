@@ -39,6 +39,13 @@ func _ready():
 		pos_glob = tables.to_global(Vector3(pos_x, 0, pos_z))
 		rad_glob = tables.to_global(Vector3(2*pos_x, 0, 2*pos_z))
 		table.look_at_from_position(pos_glob, rad_glob, Vector3.UP)
+	for i in range(n_slots):
+		table = tables.get_child(i)
+		if i > 0:
+			table.previous_screen_slot = tables.get_child(i-1).screen_slot
+		if i < n_slots-1:
+			table.next_screen_slot = tables.get_child(i+1).screen_slot
+		
 
 
 func get_slot(screen_id):

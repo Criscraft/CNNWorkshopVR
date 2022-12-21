@@ -19,6 +19,7 @@ func _ready():
 
 # Called by architecture manager
 func initialize():
+	# initialize module_id_to_highlights
 	var id_to_network_module_resource_dict = get_parent().module_id_to_network_module_resource_dict
 	var network_module_resource
 	for module_id in id_to_network_module_resource_dict:
@@ -118,34 +119,38 @@ func transfer_highlights(current, precursor):
 	var current_highlights = module_id_to_highlights[current.module_id]
 	var precursor_highlights = module_id_to_highlights[precursor.module_id]
 	
-	if current.weights and not current.info_code == "pass_highlight":
-		if current.precursors.size()==1:
-			# The higher the weight the bigger the highlight.
-			for out_channel_ind in range(current.weights.size()):
-				var group_weights = current.weights[out_channel_ind]
-				var in_channels = current.input_mapping[out_channel_ind]
-				for weight_ind in range(group_weights.size()):
-					var weight = group_weights[weight_ind][0][0]
-					var in_channel_ind = in_channels[weight_ind]
-					precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
-		elif current.precursors.size()>1:
-			# We have a merge module.
-			# Determine, if precursor is the first or the second input module.
-			var is_first_module = current.precursors[0] == precursor.module_id
-			for out_channel_ind in range(current.weights.size()):
-				var group_weights = current.weights[out_channel_ind]
-				var in_channels = current.input_mapping[out_channel_ind]
-				for weight_ind in range(group_weights.size()):
-					var weight = group_weights[weight_ind][0][0]
-					var in_channel_ind = in_channels[weight_ind]
-					if is_first_module:
-						precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind] * (1.0 - weight), -0.1)
-					else:
-						precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
-	else:
-		for out_channel_ind in range(current.input_mapping.size()):
-			for in_channel_ind in current.input_mapping[out_channel_ind]:
-				precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+	if "ignore_highlight" in current.tags:
+		for out_channel_ind in range(current.size[1]):
+			precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+	elif "grouped_conv_weight" in current.data:
+		var weights = current.data["grouped_conv_weight"]
+		var input_mapping = current.data["input_mapping"]
+		for out_channel_ind in range(weights.size()):
+			var group_weights = weights[out_channel_ind]
+			var in_channels = input_mapping[out_channel_ind]
+			for weight_ind in range(group_weights.size()):
+				var weight = group_weights[weight_ind][0][0]
+				var in_channel_ind = in_channels[weight_ind]
+				precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
+	elif "blend_weight" in current.data:
+		# We have a blend module.
+		# Determine, if precursor is the first or the second input module.
+		var weights = current.data["blend_weight"]
+		var is_first_module = current.precursors[0] == precursor.module_id
+		for out_channel_ind in range(weights.size()):
+			var group_weights = weights[out_channel_ind]
+			for weight_ind in range(group_weights.size()):
+				var weight = group_weights[weight_ind][0][0]
+				if is_first_module:
+					precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * (1.0 - weight), -0.1)
+				else:
+					precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
+	elif "input_mapping" in current.data:
+		var input_mapping = current.data["input_mapping"]
+		for out_channel_ind in range(current.size[1]):
+			var in_channel_ind = input_mapping[out_channel_ind]
+			precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+	# TODO implement SparseConv2D
 				
 
 # Called via group when a weight is changed.

@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 import os
-from Projects.HFNetMNIST.PredefinedFilterNet import PredefinedFilterNet
-from Projects.HFNetMNIST.SpecialTranslationNet import SpecialTranslationNet
+from Projects.HFNetMNIST.TranslationNet import TranslationNet
 from Projects.HFNetMNIST.TransformTestGS import TransformTestGS
 from Projects.HFNetMNIST.TransformToTensor import TransformToTensor
 from Projects.HFNetMNIST.MNIST import MNIST
@@ -21,17 +20,17 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 def get_network():
 
-    model = SpecialTranslationNet(
+    model = TranslationNet(
         n_classes=10,
-        start_config={
-            'n_channels_in' : 1,
-            'filter_mode' : 'Uneven',
-            'n_angles' : 2,
-            'handcrafted_filters_require_grad' : False,
-            'f' : 4,
-            'k' : 3, 
-            'stride' : 1,
-        },
+        # start_config={
+        #     'n_channels_in' : 1,
+        #     'filter_mode' : 'Uneven',
+        #     'n_angles' : 2,
+        #     'handcrafted_filters_require_grad' : False,
+        #     'f' : 4,
+        #     'k' : 3, 
+        #     'stride' : 1,
+        # },
         blockconfig_list=[
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
@@ -43,7 +42,7 @@ def get_network():
             'randomroll' : -1,
             } for i in range(12)],
         init_mode='uniform',
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_specialtranslationnet_centerpixelclassification_paramtrans_k_5.pt'),
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_specialtranslationnet_centerpixelclassification_paramtrans_k_5.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

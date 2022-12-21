@@ -70,7 +70,7 @@ func create_network_module_resources(network_module_dicts):
 			precursor = module_id_to_network_module_resource_dict[id2]
 			network_module_resource.precursor_module_resources.append(precursor)
 			precursor.successor_module_resources.append(network_module_resource)
-		network_module_resource.create_input_mapping()
+		#network_module_resource.create_input_mapping()
 	
 	channel_highlighting.initialize()
 	emit_signal("created_network_module_resources")
@@ -87,19 +87,8 @@ func create_network_module_resource(network_module_dict, id):
 	network_module_resource.precursors = precursors
 	network_module_resource.group_id = int(network_module_dict["group_id"])
 	network_module_resource.label = network_module_dict["label"]
+	network_module_resource.tags = network_module_dict["tags"]
+	network_module_resource.data = network_module_dict["data"]
 	network_module_resource.channel_labels = network_module_dict["channel_labels"]
 	network_module_resource.size = network_module_dict["size"]
-	network_module_resource.info_code = network_module_dict["info_code"]
-	if "weights" in network_module_dict:
-		network_module_resource.weights = network_module_dict["weights"]
-		network_module_resource.weight_limit_min = network_module_dict["weight_limit_min"]
-		network_module_resource.weight_limit_max = network_module_dict["weight_limit_max"]
-		network_module_resource.weight_min = network_module_dict["weight_min"]
-		network_module_resource.weight_max = network_module_dict["weight_max"]
-	if "permutation" in network_module_dict:
-		network_module_resource.permutation = network_module_dict["permutation"]
-	if "kernels" in network_module_dict:
-		network_module_resource.kernels = network_module_dict["kernels"]
-	if "padding" in network_module_dict:
-		network_module_resource.padding = network_module_dict["padding"]
 	return network_module_resource

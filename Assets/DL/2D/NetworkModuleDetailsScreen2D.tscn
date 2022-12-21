@@ -4,7 +4,7 @@
 [ext_resource path="res://Assets/Stuff/DebouncingTimer.gd" type="Script" id=2]
 [ext_resource path="res://Assets/Stuff/TextLine.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/ThemesAndFonts/ScrollBarTheme.tres" type="Theme" id=4]
-[ext_resource path="res://Assets/DL/2D/Channel.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/Stuff/DebouncingTimer.tscn" type="PackedScene" id=6]
 
 [sub_resource type="StyleBoxFlat" id=1]
 bg_color = Color( 0.227451, 0.301961, 0.552941, 1 )
@@ -31,8 +31,6 @@ margin_right = 968.0
 margin_bottom = 534.0
 alignment = 1
 script = ExtResource( 1 )
-text_scene = ExtResource( 3 )
-channel_scene = ExtResource( 5 )
 
 [node name="ModuleNotesPanel" type="PanelContainer" parent="NetworkModuleDetailsManager"]
 margin_right = 400.0
@@ -93,7 +91,16 @@ size_flags_vertical = 3
 theme = ExtResource( 4 )
 scroll_horizontal_enabled = false
 
-[node name="ImageContainer" type="GridContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer"]
+custom_constants/separation = 10
+
+[node name="Padding" type="ReferenceRect" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer/HBoxContainer"]
+visible = false
+margin_right = 256.0
+margin_bottom = 256.0
+rect_min_size = Vector2( 256, 256 )
+
+[node name="ChannelContainer" type="GridContainer" parent="NetworkModuleDetailsManager/ImagePanel/VBoxContainer/ScrollContainer/HBoxContainer"]
 custom_constants/vseparation = 10
 custom_constants/hseparation = 10
 columns = 8
@@ -192,5 +199,11 @@ custom_styles/panel = SubResource( 9 )
 text = "Loading"
 align = 1
 
+[node name="EdgeDrawTimer" parent="NetworkModuleDetailsManager" instance=ExtResource( 6 )]
+wait_time = 0.5
+
+[node name="Edges" type="Node2D" parent="NetworkModuleDetailsManager"]
+
 [connection signal="value_changed" from="NetworkModuleDetailsManager/ModuleNotesPanel/VBoxContainer/ImageScaleBar" to="NetworkModuleDetailsManager/ModuleNotesPanel/VBoxContainer/ImageScaleBar/DebouncingTimer" method="_on_trigger"]
 [connection signal="timeout" from="NetworkModuleDetailsManager/ModuleNotesPanel/VBoxContainer/ImageScaleBar/DebouncingTimer" to="NetworkModuleDetailsManager" method="_on_image_scale_changed"]
+[connection signal="timeout" from="NetworkModuleDetailsManager/EdgeDrawTimer" to="NetworkModuleDetailsManager" method="draw_edges"]

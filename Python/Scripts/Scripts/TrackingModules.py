@@ -4,10 +4,27 @@ from collections import defaultdict
 
 
 class TrackerModule(nn.Identity):
-    def __init__(self, module_id, group_id, label="", precursors=[-1], tracked_module=None, channel_labels=[], ignore_highlight=True, draw_edges=False):
+    def __init__(self, module_id, group_id, label="", precursors=[-1], channel_labels=[], ignore_highlight=True, draw_edges=False):
+        """
+        data accepts:
+        input_mapping, [n_channels_out]
+        grouped_conv_weight, [n_channels_out, group_size, 1, 1]
+        grouped_conv_weight_range, 
+        PFModule_kernels, [n_kernels, 1, height, width]
+        sparse_conv_weight_selection, [n_selectors, n_channels_out, 1 (group_size), filter height, filter width]
+        sparse_conv_weight_selection_range, 
+        sparse_conv_weight_group, [n_selectors, batchsize, n_channels, tensor height, tensor width]
+        sparse_conv_weight_group_range,
+        blend_weight, [1, n_channels, 1, 1]
+        blend_weight_range, 
+        weight_per_channel, [n_channels, 1, 1, 1]
+        weight_per_channel_range
+        
+        
+        """
         super().__init__()
-        # precursors is a list of module ids
         self.module_id = module_id
+        # precursors is a list of module ids
         self.precursors = precursors
         self.data = {
             'module_id' : self.module_id,
@@ -15,11 +32,9 @@ class TrackerModule(nn.Identity):
             'label' : label,
             'precursors' : precursors, 
             #'tracked_module' : tracked_module,
-            'tracker_type' : "default",
-            'tags' : {},
-            'data' : {}, # should be filled by subclass
+            'tags' : [],
+            'data' : {}, # should be filled by subclass.
             'channel_labels' : channel_labels,
-            'module' : None, # filled by ActivationTracker
             'activation' : None, # filled by ActivationTracker
         }
         if ignore_highlight:
@@ -62,11 +77,11 @@ class TrackerModuleProvider(object):
         self.tracker_module_groups.append(new_instance)
         return new_instance
 
-    def instance_tracker_module(self, group_id=-1, label="", precursors=[-1], tracked_module=None, info_code="", channel_labels=[], ignore_highlight=False, interleave=False):
+    def instance_tracker_module(self, group_id=-1, label="", precursors=[-1], channel_labels=[], ignore_highlight=True, draw_edges=False):
         self.module_id += 1
         precursors = [p if p>=0 else self.module_id + p for p in precursors]
         group_id = group_id if group_id>=0 else self.group_id
-        new_instance = TrackerModule(self.module_id, group_id, label, precursors, tracked_module, info_code, channel_labels, ignore_highlight, interleave)
+        new_instance = TrackerModule(self.module_id, group_id, label, precursors, channel_labels, ignore_highlight, draw_edges)
         return new_instance
 
     def reset_ids(self):
