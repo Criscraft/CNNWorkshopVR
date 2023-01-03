@@ -120,8 +120,7 @@ func transfer_highlights(current, precursor):
 	var precursor_highlights = module_id_to_highlights[precursor.module_id]
 	
 	if "ignore_highlight" in current.tags:
-		for out_channel_ind in range(current.size[1]):
-			precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+		perform_standard_mapping(current, current_highlights, precursor_highlights)
 	elif "grouped_conv_weight" in current.data:
 		var weights = current.data["grouped_conv_weight"]
 		var input_mapping = current.data["input_mapping"]
@@ -135,17 +134,18 @@ func transfer_highlights(current, precursor):
 	elif "blend_weight" in current.data:
 		# We have a blend module.
 		# Determine, if precursor is the first or the second input module.
-		var weights = current.data["blend_weight"]
+		var weights = current.data["blend_weight"][0]
 		var is_first_module = current.precursors[0] == precursor.module_id
 		for out_channel_ind in range(weights.size()):
-			var group_weights = weights[out_channel_ind]
-			for weight_ind in range(group_weights.size()):
-				var weight = group_weights[weight_ind][0][0]
-				if is_first_module:
-					precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * (1.0 - weight), -0.1)
-				else:
-					precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
+			var weight = weights[out_channel_ind][0][0]
+			if is_first_module:
+				precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * (1.0 - weight), -0.1)
+			else:
+				precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind] * weight, -0.1)
+	elif "sparse_conv_weight_selection" in current.data:
+		pass
 	elif "input_mapping" in current.data:
+		perform_standard_mapping(current, current_highlights, precursor_highlights)
 		var input_mapping = current.data["input_mapping"]
 		for out_channel_ind in range(current.size[1]):
 			var in_channel_ind = input_mapping[out_channel_ind]
@@ -153,6 +153,16 @@ func transfer_highlights(current, precursor):
 	# TODO implement SparseConv2D
 				
 
+func perform_standard_mapping(current, current_highlights, precursor_highlights):
+	if "input_mapping" in current.data:
+		var input_mapping = current.data["input_mapping"]
+		for out_channel_ind in range(current.size[1]):
+			var in_channel_ind = input_mapping[out_channel_ind]
+			precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+	else:
+		for out_channel_ind in range(current.size[1]):
+			precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+			
 # Called via group when a weight is changed.
 func weight_changed(_network_module_resource):
 	update_required = true

@@ -60,4 +60,4 @@ func set_highlight(highlight_new):
 		highlight_rect.visible = false
 	else:
 		highlight_rect.visible = true
-		highlight_rect.border_color = ImageProcessing.get_weight_color(highlight)
+		highlight_rect.border_color = ImageProcessing.get_colormap_color(highlight, [-1.0, 1.0])

@@ -17,9 +17,8 @@ func set_image_resource(image_resource : ImageResource):
 	
 func clear_details():
 	for child in $Details.get_children():
-		if child.name != "ChannelImageTile":
-			remove_child(child)
-			child.queue_free()
+		remove_child(child)
+		child.queue_free()
 
 
 func draw_PFModule_kernels(kernel):
@@ -31,14 +30,14 @@ func draw_PFModule_kernels(kernel):
 	kernel_texture.create_from_image(kernel_image, 0)
 	kernel_texture_rect.texture = kernel_texture
 	$Details.add_child(kernel_texture_rect)
-	$Details.move_child(kernel_texture_rect, 0)
+	#$Details.move_child(kernel_texture_rect, 0)
 	kernel_texture_rect.rect_min_size = Vector2(256, 256)
 	
 	
 func create_weights(weights, weight_range, weight_name):
 	var weight_edit = weight_edit_container_scene.instance()
 	$Details.add_child(weight_edit)
-	$Details.move_child(weight_edit, 0)
+	#$Details.move_child(weight_edit, 0)
 	weight_edit.create_weights(weights, weight_range, weight_name, self)
 
 

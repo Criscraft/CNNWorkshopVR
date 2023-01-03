@@ -23,7 +23,10 @@ class TranslationNet(nn.Module):
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [0, 2] else False,
-            'mode': 'parameterized_translation',
+            'conv_mode' : "default", # one of default, sparse
+            'sparse_conv_selector_radius' : 1,
+            'spatial_mode' : "predefined_filters",
+            'spatial_blending' : True,
             'filter_mode' : "Translation",
             'translation_k' : 3,
             'randomroll' : -1,
@@ -117,10 +120,14 @@ class TranslationNet_(nn.Module):
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],
                 avgpool=config['avgpool'],
-                mode = config['mode'],
+                conv_mode=config['conv_mode'],
+                sparse_conv_selector_radius=config['sparse_conv_selector_radius'],
+                spatial_mode=config['spatial_mode'],
+                spatial_blending = config['spatial_blending'],
+                spatial_requires_grad = config['spatial_requires_grad'],
                 filter_mode = config['filter_mode'],
                 translation_k=config['translation_k'],
-                randomroll=config['randomroll']
+                randomroll=config['randomroll'],
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 

@@ -36,12 +36,16 @@ def get_network():
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [3, 6, 9] else False,
-            'mode': 'parameterized_translation',
+            'conv_mode' : "sparse", # one of default, sparse
+            'sparse_conv_selector_radius' : 1,
+            'spatial_mode' : "parameterized_translation", # one of predefined_filters and parameterized_translation
+            'spatial_blending' : True,
+            'spatial_requires_grad' : True,
             'filter_mode' : "Translation",
             'translation_k' : 5,
             'randomroll' : -1,
             } for i in range(12)],
-        init_mode='uniform',
+        init_mode='uniform_translation_as_pfm',
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_specialtranslationnet_centerpixelclassification_paramtrans_k_5.pt'),
     )
         

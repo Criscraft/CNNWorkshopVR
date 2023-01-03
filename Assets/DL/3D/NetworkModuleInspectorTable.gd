@@ -60,6 +60,11 @@ func on_receive_network_module_resource(network_module_resource):
 			var previous_manager = previous_screen_slot.get_node_or_null("NetworkModuleDetailsScreen2D/NetworkModuleDetailsManager")
 			if previous_manager != null:
 				network_module_details_manager.previous_network_module_details_manager = previous_manager
+				
+		if next_screen_slot != null:
+			var next_manager = next_screen_slot.get_node_or_null("NetworkModuleDetailsScreen2D/NetworkModuleDetailsManager")
+			if next_manager != null:
+				next_manager.previous_network_module_details_manager = network_module_details_manager
 	else:
 		network_module_action_selector.network_module_details_manager = null
 	
