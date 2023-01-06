@@ -104,6 +104,7 @@ def perform_forward_pass(image_resource=None):
     
     # Get network results and make response.
     posteriors, class_indices = network.get_classification_result()
+    print(class_indices)
     response = ""
     if posteriors is not None:
         response = {

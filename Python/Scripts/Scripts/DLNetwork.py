@@ -1,9 +1,7 @@
 import os
-import shutil
 import torch
 import torch.nn.functional as F 
 import numpy as np
-from enum import Enum
 import cv2
 import copy
 import Scripts.utils as utils
@@ -39,7 +37,7 @@ class DLNetwork(object):
         with torch.no_grad():
             image = image_resource.data.to(self.device)
             image = image.unsqueeze(0)
-            out_dict = self.model.forward_features({'data' : image})
+            out_dict = self.model.forward_features({'data' : image}, append_module_data=True)
             module_dict = {}
             
             # assumtion, that the input tracker is the first one and the output tracker is the last one 
@@ -62,7 +60,7 @@ class DLNetwork(object):
         with torch.no_grad():
             image = image_resource.data.to(self.device)
             image = image.unsqueeze(0)
-            out_dict = self.model.forward_features({'data' : image})
+            out_dict = self.model.forward_features({'data' : image}, append_module_data=False)
             # record info about each tracker module
             for sub_module_dict_new in out_dict['module_dicts']:
                 sub_module_dict = self.module_dict[sub_module_dict_new['module_id']]

@@ -9,18 +9,16 @@ class TrackerModule(nn.Identity):
         data accepts:
         input_mapping, [n_channels_out]
         grouped_conv_weight, [n_channels_out, group_size, 1, 1]
-        grouped_conv_weight_range, 
+        grouped_conv_weight_limit, 
         PFModule_kernels, [n_kernels, 1, height, width]
         sparse_conv_weight_selection, [n_selectors, n_channels_out, 1 (group_size), filter height, filter width]
-        sparse_conv_weight_selection_range, 
+        sparse_conv_weight_selection_limit, 
         sparse_conv_weight_group, [n_selectors, batchsize, n_channels, tensor height, tensor width]
-        sparse_conv_weight_group_range,
+        sparse_conv_weight_group_limit,
         blend_weight, [1, n_channels, 1, 1]
-        blend_weight_range, 
+        blend_weight_limit, 
         weight_per_channel, [n_channels, 1, 1, 1]
-        weight_per_channel_range
-        
-        
+        weight_per_channel_limit
         """
         super().__init__()
         self.module_id = module_id
@@ -50,6 +48,22 @@ class TrackerModule(nn.Identity):
 
     def get_data(self):
         return self.data["data"]
+
+    def add_data_ranges(self):
+        weight_names = [
+            'grouped_conv_weight',
+            'sparse_conv_weight_selection',
+            'sparse_conv_weight_group', 
+            'blend_weight',
+            'weight_per_channel',
+        ]
+        data = self.data["data"]
+        for k in list(data.keys()):
+            if k in weight_names:
+                v = data[k]
+                minimum = v.min().cpu().item()
+                maximum = v.max().cpu().item()
+                data[k + "_range"] = [minimum, maximum]
         
 
 class TrackerModuleGroup(object):
@@ -148,7 +162,7 @@ class ActivationTracker():
             handle.remove()
 
 
-    def collect_stats(self, model, batch, module=None):
+    def collect_stats(self, model, batch, module=None, append_module_data=False):
         if module is not None:
             with self.record_activation_of_specific_module(module):
                 output = model(batch)
@@ -161,8 +175,11 @@ class ActivationTracker():
         for module, info_list in self._layer_info_dict.items():
             #one info_list can have multiple entries, for example if one relu module is applied several times in a network
             for info_item in info_list:
-                module_dict = module.data.copy() # Copy important because we do not want the module_dict to be a reference to the tracker module.
-                module_dict['module'] = module
+                if append_module_data:
+                    module_dict = module.data.copy() # Copy important because we do not want the module_dict to be a reference to the tracker module.
+                    module_dict['module'] = module
+                else:
+                    module_dict = {'module_id' : module.data['module_id']}
                 module_dict['activation'] = info_item.in_data[0]
                 module_dicts.append(module_dict)
         return output, module_dicts

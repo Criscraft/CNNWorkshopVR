@@ -69,7 +69,8 @@ func set_network_module_resource(new_network_module_resource):
 	update_details_layout()
 	update_text()
 	emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
-	
+	if feature_visualization_mode:
+		set_loading(true)
 
 func recreate_channels():
 	# Delete old channels:
@@ -78,7 +79,7 @@ func recreate_channels():
 		child.queue_free()
 	
 	# Create channel nodes
-	for i in range(network_module_resource.size[1]):
+	for _i in range(network_module_resource.size[1]):
 		var new_instance = channel_scene.instance()
 		channel_container.add_child(new_instance)
 		# Connect signal such that we get notified when a weight is changed.
@@ -89,6 +90,8 @@ func receive_classification_results(_results):
 	# When a new forward pass was performed, we need to update the image data.
 	if not feature_visualization_mode and network_module_resource != null:
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
+		if feature_visualization_mode:
+			set_loading(true)
 		
 
 func set_feature_visualization_mode(feature_visualization_mode_):
@@ -96,12 +99,15 @@ func set_feature_visualization_mode(feature_visualization_mode_):
 	if network_module_resource != null:
 		# If we already have a network module resource we update the images.
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
+		if feature_visualization_mode:
+			set_loading(true)
 		
 		
 # Called by DLManager via group
 func set_fv_image_resource(_image_resource):
 	if feature_visualization_mode:
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
+		set_loading(true)
 	
 
 """
@@ -121,11 +127,14 @@ func get_size_as_string(my_array: Array):
 	return my_string
 	
 	
-func add_text_weight(weight_name, weight_range):
+func add_text_weight(weight_name, weight_limit, weight_range):
 	add_text(weight_name)
 	add_text("Weights shape:")
 	add_text(get_size_as_string(network_module_resource.data[weight_name]))
 	add_text("Weight limits:")
+	add_text(String(weight_limit))
+	add_text("Range of weight values:")
+	add_text("(static)")
 	add_text(String(weight_range))
 	
 	
@@ -141,7 +150,7 @@ func update_text():
 	
 	for weight_name in network_module_resource.weight_names:
 		if weight_name in network_module_resource.data:
-			add_text_weight(weight_name, network_module_resource.data[weight_name + "_range"])
+			add_text_weight(weight_name, network_module_resource.data[weight_name + "_limit"], network_module_resource.data[weight_name + "_range"])
 		
 	if "PFModule_kernels" in network_module_resource.data:
 		add_text("Kernel size:")
@@ -270,6 +279,11 @@ func _on_image_scale_changed():
 		var columns = int(width_of_image_grid / (image_size + h_separation))
 		channel_container.columns = columns
 		
+		
+func set_loading(mode : bool):
+	$LoadingScreen.visible = mode
+	$ImagePanel.visible = not mode
+
 
 """
 Draw details
@@ -333,19 +347,18 @@ func update_details_layout():
 		if "grouped_conv_weight" in network_module_resource.data:
 			# Draw the group conv.
 			var weights = network_module_resource.data["grouped_conv_weight"]
-			var weight_range = network_module_resource.data["grouped_conv_weight_range"]
+			var weight_limit = network_module_resource.data["grouped_conv_weight_limit"]
 			var i = 0
 			for child in channel_container.get_children():
 				var weights_group = flatten_array(weights[i])
-				child.create_weights(weights_group, weight_range, "grouped_conv_weight")
+				child.create_weights(weights_group, weight_limit, "grouped_conv_weight")
 				i += 1
 		elif "sparse_conv_weight_selection" in network_module_resource.data:
 			# Draw Sparse Conv
 			var selection_weights = network_module_resource.data["sparse_conv_weight_selection"]
-			var selection_weights_range = network_module_resource.data["sparse_conv_weight_selection_range"]
+			var selection_weights_limit = network_module_resource.data["sparse_conv_weight_selection_limit"]
 			var group_weights = network_module_resource.data["sparse_conv_weight_group"]
-			var group_weights_range = network_module_resource.data["sparse_conv_weight_group_range"]
-			var group_size = int(network_module_resource.data["group_size"])
+			var group_weights_limit = network_module_resource.data["sparse_conv_weight_group_limit"]
 			var i = 0
 			var n_selectors = selection_weights.size()
 			for child in channel_container.get_children():
@@ -354,24 +367,24 @@ func update_details_layout():
 				for selector in range(n_selectors):
 					selection_weights_channel.append(selection_weights[selector][i][0][0][0])
 					group_weights_channel.append(group_weights[selector][0][i][0][0])
-				child.create_weights(selection_weights_channel, selection_weights_range, "sparse_conv_weight_selection")
-				child.create_weights(group_weights_channel, group_weights_range, "sparse_conv_weight_group")
+				child.create_weights(selection_weights_channel, selection_weights_limit, "sparse_conv_weight_selection")
+				child.create_weights(group_weights_channel, group_weights_limit, "sparse_conv_weight_group")
 				i += 1
 		elif "blend_weight" in network_module_resource.data:
 			# Blend weights
 			var weights = network_module_resource.data["blend_weight"][0]
-			var weight_range = network_module_resource.data["blend_weight_range"]
+			var weight_limit = network_module_resource.data["blend_weight_limit"]
 			var i = 0
 			for child in channel_container.get_children():
-				child.create_weights([weights[i][0][0]], weight_range, "blend_weight")
+				child.create_weights([weights[i][0][0]], weight_limit, "blend_weight")
 				i += 1
 		elif "weight_per_channel" in network_module_resource.data:
 			# Blend weights
 			var weights = network_module_resource.data["weight_per_channel"]
-			var weight_range = network_module_resource.data["weight_per_channel_range"]
+			var weight_limit = network_module_resource.data["weight_per_channel_limit"]
 			var i = 0
 			for child in channel_container.get_children():
-				child.create_weights([weights[i][0][0][0]], weight_range, "weight_per_channel")
+				child.create_weights([weights[i][0][0][0]], weight_limit, "weight_per_channel")
 				i += 1
 		
 		
@@ -384,12 +397,12 @@ func prepare_edges():
 	if "grouped_conv_weight" in network_module_resource.data:
 		var weights = network_module_resource.data["grouped_conv_weight"]
 		var input_mapping = network_module_resource.data["input_mapping"]
-		var weight_range = network_module_resource.data["grouped_conv_weight_range"]
+		var weight_limit = network_module_resource.data["grouped_conv_weight_limit"]
 		for out_channel in range(weights.size()):
 			var group_weights = weights[out_channel]
 			for group_ind in range(group_weights.size()):
 				var weight = group_weights[group_ind][0][0]
-				var color = ImageProcessing.get_colormap_color(weight, weight_range)
+				var color = ImageProcessing.get_colormap_color(weight, weight_limit)
 				add_to_queue_draw_edge(out_channel, group_ind, input_mapping[out_channel][group_ind], color)
 				
 	elif "sparse_conv_weight_selection" in network_module_resource.data:
@@ -436,7 +449,6 @@ func draw_edge(out_channel_ind, out_group_ind, in_channel_ind, color=null):
 	if out_group_ind >= 0:
 		end_node = end_node.get_node("Details").get_child(0).get_child(out_group_ind)
 	
-	var offset = rect_global_position
 	var start_pos = previous_node.rect_global_position + Vector2(previous_node.rect_size.x, 0.5*previous_node.rect_size.y)
 	var end_pos = end_node.rect_global_position + Vector2(0.0, 0.5*end_node.rect_size.y)
 	var curve = Curve2D.new()
@@ -474,36 +486,37 @@ func on_weight_changed(weight, channel_ind, group_ind, weight_type):
 		adjust_weight_color = false
 	
 	if adjust_weight_color and weight_id_to_edge:
-		var color = ImageProcessing.get_colormap_color(weight, network_module_resource.data[weight_type+"_range"])
+		var color = ImageProcessing.get_colormap_color(weight, network_module_resource.data[weight_type+"_limit"])
 		var edge = weight_id_to_edge[channel_ind][group_ind]
 		edge.set_color(color)
 		
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 
 
-func set_elements_zero(x):
+func fill_nested_list(x, v):
 	if x[0] is Array:
 		for i in x:
-			set_elements_zero(i)
+			fill_nested_list(i, v)
 	else:
 		for i in range(x.size()):
-			x[i] = 0.0
+			x[i] = v
 
 
 # Called by NetworkModuleActionSelector
 func zero_weights():
-	for weight_name in network_module_resource.weight_names:
-		if weight_name == "sparse_conv_weight_selection":
-			continue
-		if weight_name == "sparse_conv_weight_group":
-			continue
-		if weight_name in network_module_resource.data:
-			var module_id_to_highlights = ArchitectureManager.channel_highlighting.module_id_to_highlights
-			var highlights = module_id_to_highlights[network_module_resource.module_id]
-			var weights = network_module_resource.data[weight_name]
-			for channel_id in range(weights.size()):
-				if highlights[channel_id] == 0.0:
-					set_elements_zero(weights[channel_id])
+	if "grouped_conv_weight" in network_module_resource.data:
+		var module_id_to_highlights = ArchitectureManager.channel_highlighting.module_id_to_highlights
+		var highlights = module_id_to_highlights[network_module_resource.module_id]
+		var weights = network_module_resource.data["grouped_conv_weight"]
+		for channel_id in range(network_module_resource.size[1]):
+			if highlights[channel_id] == 0.0:
+				fill_nested_list(weights[channel_id], 0.0)
+	if "blend_weight" in network_module_resource.data:
+		var weights = network_module_resource.data["blend_weight"]
+		fill_nested_list(weights, 0.0)
+	if "weight_per_channel" in network_module_resource.data:
+		var weights = network_module_resource.data["weight_per_channel"]
+		fill_nested_list(weights, 0.0)
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 	update_details_layout()
 	
@@ -521,20 +534,13 @@ func identity_weights():
 				else:
 					channel_weights[i][0][0] = 0.0
 			group = (group + 1) % group_size
+	if "blend_weight" in network_module_resource.data:
+		var weights = network_module_resource.data["blend_weight"]
+		fill_nested_list(weights, 0.0)
+	if "weight_per_channel" in network_module_resource.data:
+		var weights = network_module_resource.data["weight_per_channel"]
+		fill_nested_list(weights, 1.0)
+		
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 	update_details_layout()
-
-"""
-Loading mode
-"""
-
-func loading_fv_data(module_id):
-	if feature_visualization_mode and network_module_resource != null and module_id == network_module_resource.module_id:
-		for child in channel_container.get_children():
-			child.queue_free()
-		set_loading(true)
-		
-		
-func set_loading(mode : bool):
-	$LoadingScreen.visible = mode
-	$ImagePanel.visible = not mode
+	

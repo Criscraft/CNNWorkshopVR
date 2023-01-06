@@ -9,27 +9,22 @@ from Scripts.TrackingModules import ActivationTracker
 class TranslationNet(nn.Module):
     def __init__(self,
         n_classes: int = 10,
-        # start_config: dict = {
-        #     'n_channels_in' : 1,
-        #     'filter_mode' : 'Uneven',
-        #     'n_angles' : 2,
-        #     'handcrafted_filters_require_grad' : False,
-        #     'f' : 4,
-        #     'k' : 3, 
-        #     'stride' : 1,
-        # },
         blockconfig_list: list = [
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
             'conv_groups' : 16 // 4,
-            'avgpool' : True if i in [0, 2] else False,
-            'conv_mode' : "default", # one of default, sparse
+            'avgpool' : True if i in [3, 6, 9] else False,
+            'conv_mode' : "sparse", # one of default, sparse
+            'sparse_conv_selectors' : 2,
             'sparse_conv_selector_radius' : 1,
-            'spatial_mode' : "predefined_filters",
+            'spatial_mode' : "parameterized_translation", # one of predefined_filters and parameterized_translation
             'spatial_blending' : True,
+            'spatial_requires_grad' : True,
             'filter_mode' : "Translation",
-            'translation_k' : 3,
+            'n_angles' : 2,
+            'translation_k' : 5,
             'randomroll' : -1,
+            'normalization_mode' : 'layernorm',
             } for i in range(4)],
         init_mode: str = 'uniform',
         statedict: str = '',
@@ -49,6 +44,10 @@ class TranslationNet(nn.Module):
             missing = self.load_state_dict(pretrained_dict, strict=True)
             print('Loading weights from statedict. Missing and unexpected keys:')
             print(missing)
+
+        for m in self.modules():
+            if hasattr(m, "add_data_ranges"):
+                m.add_data_ranges()
                 
 
     def forward(self, batch):
@@ -60,11 +59,11 @@ class TranslationNet(nn.Module):
             return self.embedded_model(batch)
 
 
-    def forward_features(self, batch, module=None):
+    def forward_features(self, batch, module=None, append_module_data=False):
         track_modules = ActivationTracker()
 
         assert isinstance(batch, dict) and 'data' in batch
-        output, module_dicts = track_modules.collect_stats(self.embedded_model, batch['data'], module)
+        output, module_dicts = track_modules.collect_stats(self.embedded_model, batch['data'], module, append_module_data)
         out = {'logits' : output, 'module_dicts' : module_dicts}
         return out
 
@@ -76,9 +75,10 @@ class TranslationNet(nn.Module):
     def regularize(self):
         with torch.no_grad():
             for m in self.modules():
-                if hasattr(m, "weight"):
-                    if hasattr(m, "weight_limit_min"):
-                        m.weight.data = torch.clamp(m.weight.data, m.weight_limit_min, m.weight_limit_max)
+                if hasattr(m, "regularize_params"):
+                    m.regularize_params()
+                if hasattr(m, "compute_indices"):
+                    m.compute_indices()
 
     
 class TranslationNet_(nn.Module):
@@ -101,18 +101,6 @@ class TranslationNet_(nn.Module):
         tm.instance_tracker_module_group(label="Input", precursors=[])
         self.tracker_input = tm.instance_tracker_module(label="Input", precursors=[])
 
-        #tm.instance_tracker_module_group(label="First Convolution")
-        # self.conv1 = pfm.PredefinedFilterModule3x3Part(
-        #     n_channels_in=start_config['n_channels_in'],
-        #     filter_mode=pfm.ParameterizedFilterMode[start_config['filter_mode']],
-        #     n_angles=start_config['n_angles'],
-        #     handcrafted_filters_require_grad=start_config['handcrafted_filters_require_grad'],
-        #     f=start_config['f'],
-        #     k=start_config['k'],
-        #     stride=start_config['stride'],
-        #     activation_layer=nn.ReLU,
-        # )
-
         # Blocks
         blocks = [
             pfm.TranslationBlock(
@@ -121,19 +109,22 @@ class TranslationNet_(nn.Module):
                 conv_groups=config['conv_groups'],
                 avgpool=config['avgpool'],
                 conv_mode=config['conv_mode'],
+                sparse_conv_selectors=config['sparse_conv_selectors'],
                 sparse_conv_selector_radius=config['sparse_conv_selector_radius'],
                 spatial_mode=config['spatial_mode'],
                 spatial_blending = config['spatial_blending'],
                 spatial_requires_grad = config['spatial_requires_grad'],
-                filter_mode = config['filter_mode'],
+                filter_mode=config['filter_mode'],
+                n_angles=config['n_angles'],
                 translation_k=config['translation_k'],
                 randomroll=config['randomroll'],
+                normalization_mode=config['normalization_mode']
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 
         # AdaptiveAvgPool
         tm.instance_tracker_module_group(label="AvgPool")
-        #self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.tracker_adaptiveavgpool = tm.instance_tracker_module(label="AvgPool")
 
         # Classifier
@@ -147,12 +138,11 @@ class TranslationNet_(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_input(x)
-        #x = self.conv1(x)
         x = self.blocks(x)
 
-        #x = self.adaptiveavgpool(x)
-        x = x[:,:,x.shape[2]//2,x.shape[3]//2]
-        x = x.unsqueeze(2).unsqueeze(3)
+        x = self.adaptiveavgpool(x)
+        #x = x[:,:,x.shape[2]//2,x.shape[3]//2]
+        #x = x.unsqueeze(2).unsqueeze(3)
         _ = self.tracker_adaptiveavgpool(x)
         x = self.classifier(x)
         _ = self.tracker_classifier_softmax(F.softmax(x, 1))

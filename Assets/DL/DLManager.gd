@@ -145,8 +145,6 @@ func on_request_image_data(network_module_resource : NetworkModuleResource, feat
 	var message = {"resource" : "request_image_data", "network_module_resource" : network_module_resource.get_dict()}
 	if feature_visualization_mode:
 		message["mode"] = "fv"
-		# Inform that we load feature visualization data, which might require time.
-		get_tree().call_group("on_loading_fv_data", "loading_fv_data", network_module_resource.module_id)
 	else:
 		message["mode"] = "activation"
 	send_request(message)

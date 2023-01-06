@@ -87,7 +87,7 @@ func _on_SliderRoll_value_changed(value):
 
 func _on_SliderFractionToMaximize_value_changed(value):
 	value_fraction_to_maximize.text = str(value)
-	fv_settings_resource.fraction_to_minimize = value
+	fv_settings_resource.fraction_to_maximize = value
 	settings_changed = true
 	debouncing_timer._on_trigger()
 

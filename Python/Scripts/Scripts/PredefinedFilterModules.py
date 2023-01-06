@@ -10,42 +10,70 @@ from TrackingModules import TrackerModuleProvider
 
 tm = TrackerModuleProvider()
 
-class WeightClampingModule(nn.Module):
+class WeightRegularizationModule(nn.Module):
     def __init__(
         self,
     ) -> None:
         super().__init__()
 
-        self.params_to_clamp = []
-        self.params_to_cycle = []
+        self.params = []
 
-    def register_param_to_clamp(self, param, minimum, maximum):
-        self.params_to_clamp.append({'param' : param, 'min' : minimum, 'max' : maximum})
+    class Mode(enum.Enum):
+        CLAMP = 0
+        CYCLE = 1
+        SCALE = 2
 
-    def register_param_to_cycle(self, param, minimum, maximum):
-        self.params_to_clamp.append({'param' : param, 'min' : minimum, 'max' : maximum})
+    class ParamToRegularize():
+        def __init__(self, param, mode, limit_min, limit_max, init_min=None, init_max=None):
+            if init_min is None:
+                init_min = limit_min
+            if init_max is None:
+                init_max = limit_max
+            self.param = param
+            self.mode = mode
+            self.limit_min = limit_min
+            self.limit_max = limit_max
+            self.init_min = init_min
+            self.init_max = init_max
+
+    def register_param_to_clamp(self, param, limit_min, limit_max, init_min=None, init_max=None):
+        self.params.append(self.ParamToRegularize(param, self.Mode.CLAMP, limit_min, limit_max, init_min, init_max))
+
+    def register_param_to_cycle(self, param, limit_min, limit_max, init_min=None, init_max=None):
+        self.params.append(self.ParamToRegularize(param, self.Mode.CYCLE, limit_min, limit_max, init_min, init_max))
+
+    def register_param_to_scale(self, param, limit_min, limit_max, init_min=None, init_max=None):
+        self.params.append(self.ParamToRegularize(param, self.Mode.SCALE, limit_min, limit_max, init_min, init_max))
 
     def regularize_params(self):
-
-        for item in self.params_to_clamp:
-            item['param'].data = torch.clamp(item['param'].data, item['min'], item['max'])
-
-        for item in self.params_to_cycle:
-            item['param'].data = item['param'].data - item['min']
-            item['param'].data = item['param'].data % (item['max'] - item['min'])
-            item['param'].data = item['param'].data + item['min']
+        for item in self.params:
+            if item.mode == self.Mode.CLAMP:
+                item.param.data = torch.clamp(item.param.data, item.limit_min, item.limit_max)
+            elif item.mode == self.Mode.CYCLE:
+                item.param.data = item.param.data - item.limit_min
+                item.param.data = item.param.data % (item.limit_max - item.limit_min)
+                item.param.data = item.param.data + item.limit_min
+            elif item.mode == self.Mode.SCALE:
+                minimum = item.param.data.min()
+                maximum = item.param.data.max()
+                max_deviation = max(item.limit_min - minimum, maximum - item.limit_max)
+                if max_deviation > 0.:
+                    half_width = 0.5 * (item.limit_max - item.limit_min)
+                    center = 0.5 * (item.limit_max + item.limit_min)
+                    scale_factor = 1. / (max_deviation / half_width + 1)
+                    item.param.data = scale_factor * (item.param.data - center) + center
 
     def intitialize_weights_uniform(self):
-        for item in self.params_to_clamp:
-            nn.init.uniform_(item['param'], item['min'], item['max'])
+        for item in self.params:
+            nn.init.uniform_(item.param, item.init_min, item.init_max)
 
     def intitialize_weights_zero(self):
-        for item in self.params_to_clamp:
-            nn.init.constant_(item['param'], 0.)
+        for item in self.params:
+            nn.init.constant_(item.param, 0.)
 
     def intitialize_weights_identity(self):
-        for item in self.params_to_clamp:
-            nn.init.constant_(item['param'], 1.)
+        for item in self.params:
+            nn.init.constant_(item.param, 1.)
 
 
 class CopyModuleInterleave(nn.Module):
@@ -115,20 +143,21 @@ class TrackedLeakyReLU(nn.Module):
         return out
 
 
-class TrackedConv1x1(WeightClampingModule):
+class TrackedConv1x1(WeightRegularizationModule):
     def __init__(
-        self, n_channels_in, n_channels_out, conv_groups, clamp_min=-1., clamp_max=1.,
+        self, n_channels_in, n_channels_out, conv_groups,
     ) -> None:
         super().__init__()
 
+        group_size = n_channels_in // conv_groups
         self.conv1x1 = nn.Conv2d(n_channels_in, n_channels_out, 1, 1, 0, groups=conv_groups, bias=False)
-        self.register_param_to_clamp(self.conv1x1.weight, clamp_min, clamp_max)
-        self.create_trackers(n_channels_in, n_channels_out, conv_groups)
+        self.register_param_to_scale(self.conv1x1.weight, -group_size, group_size, -1., 1.)
+        self.create_trackers(n_channels_in, n_channels_out, conv_groups, group_size)
 
-    def create_trackers(self, in_channels, out_channels, conv_groups, clamp_min=-1., clamp_max=1.):
+    def create_trackers(self, in_channels, out_channels, conv_groups, group_size):
         self.tracker_out = tm.instance_tracker_module(label="1x1 Conv", draw_edges=True, ignore_highlight=False)
         self.tracker_out.register_data("grouped_conv_weight", self.conv1x1.weight)
-        self.tracker_out.register_data("grouped_conv_weight_range", [clamp_min, clamp_max])
+        self.tracker_out.register_data("grouped_conv_weight_limit", [-group_size, group_size])
         in_channels_per_group = in_channels // conv_groups
         out_channels_per_group = out_channels // conv_groups
         input_mapping = []
@@ -139,6 +168,155 @@ class TrackedConv1x1(WeightClampingModule):
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.conv1x1(x)
+        _ = self.tracker_out(out)
+        return out
+
+
+class Conv1x1AndReLUModule(WeightRegularizationModule):
+    def __init__(
+        self,
+        n_channels : int,
+        conv_groups : int,
+    ) -> None:
+        super().__init__()
+
+        self.conv1x1 = TrackedConv1x1(n_channels, n_channels, conv_groups)
+        self.relu = TrackedLeakyReLU()
+
+    def forward(self, x):
+        x = self.conv1x1(x)
+        x = self.relu(x)
+        return x
+
+
+class SparseConv2D(WeightRegularizationModule):
+    def __init__(
+        self,
+        n_channels : int,
+        conv_groups : int,
+        n_selectors : int, 
+        selector_radius : int, # the nth channel before or after the current channel will contribute when n<selector_radius
+    ) -> None:
+        super().__init__()
+
+        self.conv_groups = conv_groups
+        group_size = n_channels // conv_groups
+        self.n_selectors = n_selectors
+        
+        # Initialize trainable internal weights
+        # Shape of weight_selection: [n_selectors, n_channels_out, 1 (group_size), filter height, filter width]
+        weight_selection = torch.ones(self.n_selectors, n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
+        self.weight_selection = nn.Parameter(weight_selection, True)
+        nn.init.uniform_(self.weight_selection, 0., 1.)
+        self.register_param_to_cycle(self.weight_selection, 0., 1.)
+        # Shape of weight_group: [n_selectors, 1 (batchsize), n_channels, tensor height, tensor width]
+        weight_group = torch.zeros(self.n_selectors, 1, n_channels, 1, 1)
+        self.weight_group = nn.Parameter(weight_group, True)
+        nn.init.uniform_(self.weight_group, -1., 1.)
+        self.register_param_to_clamp(self.weight_group, -group_size, group_size, -1., 1.)
+
+        # Initialize helpers
+       
+        # shape: [1 (n_selectors), 1 (n_channels_out), group_size, 1 (filter height), 1 (filter width)]
+        kernel_positions = torch.zeros(1, 1, group_size)
+        for i in range(group_size):
+                kernel_positions[:,:,i] = i/(group_size-2.)
+        kernel_positions = kernel_positions.unsqueeze(3).unsqueeze(4)
+        self.kernel_positions = nn.Parameter(kernel_positions, False)
+        self.radius = selector_radius / (group_size-1.)
+
+        self.create_trackers(group_size, n_channels)
+        self.relu = TrackedLeakyReLU()
+
+    def create_trackers(self, group_size, n_channels):
+        self.tracker = tm.instance_tracker_module(label="Sparse Conv", draw_edges=True, ignore_highlight=False)
+        self.tracker.register_data("sparse_conv_weight_selection", self.weight_selection)
+        self.tracker.register_data("sparse_conv_weight_selection_limit", [0., 1.])
+        self.tracker.register_data("sparse_conv_weight_group", self.weight_group)
+        self.tracker.register_data("sparse_conv_weight_group_limit", [-group_size, group_size])
+        self.tracker.register_data("radius", self.radius)
+        self.tracker.register_data("group_size", group_size)
+        in_channels_per_group = n_channels // self.conv_groups
+        out_channels_per_group = n_channels // self.conv_groups
+        input_mapping = []
+        for out_channel in range(n_channels):
+            group = out_channel // out_channels_per_group
+            input_mapping.append(list(range(group*in_channels_per_group, (group+1)*in_channels_per_group)))
+        self.tracker.register_data("input_mapping", input_mapping)
+        
+        # input_mapping = []
+        # in_channels_per_group = n_channels // conv_groups
+        # out_channels_per_group = n_channels // conv_groups
+
+        # distances = torch.abs(self.weight_selection - self.kernel_positions)
+        # # make distances circular
+        # distances = torch.minimum(distances, 1. - distances)
+        # distances = distances.flatten(2)
+
+        # for selector in range(n_selectors):
+        #     input_mapping_selector = []
+        #     for out_channel in range(n_channels):
+        #         group = out_channel // out_channels_per_group
+        #         input_mapping_group = list(range(group*in_channels_per_group, (group+1)*in_channels_per_group))
+        #         selected_index = torch.argmin(distances[selector, out_channel].flatten()).cpu().item()
+        #         selected_indices = list(range(selected_index-selector_diameter//2, selected_index+selector_diameter//2+1))
+        #         input_mapping_selector.append([input_mapping_group[i] for i in selected_indices])
+        #     input_mapping.append(input_mapping_selector)
+        # self.tracker_out.register_data("input_mapping", input_mapping)
+
+    def forward(self, x):
+        distances = torch.abs(self.weight_selection - self.kernel_positions)
+        # make distances circular
+        distances = torch.minimum(distances, 1. - distances)
+        # Create convolution weights
+        # When a distance exeeds the radius, the corresponding channel will not contribute.
+        w = 1. - distances / self.radius
+        w = DifferentiableClamp.apply(w, 0., 1.)
+        tensor_list = []
+        for selector in range(self.n_selectors):
+            y = F.conv2d(x, w[selector], groups=self.conv_groups)
+            y = y * self.weight_group[selector]
+            tensor_list.append(y)
+        x = torch.sum(torch.stack(tensor_list), 0)
+        _ = self.tracker(x)
+        x = self.relu(x)
+        return x
+
+
+class BlendModule(WeightRegularizationModule):
+    def __init__(
+        self,
+        n_channels : int,
+        module_id_1 : int,
+        module_id_2 : int,
+        monitor_inputs : bool = False,
+    ) -> None:
+        super().__init__()
+        
+        w = torch.zeros(1, n_channels, 1, 1)
+        self.weight = nn.Parameter(w, True)
+        self.register_param_to_clamp(self.weight, 0., 1.)
+
+        self.create_trackers(module_id_1, module_id_2, monitor_inputs)
+
+    def create_trackers(self, module_id_1, module_id_2, monitor_inputs):
+        if monitor_inputs:
+            self.input_tracker_1 = tm.instance_tracker_module(label="Input A", precursors=[module_id_1])
+            self.input_tracker_2 = tm.instance_tracker_module(label="Input B", precursors=[module_id_2])
+            precursors = [self.input_tracker_1.module_id, self.input_tracker_2.module_id]
+        else:
+            self.input_tracker_1 = nn.Identity()
+            self.input_tracker_2 = nn.Identity()
+            precursors = [module_id_1, module_id_2]
+
+        self.tracker_out = tm.instance_tracker_module(label="Blend", precursors=precursors, ignore_highlight=False)
+        self.tracker_out.register_data("blend_weight", self.weight)
+        self.tracker_out.register_data("blend_weight_limit", [0., 1.])
+
+    def forward(self, x, y):
+        _ = self.input_tracker_1(x)
+        _ = self.input_tracker_2(y)
+        out = self.weight * y + (1.0 - self.weight) * x
         _ = self.tracker_out(out)
         return out
 
@@ -195,7 +373,7 @@ class NormalizationModule(nn.Module):
 
 
 class LayerNorm(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, _n_channels) -> None:
         super().__init__()
 
         self.create_trackers()
@@ -228,6 +406,51 @@ class PermutationModule(nn.Module):
         x = x[:,self.indices]
         _ = self.tracker_out(x)
         return x
+
+
+class LearnablePermutationModule(WeightRegularizationModule):
+    def __init__(self, n_channels):
+        super().__init__()
+
+        self.indices = nn.Parameter(torch.arange(n_channels), False)
+
+        weight = torch.zeros(n_channels, n_channels, 1, 1)
+        self.weight = nn.Parameter(weight, True)
+        self.register_param_to_scale(self.weight, -1., 1.)
+
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="Learned Perm.", draw_edges=True)
+        self.tracker_out.register_data("input_mapping", self.indices)
+
+    def forward(self, x):
+        if self.training:
+            weight_sparse = self.weight - self.weight.detach()
+            out = F.conv2d(x, weight_sparse)
+            out = out + x[:,self.indices].detach()
+        else:
+            out = x[:,self.indices]
+
+        _ = self.tracker_out(x)
+        return x
+
+    def compute_indices(self):
+        n_out_channels = self.weight.shape[0]
+        index_dict = {} # output_ind -> input_ind
+        weight_flattend = self.weight.flatten(1)
+        urgency_of_input_inds = torch.argsort(torch.max(weight_flattend, 0), descending=True)
+        ranking_of_out_channels = torch.argsort(weight_flattend, 0, descending=True)
+
+        for input_ind in urgency_of_input_inds:
+            inds = ranking_of_out_channels[:,input_ind]
+            for ind in inds:
+                if ind not in index_dict:
+                    index_dict[ind] = input_ind
+                    break
+        indices = [index_dict[output_ind] for output_ind in range(n_out_channels)]
+        self.indices.data = torch.tensor(indices, dtype=torch.Long, device=self.device)
+
     
 
 class ParameterizedFilterMode(enum.Enum):
@@ -364,154 +587,6 @@ class PredefinedFilterModule3x3Part(nn.Module):
         return x
 
 
-class Conv1x1AndReLUModule(WeightClampingModule):
-    def __init__(
-        self,
-        n_channels : int,
-        conv_groups : int,
-    ) -> None:
-        super().__init__()
-
-        self.conv1x1 = TrackedConv1x1(n_channels, n_channels, conv_groups)
-        self.relu = TrackedLeakyReLU()
-
-    def forward(self, x):
-        x = self.conv1x1(x)
-        x = self.relu(x)
-        return x
-
-
-class SparseConv2D(WeightClampingModule):
-    def __init__(
-        self,
-        n_channels : int,
-        conv_groups : int,
-        n_selectors : int, 
-        selector_radius : int, # the nth channel before or after the current channel will contribute when n<selector_radius
-    ) -> None:
-        super().__init__()
-
-        self.n_selectors = n_selectors
-        
-        # Initialize trainable internal weights
-        # Shape of weight_selection: [n_selectors, n_channels_out, 1 (group_size), filter height, filter width]
-        weight_selection = torch.ones(self.n_selectors, n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
-        self.weight_selection = nn.Parameter(weight_selection, True)
-        nn.init.uniform_(self.weight_selection, 0., 1.)
-        self.register_param_to_clamp(self.weight_selection, 0., 1.)
-        # Shape of weight_group: [n_selectors, 1 (batchsize), n_channels, tensor height, tensor width]
-        weight_group = torch.zeros(self.n_selectors, 1, n_channels, 1, 1)
-        self.weight_group = nn.Parameter(weight_group, True)
-        nn.init.uniform_(self.weight_group, -1., 1.)
-        self.register_param_to_cycle(self.weight_group, -1., 1.)
-
-        # Initialize helpers
-        self.conv_groups = conv_groups
-        group_size = n_channels // conv_groups
-        # shape: [1 (n_selectors), 1 (n_channels_out), group_size, 1 (filter height), 1 (filter width)]
-        kernel_positions = torch.zeros(1, 1, group_size)
-        for i in range(group_size):
-                kernel_positions[:,:,i] = i/(group_size-1.)
-        kernel_positions = kernel_positions.unsqueeze(3).unsqueeze(4)
-        self.kernel_positions = nn.Parameter(kernel_positions, False)
-        self.radius = selector_radius / (group_size-1.)
-
-        self.create_trackers(group_size, n_channels)
-        self.relu = TrackedLeakyReLU()
-
-    def create_trackers(self, group_size, n_channels):
-        self.tracker = tm.instance_tracker_module(label="Sparse Conv", draw_edges=True, ignore_highlight=False)
-        self.tracker.register_data("sparse_conv_weight_selection", self.weight_selection)
-        self.tracker.register_data("sparse_conv_weight_selection_range", [0., 1.])
-        self.tracker.register_data("sparse_conv_weight_group", self.weight_group)
-        self.tracker.register_data("sparse_conv_weight_group_range", [-1., 1.])
-        self.tracker.register_data("radius", self.radius)
-        self.tracker.register_data("group_size", group_size)
-        in_channels_per_group = n_channels // self.conv_groups
-        out_channels_per_group = n_channels // self.conv_groups
-        input_mapping = []
-        for out_channel in range(n_channels):
-            group = out_channel // out_channels_per_group
-            input_mapping.append(list(range(group*in_channels_per_group, (group+1)*in_channels_per_group)))
-        self.tracker.register_data("input_mapping", input_mapping)
-        
-        # input_mapping = []
-        # in_channels_per_group = n_channels // conv_groups
-        # out_channels_per_group = n_channels // conv_groups
-
-        # distances = torch.abs(self.weight_selection - self.kernel_positions)
-        # # make distances circular
-        # distances = torch.minimum(distances, 1. - distances)
-        # distances = distances.flatten(2)
-
-        # for selector in range(n_selectors):
-        #     input_mapping_selector = []
-        #     for out_channel in range(n_channels):
-        #         group = out_channel // out_channels_per_group
-        #         input_mapping_group = list(range(group*in_channels_per_group, (group+1)*in_channels_per_group))
-        #         selected_index = torch.argmin(distances[selector, out_channel].flatten()).cpu().item()
-        #         selected_indices = list(range(selected_index-selector_diameter//2, selected_index+selector_diameter//2+1))
-        #         input_mapping_selector.append([input_mapping_group[i] for i in selected_indices])
-        #     input_mapping.append(input_mapping_selector)
-        # self.tracker_out.register_data("input_mapping", input_mapping)
-
-    def forward(self, x):
-        distances = torch.abs(self.weight_selection - self.kernel_positions)
-        # make distances circular
-        distances = torch.minimum(distances, 1. - distances)
-        # Create convolution weights
-        # When a distance exeeds the radius, the corresponding channel will not contribute.
-        w = 1. - distances / self.radius
-        w = DifferentiableClamp.apply(w, 0., 1.)
-        tensor_list = []
-        for selector in range(self.n_selectors):
-            y = F.conv2d(x, w[selector], groups=self.conv_groups)
-            y = y * self.weight_group[selector]
-            tensor_list.append(y)
-        x = torch.sum(torch.stack(tensor_list), 0)
-        _ = self.tracker(x)
-        x = self.relu(x)
-        return x
-
-
-class BlendModule(WeightClampingModule):
-    def __init__(
-        self,
-        n_channels : int,
-        module_id_1 : int,
-        module_id_2 : int,
-        monitor_inputs : bool = False,
-    ) -> None:
-        super().__init__()
-        
-        w = torch.zeros(1, n_channels, 1, 1)
-        self.weight = nn.Parameter(w, True)
-        self.register_param_to_clamp(self.weight, 0., 1.)
-
-        self.create_trackers(module_id_1, module_id_2, monitor_inputs)
-
-    def create_trackers(self, module_id_1, module_id_2, monitor_inputs):
-        if monitor_inputs:
-            self.input_tracker_1 = tm.instance_tracker_module(label="Input A", precursors=[module_id_1])
-            self.input_tracker_2 = tm.instance_tracker_module(label="Input B", precursors=[module_id_2])
-            precursors = [self.input_tracker_1.module_id, self.input_tracker_2.module_id]
-        else:
-            self.input_tracker_1 = nn.Identity()
-            self.input_tracker_2 = nn.Identity()
-            precursors = [module_id_1, module_id_2]
-
-        self.tracker_out = tm.instance_tracker_module(label="Blend", precursors=precursors, ignore_highlight=False)
-        self.tracker_out.register_data("blend_weight", self.weight)
-        self.tracker_out.register_data("blend_weight_range", [0., 1.])
-
-    def forward(self, x, y):
-        _ = self.input_tracker_1(x)
-        _ = self.input_tracker_2(y)
-        out = self.weight * y + (1.0 - self.weight) * x
-        _ = self.tracker_out(out)
-        return out
-
-
 # class RollGroupFixed(nn.Module):
 #     def __init__(
 #         self,
@@ -578,7 +653,7 @@ class RandomRoll(nn.Module):
         return x_stacked
 
 
-class ParamTranslationModule(WeightClampingModule):
+class ParamTranslationModule(WeightRegularizationModule):
     def __init__(
         self,
         n_channels : int = 1,
@@ -611,7 +686,7 @@ class ParamTranslationModule(WeightClampingModule):
         mode = "H" if dim==3 else "V"
         self.tracker_out = tm.instance_tracker_module(label=f"Transl{mode}", ignore_highlight=True)
         self.tracker_out.register_data("weight_per_channel", self.weight)
-        self.tracker_out.register_data("weight_per_channel_range", [0., 1.])
+        self.tracker_out.register_data("weight_per_channel_limit", [0., 1.])
 
     def forward(self, x):
         w = - torch.abs(self.weight - self.kernel_positions) / self.radius + 1.
@@ -626,9 +701,9 @@ class ParamTranslationModule(WeightClampingModule):
             data = item['param'].data
             shape = data.shape
             data = data.flatten()
-            data [0::4] = item['max']
+            data [0::4] = item['init_max']
             data [1::4] = 0.49
-            data [2::4] = item['min']
+            data [2::4] = item['init_min']
             data [3::2] = 0.49
             data = data.reshape(shape)
             item['param'].data = data
@@ -640,9 +715,9 @@ class ParamTranslationModule(WeightClampingModule):
             shape = data.shape
             data = data.flatten()
             data [0::4] = 0.49
-            data [1::4] = item['max']
+            data [1::4] = item['init_max']
             data [2::4] = 0.49
-            data [3::2] = item['min']
+            data [3::2] = item['init_min']
             data = data.reshape(shape)
             item['param'].data = data
 
@@ -709,6 +784,7 @@ class PreprocessingModule(nn.Module):
         n_channels_out: int,
         conv_groups: int = 1,
         avgpool: bool = True,
+        norm_module : nn.Module = LayerNorm,
     ) -> None:
         super().__init__()
 
@@ -732,7 +808,7 @@ class PreprocessingModule(nn.Module):
             self.copymodule = nn.Identity()
             
         # Norm
-        self.norm_module = LayerNorm()
+        self.norm_module = norm_module(n_channels_out)
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_in(x)
@@ -751,17 +827,27 @@ class TranslationBlock(nn.Module):
         conv_groups: int = 1,
         avgpool: bool = True,
         conv_mode : str = "default", # one of default, sparse
+        sparse_conv_selectors : int = 2,
         sparse_conv_selector_radius : int = 1,
         spatial_mode : str = "predefined_filters", # one of predefined_filters, parameterized_translation
         spatial_blending : bool = True,
         spatial_requires_grad : bool = True,
         filter_mode: str = "Uneven",
+        n_angles : int = 2,
         translation_k : int = 3,
         randomroll: int = -1,
+        normalization_mode : str = "layernorm",
     ) -> None:
         super().__init__()
 
-        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool)
+        if normalization_mode == "layernorm":
+            norm_module = LayerNorm
+        elif normalization_mode == "batchnorm":
+            norm_module = nn.BatchNorm2d
+        else:
+            raise ValueError
+
+        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool, norm_module)
         
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")
@@ -769,8 +855,8 @@ class TranslationBlock(nn.Module):
         if conv_mode == "default":
             self.conv1x1 = Conv1x1AndReLUModule(n_channels_out, conv_groups)
         elif conv_mode == "sparse":
-            self.conv1x1 = SparseConv2D(n_channels_out, conv_groups, 2, sparse_conv_selector_radius)
-        self.blend1 = BlendModule(n_channels_out, self.tracker_input_conv.module_id, tm.module_id, monitor_inputs=False)
+            self.conv1x1 = SparseConv2D(n_channels_out, conv_groups, sparse_conv_selectors, sparse_conv_selector_radius)
+        #self.blend1 = BlendModule(n_channels_out, self.tracker_input_conv.module_id, tm.module_id, monitor_inputs=False)
         self.randomroll = RandomRoll(randomroll) if randomroll>0 else nn.Identity()
         
         # if mode == "roll":
@@ -783,7 +869,7 @@ class TranslationBlock(nn.Module):
             self.spatial = PredefinedFilterModule3x3Part(
                 n_channels_in=n_channels_out,
                 filter_mode=ParameterizedFilterMode[filter_mode],
-                n_angles=2,
+                n_angles=n_angles,
                 handcrafted_filters_require_grad=spatial_requires_grad,
                 f=1,
                 k=3,
@@ -806,7 +892,7 @@ class TranslationBlock(nn.Module):
         x_skip = x
         _ = self.tracker_input_conv(x)
         x = self.conv1x1(x)
-        x = self.blend1(x_skip, x)
+        #x = self.blend1(x_skip, x)
         x = self.randomroll(x)
         x_skip = x
         _ = self.tracker_input_spatial(x)
@@ -817,7 +903,7 @@ class TranslationBlock(nn.Module):
 
 def initialize_weights(modules, init_mode):
     for m in modules:
-        if isinstance(m, WeightClampingModule):
+        if isinstance(m, WeightRegularizationModule):
             if init_mode in ['uniform', 'uniform_translation_as_pfm'] :
                 m.intitialize_weights_uniform()
             elif init_mode == 'zero':

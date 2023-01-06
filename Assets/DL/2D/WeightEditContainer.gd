@@ -8,14 +8,14 @@ export var image_height = 256
 export var margin = 10
 export var n_steps = 5
 	
-func create_weights(weights, weight_range, weight_name, channel_instance, vertical=true):
+func create_weights(weights, weight_limit, weight_name, channel_instance, vertical=true):
 	var n_weights = len(weights)
 	for i in range(n_weights):
 		var slider = slider_scene.instance()
 		slider.rect_min_size.y = int((image_height - 10 * n_weights) / n_weights)
-		slider.step = (weight_range[1] - weight_range[0]) / (n_steps - 1)
-		slider.min_value = weight_range[0]
-		slider.max_value = weight_range[1] + slider.step
+		slider.step = (weight_limit[1] - weight_limit[0]) / (n_steps - 1)
+		slider.min_value = weight_limit[0]
+		slider.max_value = weight_limit[1] + slider.step
 		slider.page = slider.step
 		slider.value = weights[i]
 		var color = ImageProcessing.get_colormap_color(weights[i], [slider.min_value, slider.max_value])

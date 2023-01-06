@@ -34,11 +34,11 @@ func draw_PFModule_kernels(kernel):
 	kernel_texture_rect.rect_min_size = Vector2(256, 256)
 	
 	
-func create_weights(weights, weight_range, weight_name):
+func create_weights(weights, weight_limit, weight_name):
 	var weight_edit = weight_edit_container_scene.instance()
 	$Details.add_child(weight_edit)
 	#$Details.move_child(weight_edit, 0)
-	weight_edit.create_weights(weights, weight_range, weight_name, self)
+	weight_edit.create_weights(weights, weight_limit, weight_name, self)
 
 
 func set_size_of_children(size_new):
