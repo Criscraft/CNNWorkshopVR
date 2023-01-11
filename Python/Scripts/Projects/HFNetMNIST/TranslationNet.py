@@ -25,6 +25,7 @@ class TranslationNet(nn.Module):
             'translation_k' : 5,
             'randomroll' : -1,
             'normalization_mode' : 'layernorm',
+            'permutation' : 'static', # one of learnable, static, disabled
             } for i in range(4)],
         init_mode: str = 'uniform',
         statedict: str = '',
@@ -77,8 +78,6 @@ class TranslationNet(nn.Module):
             for m in self.modules():
                 if hasattr(m, "regularize_params"):
                     m.regularize_params()
-                if hasattr(m, "compute_indices"):
-                    m.compute_indices()
 
     
 class TranslationNet_(nn.Module):
@@ -118,7 +117,8 @@ class TranslationNet_(nn.Module):
                 n_angles=config['n_angles'],
                 translation_k=config['translation_k'],
                 randomroll=config['randomroll'],
-                normalization_mode=config['normalization_mode']
+                normalization_mode=config['normalization_mode'],
+                permutation=config['permutation'],
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 

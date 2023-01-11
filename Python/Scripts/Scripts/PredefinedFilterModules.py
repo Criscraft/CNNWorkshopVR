@@ -46,6 +46,8 @@ class WeightRegularizationModule(nn.Module):
         self.params.append(self.ParamToRegularize(param, self.Mode.SCALE, limit_min, limit_max, init_min, init_max))
 
     def regularize_params(self):
+        if hasattr(self, "pre_regularize"):
+            self.pre_regularize()
         for item in self.params:
             if item.mode == self.Mode.CLAMP:
                 item.param.data = torch.clamp(item.param.data, item.limit_min, item.limit_max)
@@ -414,9 +416,12 @@ class LearnablePermutationModule(WeightRegularizationModule):
 
         self.indices = nn.Parameter(torch.arange(n_channels), False)
 
-        weight = torch.zeros(n_channels, n_channels, 1, 1)
+        weight = torch.eye(n_channels)
+        weight = weight.unsqueeze(2).unsqueeze(3)
         self.weight = nn.Parameter(weight, True)
-        self.register_param_to_scale(self.weight, -1., 1.)
+        internal_weight = torch.zeros(n_channels, n_channels, 1, 1)
+        self.internal_weight = nn.Parameter(internal_weight, False)
+        self.register_param_to_scale(self.internal_weight, -10., 10., 0., 1.)
 
         self.create_trackers()
 
@@ -426,32 +431,62 @@ class LearnablePermutationModule(WeightRegularizationModule):
 
     def forward(self, x):
         if self.training:
-            weight_sparse = self.weight - self.weight.detach()
-            out = F.conv2d(x, weight_sparse)
-            out = out + x[:,self.indices].detach()
+            self.weight_old = self.weight.data.clone().detach()
+            out = F.conv2d(x, self.weight)
         else:
             out = x[:,self.indices]
 
-        _ = self.tracker_out(x)
-        return x
+        _ = self.tracker_out(out)
+        return out
 
     def compute_indices(self):
-        n_out_channels = self.weight.shape[0]
+        n_channels = self.internal_weight.shape[0]
         index_dict = {} # output_ind -> input_ind
-        weight_flattend = self.weight.flatten(1)
-        urgency_of_input_inds = torch.argsort(torch.max(weight_flattend, 0), descending=True)
-        ranking_of_out_channels = torch.argsort(weight_flattend, 0, descending=True)
+        weight_flattend = self.internal_weight.flatten()
+        # weight_flattend = self.internal_weight.flatten(1)
+        # urgency_of_input_inds = torch.argsort(torch.max(weight_flattend, 0)[0], descending=True).cpu().numpy()
+        # ranking_of_out_channels = torch.argsort(weight_flattend, 0, descending=True).cpu().numpy()
+        # for input_ind in urgency_of_input_inds:
+        #     inds = ranking_of_out_channels[:,input_ind]
+        #     for ind in inds:
+        #         if ind not in index_dict:
+        #             index_dict[ind] = input_ind
+        #             if self.indices.data[ind].item() != input_ind:
+        #                 self.internal_weight[ind, input_ind, 0, 0] = self.internal_weight[ind, input_ind, 0, 0] + 5. 
+        #             break
+        ranking = torch.argsort(weight_flattend, descending=True).cpu().numpy()
+        i = 0
+        while len(index_dict) != n_channels:
+            rank_ind = ranking[i]
+            output_ind = rank_ind // n_channels
+            input_ind = rank_ind % n_channels
+            if output_ind not in index_dict and input_ind not in index_dict.values():
+                index_dict[output_ind] = input_ind
+                if self.indices.data[output_ind].item() != input_ind:
+                    self.internal_weight[output_ind, input_ind, 0, 0] = self.internal_weight[output_ind, input_ind, 0, 0] + 2.
+            i += 1
+        indices_new = [index_dict[output_ind] for output_ind in range(n_channels)]
+        indices_new = torch.tensor(indices_new, dtype=torch.long, device=self.indices.data.device)
+        # if torch.any(indices_new != self.indices.data).item():
+        #     nn.init.constant_(self.internal_weight, 0.)
+        self.indices.data = torch.tensor(indices_new, dtype=torch.long, device=self.indices.data.device)
 
-        for input_ind in urgency_of_input_inds:
-            inds = ranking_of_out_channels[:,input_ind]
-            for ind in inds:
-                if ind not in index_dict:
-                    index_dict[ind] = input_ind
-                    break
-        indices = [index_dict[output_ind] for output_ind in range(n_out_channels)]
-        self.indices.data = torch.tensor(indices, dtype=torch.Long, device=self.device)
+    def get_sparse_weight_matrix(self):
+        weights_permutation = torch.zeros(self.weight.shape[0], self.weight.shape[0], device=self.weight.data.device)
+        for i, j in enumerate(self.indices.data):
+            weights_permutation[i,j] = 1.
+        weights_permutation = weights_permutation.unsqueeze(2).unsqueeze(3)
+        return weights_permutation
 
-    
+    def pre_regularize(self):
+        # update internal weights
+        delta = self.weight - self.weight_old
+        del self.weight_old
+        self.internal_weight.data = self.internal_weight + torch.clamp(delta, 0., 0.1)
+        # replace weights by sparse weights
+        self.compute_indices()
+        self.weight.data = self.get_sparse_weight_matrix()
+
 
 class ParameterizedFilterMode(enum.Enum):
    Even = 0
@@ -785,6 +820,7 @@ class PreprocessingModule(nn.Module):
         conv_groups: int = 1,
         avgpool: bool = True,
         norm_module : nn.Module = LayerNorm,
+        permutation : str = "static"
     ) -> None:
         super().__init__()
 
@@ -798,7 +834,12 @@ class PreprocessingModule(nn.Module):
 
         # Permutation
         group_size = n_channels_in // conv_groups
-        self.permutation_module = PermutationModule(torch.arange(n_channels_in).roll(group_size // 2))
+        if permutation == "learnable":
+            self.permutation_module = LearnablePermutationModule(n_channels_in)
+        elif permutation == "static":
+            self.permutation_module = PermutationModule(torch.arange(n_channels_in).roll(group_size // 2))
+        elif permutation == "disabled":
+            self.permutation_module = nn.Identity()
         #self.permutation = nn.Parameter(torch.randperm(n_channels_in), False)
 
         # Copy channels.
@@ -837,6 +878,7 @@ class TranslationBlock(nn.Module):
         translation_k : int = 3,
         randomroll: int = -1,
         normalization_mode : str = "layernorm",
+        permutation : str = "static",
     ) -> None:
         super().__init__()
 
@@ -847,7 +889,7 @@ class TranslationBlock(nn.Module):
         else:
             raise ValueError
 
-        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool, norm_module)
+        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool, norm_module, permutation)
         
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")
