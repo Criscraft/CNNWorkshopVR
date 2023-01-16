@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import json
 import random
 import matplotlib.pyplot as plt
+import os
 
 
 import Scripts.PredefinedFilterModules as pfm
@@ -116,7 +117,7 @@ class ConvExpressionsManager():
                 pool_stage_list.append(pool_stage_list[-1] + 1)
             else:
                 pool_stage_list.append(pool_stage_list[-1])
-        n_pool_stages = pool_stage_list[-1]
+        n_pool_stages = pool_stage_list[-1] + 1
         
         # For each pool stage get a list of expression ids.
         expressions_in_poolstages = [[] for i in range(n_pool_stages)] # Holds for each pool stage the ids of the expressions that should be generated.
@@ -129,6 +130,8 @@ class ConvExpressionsManager():
                 expressions_in_poolstages[conv_expression['pooling_stage']].append(conv_expression_id)
                 expression_frontier.extend(conv_expression['input_conv_expression_ids'])
         
+        # print("expressions_in_poolstages:")
+        # print(expressions_in_poolstages)
         layerings_in_poolstages = [] # Contains a layering for each poolstage. 
         # layerings_in_poolstages is a list of shape [n_poolstages, n_layers, n_elements]
         # A layering is a list of shape [n_layers, n_elements]
@@ -152,8 +155,14 @@ class ConvExpressionsManager():
             if block_counter > block_start:
                 raise ValueError(f"The network is to short. Need {block_counter-block_start} more blocks in pooling stage {poolstage}.")
             for layer in layering:
+                if not layer:
+                    #The layer does not contain any nodes. This means that the subsequent layers will have no nodes, either.
+                    break
+                # The layer contains nodes.
+                # Compute the width of the layer. The width is the number of blocks it spans.
                 widths = [len(self.conv_expressions[conv_expression_id]['weights']) for conv_expression_id in layer]
                 max_width = max(widths)
+                # Store the blocks this layer uses and increase the block counter 
                 blocks_of_layers.append(list(range(block_counter, block_counter + max_width)))
                 block_counter += max_width
 
@@ -252,15 +261,25 @@ class ConvExpressionsManager():
 
 
     def draw_conv_expressions(self, nodes, figsize=(7, 7)):
+        # TODO: Add annotations, e.g. like in https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
         x = []
         y = []
+        x_edges = [[], []] # with shape [2, n_edges]
+        y_edges = [[], []] # with shape [2, n_edges]
         colors = []
         for node in nodes.values():
             x.extend(node.blocks)
             y.extend(node.channel_positions)
             colors.extend([[node.color[0] / 255., node.color[1] / 255., node.color[2] / 255.] for _ in range(len(node.blocks))])
+            precursors = [nodes[id] for id in node.precursor_ids]
+            for precursor in precursors:
+                x_edges[0].append(precursor.blocks[0])
+                y_edges[0].append(precursor.channel_positions[0])
+                x_edges[1].append(node.blocks[0])
+                y_edges[1].append(node.channel_positions[0])
         fig, ax = plt.subplots(figsize=figsize)
-        scatter = ax.scatter(x, y, s=10, c=colors, marker='s')
+        ax.plot(x_edges, y_edges, linestyle='-', color='black')
+        ax.scatter(x, y, s=100, c=colors, marker='s')
         fig.tight_layout()
         fig.savefig("conv_expression_layout.png")
     
@@ -368,11 +387,8 @@ class TranslationNet_(nn.Module):
         
         pfm.initialize_weights(self.modules(), init_mode)
         
-        if conv_expressions:
-            # If conv expressions are used, we assume identity intitalization such that we do not have to care about linking unused blocks.
-            assert(init_mode=="identity")
         group_size = blockconfig_list[0]['n_channels_in'] // blockconfig_list[0]['conv_groups']
-        conv_expression_manager = ConvExpressionsManager("/nfshome/linse/Documents/CNNWorkshopVR/CNNWorkshopVR/Python/Scripts/Projects/HFNetMNIST/conv_expressions.txt", group_size)
+        conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions.txt"), group_size)
         with torch.no_grad():
             conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
 
