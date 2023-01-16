@@ -6,7 +6,7 @@ export var slider_width = 60
 export var line_width = 256
 export var image_height = 256
 export var margin = 10
-export var n_steps = 5
+export var n_steps = 9
 	
 func create_weights(weights, weight_limit, weight_name, channel_instance, vertical=true):
 	var n_weights = len(weights)

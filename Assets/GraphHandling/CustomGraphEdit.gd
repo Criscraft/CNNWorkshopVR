@@ -8,7 +8,7 @@ export var reset_camera_position_on_arrangement_of_nodes : bool = false
 export var camera_center_of_graph_zoom : Vector2 = Vector2.ZERO
 
 var id_to_child_dict = {} # Maps group ids to nodes. Is not updated automatically
-var layering = [] # Contains for each layer a list with group node ids. Is not updated automatically.
+var layering = [] # Contains for each layer a list with group node ids. It is not updated automatically.
 onready var my_graph_nodes = $MyGraphNodes
 onready var edges = $Edges
 
@@ -19,7 +19,7 @@ onready var edges = $Edges
 func arrange_nodes():
 	remove_child(my_graph_nodes)
 	
-	var precursors = {}
+	var precursors = {} # Dict with node ids as keys and a list with node ids for the precursors
 	id_to_child_dict = {}
 	for node in my_graph_nodes.get_children():
 		if node is MyGraphNode:
@@ -37,6 +37,7 @@ func arrange_nodes():
 	
 
 func get_layering(node_ids, precursors):
+	# precursors is a dict with node ids as keys and a list with node ids for the precursors
 	var q = node_ids # Total set of nodes
 	var u = [] # Set of nodes that already have been assigned to layers.
 	var p = node_ids.duplicate() # tracks q - u

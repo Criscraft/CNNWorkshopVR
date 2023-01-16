@@ -24,23 +24,20 @@ def get_network():
         n_classes=10,
         blockconfig_list=[
             {'n_channels_in' : 1 if i==0 else 16,
-            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0 and n_channels_out % n_classes == 0 
+            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0
             'conv_groups' : 16 // 4,
             'avgpool' : True if i in [3, 6] else False,
-            'conv_mode' : "default", # one of default, sparse
-            'sparse_conv_selectors' : 4,
-            'sparse_conv_selector_radius' : 1,
             'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
-            'spatial_blending' : True,
             'spatial_requires_grad' : False,
-            'filter_mode' : "Translation",
+            'filter_mode' : "TranslationSharp", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp
             'n_angles' : 2,
             'translation_k' : 5,
             'randomroll' : -1,
-            'normalization_mode' : 'layernorm',
+            'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
+            'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
-        init_mode='uniform_translation_as_pfm', # 'uniform'
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
+        init_mode='identity', # one of uniform, uniform_translation_as_pfm, zero, identity
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

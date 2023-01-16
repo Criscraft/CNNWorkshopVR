@@ -150,7 +150,9 @@ func update_text():
 	
 	for weight_name in network_module_resource.weight_names:
 		if weight_name in network_module_resource.data:
-			add_text_weight(weight_name, network_module_resource.data[weight_name + "_limit"], network_module_resource.data[weight_name + "_range"])
+			if weight_name + "_limit" in network_module_resource.data and \
+				weight_name + "_range" in network_module_resource.data:
+				add_text_weight(weight_name, network_module_resource.data[weight_name + "_limit"], network_module_resource.data[weight_name + "_range"])
 		
 	if "PFModule_kernels" in network_module_resource.data:
 		add_text("Kernel size:")
@@ -298,6 +300,7 @@ func set_previous_network_module_details_manager(manager):
 
 
 func clear_edges():
+	weight_id_to_edge.clear()
 	var edges = $Edges
 	for child in edges.get_children():
 		edges.remove_child(child)
@@ -330,7 +333,6 @@ func update_details_layout():
 	for child in channel_container.get_children():
 		child.clear_details()
 		
-	weight_id_to_edge.clear()
 	clear_edges()
 	
 	if details_layout and network_module_resource != null:
@@ -386,9 +388,15 @@ func update_details_layout():
 			for child in channel_container.get_children():
 				child.create_weights([weights[i][0][0][0]], weight_limit, "weight_per_channel")
 				i += 1
+		elif "indices" in network_module_resource.data:
+			# Add buttons to move edges
+			var indices = network_module_resource.data["indices"]
+			for child in channel_container.get_children():
+				child.create_permutation_buttons(indices, "indices")
 		
 		
 func prepare_edges():
+	queue_draw_edges.clear()
 	if previous_network_module_details_manager == null or \
 		not "draw_edges" in network_module_resource.tags or \
 		$Edges.get_child_count() > 0:
@@ -447,7 +455,7 @@ func draw_edge(out_channel_ind, out_group_ind, in_channel_ind, color=null):
 	# If out_group_ind==-1 there is no slider
 	var end_node = channel_container.get_child(out_channel_ind)
 	if out_group_ind >= 0:
-		end_node = end_node.get_node("Details").get_child(0).get_child(out_group_ind)
+		end_node = end_node.get_node("CenterContainer/Details").get_child(0).get_child(out_group_ind)
 	
 	var start_pos = previous_node.rect_global_position + Vector2(previous_node.rect_size.x, 0.5*previous_node.rect_size.y)
 	var end_pos = end_node.rect_global_position + Vector2(0.0, 0.5*end_node.rect_size.y)
@@ -467,7 +475,6 @@ Weight operations
 """
 
 # Called by signal when a weight is changed by a channel node.
-# TODO weight handling for different weight types
 func on_weight_changed(weight, channel_ind, group_ind, weight_type):
 	var weights = network_module_resource.data[weight_type]
 	var adjust_weight_color = true
@@ -478,12 +485,20 @@ func on_weight_changed(weight, channel_ind, group_ind, weight_type):
 		weights[0][channel_ind][0][0] = weight
 	elif weight_type == "weight_per_channel":
 		weights[channel_ind][0][0][0] = weight
-	elif weight_type == "sparse_conv_weight_selection":
-		weights[group_ind][channel_ind][0][0][0] = weight
+	elif weight_type == "indices":
+		var new_channel = int((weights[channel_ind] + weight)) % weights.size()
+		new_channel = (new_channel + weights.size()) % weights.size()
+		weights[channel_ind] = new_channel
+		network_module_resource.data["input_mapping"][channel_ind] = new_channel
 		adjust_weight_color = false
-	elif weight_type == "sparse_conv_weight_group":
-		weights[group_ind][0][channel_ind][0][0] = weight
-		adjust_weight_color = false
+		clear_edges()
+		prepare_edges()
+#	elif weight_type == "sparse_conv_weight_selection":
+#		weights[group_ind][channel_ind][0][0][0] = weight
+#		adjust_weight_color = false
+#	elif weight_type == "sparse_conv_weight_group":
+#		weights[group_ind][0][channel_ind][0][0] = weight
+#		adjust_weight_color = false
 	
 	if adjust_weight_color and weight_id_to_edge:
 		var color = ImageProcessing.get_colormap_color(weight, network_module_resource.data[weight_type+"_limit"])

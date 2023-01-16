@@ -19,6 +19,7 @@ class TrackerModule(nn.Identity):
         blend_weight_limit, 
         weight_per_channel, [n_channels, 1, 1, 1]
         weight_per_channel_limit
+        colors, [n_channels, 3], rgb values for each channel
         """
         super().__init__()
         self.module_id = module_id

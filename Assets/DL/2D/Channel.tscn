@@ -6,8 +6,12 @@
 [node name="Channel" type="HBoxContainer"]
 script = ExtResource( 2 )
 
-[node name="Details" type="HBoxContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="."]
 margin_bottom = 256.0
+
+[node name="Details" type="HBoxContainer" parent="CenterContainer"]
+margin_top = 128.0
+margin_bottom = 128.0
 
 [node name="ChannelImageTile" parent="." instance=ExtResource( 1 )]
 margin_left = 4.0
