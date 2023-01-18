@@ -33,15 +33,22 @@ border_width = 10.0
 editor_only = false
 
 [node name="Label" type="Label" parent="."]
-visible = false
-margin_top = 4.0
+margin_top = 260.0
 margin_right = 256.0
-margin_bottom = 44.0
+margin_bottom = 300.0
 rect_min_size = Vector2( 256, 40 )
 size_flags_vertical = 1
 custom_fonts/font = SubResource( 1 )
-text = "Class name"
 align = 1
+valign = 1
 clip_text = true
+
+[node name="Rect" type="ReferenceRect" parent="Label"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+border_color = Color( 1, 1, 1, 0 )
+border_width = 16.0
+editor_only = false
 
 [connection signal="pressed" from="Image/ImageSelectButton" to="." method="_on_ImageSelectButton_pressed"]

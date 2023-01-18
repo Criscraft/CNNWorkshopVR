@@ -138,21 +138,30 @@ func draw_edges():
 	var curve
 	var target_socket
 	var target_position
-	var precursor_right_socket
-	var precursor_right_socket_position
+	var precursor_socket
+	var precursor_socket_position
 	var new_drawn_path_szene
 	var in_curve
+	var out_curve
 	var epsilon = y_margin * 0.5
+	
+	var node_id_to_layer = {}
+	for layer_ind in range(len(layering)):
+		var layer = layering[layer_ind]
+		for node_id in layer:
+			node_id_to_layer[node_id] = layer_ind
 	
 	for node in id_to_child_dict.values():
 		for precursor_node_id in node.precursors:
 			precursor_node = id_to_child_dict[precursor_node_id]
+			var distance = node_id_to_layer[node.id] - node_id_to_layer[precursor_node_id]
 			# if the precursor node has smaller y, we will use the top socket
 			if precursor_node.rect_position.y < node.rect_position.y - epsilon:
 				target_socket = node.get_node("GridContainer/Top/Socket")
 				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(0, -y_margin * 0.5)
-			elif precursor_node.rect_position.y > node.rect_position.y + epsilon:
+			# if the precursor node has larger y, we will use the bottom socket
+			elif precursor_node.rect_position.y > node.rect_position.y + epsilon or distance > 1:
 				target_socket = node.get_node("GridContainer/Bottom/Socket")
 				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(0, y_margin * 0.5)
@@ -161,10 +170,15 @@ func draw_edges():
 				target_position = target_socket.get_global_rect().position
 				in_curve = Vector2(-x_margin, 0)
 			
-			precursor_right_socket = precursor_node.get_node("GridContainer/Right/Socket")
-			precursor_right_socket_position = precursor_right_socket.get_global_rect().position
+			if distance > 1:
+				precursor_socket = precursor_node.get_node("GridContainer/Bottom/Socket")
+				out_curve = Vector2(0, y_margin * 0.5)
+			else:
+				precursor_socket = precursor_node.get_node("GridContainer/Right/Socket")
+				out_curve = Vector2(x_margin, 0)
+			precursor_socket_position = precursor_socket.get_global_rect().position
 			curve = Curve2D.new()
-			curve.add_point(Vector2(precursor_right_socket_position), Vector2(0, 0), Vector2(x_margin, 0))
+			curve.add_point(Vector2(precursor_socket_position), Vector2(0, 0), out_curve)
 			curve.add_point(Vector2(target_position), in_curve, Vector2(0, 0))
 			
 			new_drawn_path_szene = drawn_path_szene.instance()

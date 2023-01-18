@@ -19,3 +19,4 @@ func update_image() -> void:
 	
 func update_label() -> void:
 	$Label.get_scene_instance().get_node("Label").text = image_resource.label
+	

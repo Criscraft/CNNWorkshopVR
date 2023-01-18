@@ -47,10 +47,8 @@ class DLNetwork(object):
             # record info about each tracker module
             for item in out_dict['module_dicts']:
                 item['size'] = item['activation'].shape
-                if item['channel_labels'] == "classes":
-                    item['channel_labels'] = self.class_names
-                else:
-                    item['channel_labels'] = []
+                if "assign_class_labels" in item['tags']:
+                    item['data']['channel_labels'] = self.class_names
                 module_dict[item['module_id']] = item
 
             self.module_dict = module_dict
@@ -73,7 +71,7 @@ class DLNetwork(object):
         # get group information
         group_dict = copy.deepcopy(self.model.tracker_module_groups_info)
         # get tracker_module information
-        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'tags', 'data', 'channel_labels', 'size')} for module_id, module_info in self.module_dict.items()}
+        out_module_dict = {module_id : {key : copy.deepcopy(module_info[key]) for key in ('group_id', 'label', 'precursors', 'tags', 'data', 'size')} for module_id, module_info in self.module_dict.items()}
 
         # get module information
         for module_info in out_module_dict.values():
@@ -151,7 +149,10 @@ class DLNetwork(object):
 
 
     def get_channel_labels(self, module_id):
-        return self.module_dict[module_id]['channel_labels']
+        if "channel_labels" in self.module_dict[module_id]['data']:
+            return self.module_dict[module_id]['data']['channel_labels']
+        else:
+            return []
 
 
     def set_data(self, module_id, name, data):

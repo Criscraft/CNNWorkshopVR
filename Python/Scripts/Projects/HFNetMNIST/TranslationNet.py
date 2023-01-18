@@ -102,10 +102,10 @@ class ConvExpressionsManager():
             self.channel_positions = [] # one element per block the layer of the node spans
             self.blocks = [] # consecutive list of block indices
             self.precursor_ids = [] # list of precursors (ids)
-            self.precursors = [] # list of precursors (nodes)
             self.weights = []
             self.channel_widths = []
             self.color = [255, 255, 255]
+            self.output_channel_names = []
             
         
     def create_expressions(self, target_conv_expressions, blockconfig_list, blocks):
@@ -172,11 +172,12 @@ class ConvExpressionsManager():
         for poolstage in range(n_pool_stages):
             for layer_id, layer in enumerate(layerings_in_poolstages[poolstage]):
                 for conv_expression_id in layer:
+                    conv_expression = self.conv_expressions[conv_expression_id]
                     node = self.Node()
                     node.id = conv_expression_id
                     node.blocks = blocks_of_layers[layer_id]
-                    node.precursor_ids = self.conv_expressions[conv_expression_id]['input_conv_expression_ids']
-                    node.weights = self.conv_expressions[conv_expression_id]['weights']
+                    node.precursor_ids = conv_expression['input_conv_expression_ids']
+                    node.weights = conv_expression['weights']
                     node.channel_positions = [block_channel_counts[block] for block in node.blocks]
                     node.channel_widths = []
                     channel_width = 0
@@ -185,20 +186,17 @@ class ConvExpressionsManager():
                             channel_width = max(channel_width, len(node.weights[i][0]))
                         block_channel_counts[block] += channel_width
                         node.channel_widths.append(channel_width)
-                    node.color = [random.randint(0, 255) for _ in range(3)]
+                    node.color = self.conv_expressions[conv_expression_id]['color']
+                    node.output_channel_names = conv_expression['output_channel_names']
                     nodes[conv_expression_id] = node
-
-        # Add precursor modules to the nodes
-        for node in nodes.values():
-            for precursor in node.precursor_ids:
-                node.precursors.append(nodes[precursor])
 
         # For each conv expression check if the precursor ends at the previous block. If not, add linker expressions (they have identity weights) in between.
         for node in nodes.values():
             node_block = node.blocks[0]
-            for precursor in node.precursors:    
+            for precursor_index, precursor_id in enumerate(node.precursor_ids):
+                precursor = nodes[precursor_id]
                 precursor_block = precursor.blocks[0]
-                distance = node_block - precursor_block 
+                distance = node_block - precursor_block
                 if distance > 1:
                     # create identity blocks
                     precursor_block_new = precursor_block
@@ -206,46 +204,48 @@ class ConvExpressionsManager():
                         precursor_new = nodes[precursor_block_new]
                         node_new = self.Node()
                         node_new.blocks = [block_new]
-                        node.precursor_ids = [precursor_block_new]
-                        node.weights = [[
-                            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], 
+                        node_new.precursor_ids = [precursor_block_new]
+                        node_new.weights = [[
+                            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
                             [0, 0, 0, 0],
                             [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
                             ]]
-                        node.channel_positions = block_channel_counts[block_new]
-                        node.channel_widths = [precursor_new.channel_widths[-1]]
-                        node.color = [255, 255, 255]
-                        nodes[f"identity_{block_new}_{node.id}"] = node
-                        block_channel_counts[block_new] += node.channel_widths[-1]
-                        precursor_block_new = block_new 
+                        node_new.channel_positions = block_channel_counts[block_new]
+                        node_new.channel_widths = [precursor_new.channel_widths[-1]]
+                        node_new.id = f"identity_{block_new}_{node.id}"
+                        node_new.color = precursor.color
+                        node_new.output_channel_names = precursor.output_channel_names
+                        nodes[node_new.id] = node_new
+                        block_channel_counts[block_new] += node_new.channel_widths[-1]
+                        precursor_block_new = block_new
+                    # relink the last node
+                    node.precursor_ids[precursor_index] = node_new.id
 
-        # Debug:
         # Plot the block layout.
         self.draw_conv_expressions(nodes)
 
         # Fill the network weights with values according to the conv expressions
         for node in nodes.values():
-            
             for stage in range(len(node.weights)):
                 weights = node.weights[stage]
                 block_ind = node.blocks[stage]
                 block = blocks[block_ind]
                 start_channel = node.channel_positions[stage]
                 
-                self.write_weights_into_conv(weights[0], block.conv1x1_1, start_channel, node.color)
-                self.write_weights_into_conv(weights[2], block.conv1x1_2, start_channel, node.color)
-                
-                # process spatial blending
-                spatialblend_weights = weights[1]
-                spatialblend_tracker_out = block.blend.tracker_out
-                spatialblend_module_weights = spatialblend_tracker_out.data["data"]["blend_weight"]
-                if "colors" not in spatialblend_tracker_out.data:
-                    spatialblend_tracker_out.data["colors"] = [[255, 255, 255] for i in range(spatialblend_module_weights.shape[1])]
-                colors_blend = spatialblend_tracker_out.data["colors"]
-                for out_channel, single_weight in enumerate(spatialblend_weights):
-                    out_channel_shifted = out_channel + start_channel
-                    spatialblend_module_weights[0, out_channel_shifted, 0, 0] = single_weight
-                    colors_blend[out_channel_shifted] = node.color
+                n_channels_layer = block.conv1x1_1.conv1x1.tracker_out.data["data"]["grouped_conv_weight"].shape[0]
+                n_channels_conv_expression = len(weights[0])
+                self.write_colors(block, start_channel, n_channels_layer, n_channels_conv_expression, node.color)
+                self.write_weights(weights, block, start_channel)
+                # write channel labels
+                if stage == 0:
+                    precursors = [nodes[precursor_id] for precursor_id in node.precursor_ids]
+                    input_channel_names = []
+                    for precursor in precursors:
+                        input_channel_names.extend(precursor.output_channel_names)
+                else:
+                    input_channel_names = output_channel_names
+                output_channel_names = node.output_channel_names if stage == len(node.weights) - 1 else []
+                self.write_channel_labels(block, start_channel, n_channels_layer, input_channel_names, output_channel_names)
             
             # The permutation in the preprocessing has to be adjusted. If there are multiple precursors, the input channels have to be stacked.
             channel_counter = 0
@@ -282,24 +282,83 @@ class ConvExpressionsManager():
         ax.scatter(x, y, s=100, c=colors, marker='s')
         fig.tight_layout()
         fig.savefig("conv_expression_layout.png")
-    
 
-    def write_weights_into_conv(self, weights, conv_and_relu_layer, start_channel, color):
+
+    def write_colors(self, block, start_channel, n_channels_layer, n_channels_conv_expression, color):
+        trackers = [
+            block.preprocessing.norm_module.tracker_out,
+            block.tracker_input_conv_1,
+            block.conv1x1_1.conv1x1.tracker_out,
+            block.conv1x1_1.relu.tracker_out,
+            block.tracker_input_spatial,
+            block.spatial.predev_conv.tracker_out,
+            block.spatial.activation_layer.tracker_out,
+            block.blend.tracker_out,
+            block.tracker_input_conv_2,
+            block.conv1x1_2.conv1x1.tracker_out,
+            block.conv1x1_2.relu.tracker_out,
+        ]
+
+        for tracker in trackers:
+            if "colors" not in tracker.data:
+                tracker.data['data']["colors"] = [[] for _ in range(n_channels_layer)]
+            colors = tracker.data['data']["colors"]
+            for channel in range(n_channels_conv_expression):
+                out_channel_shifted = channel + start_channel
+                colors[out_channel_shifted] = color
+
+
+    def write_channel_labels(self, block, start_channel, n_channels_layer, input_names, output_names):
+        trackers_in = [
+            block.preprocessing.norm_module.tracker_out,
+            block.tracker_input_conv_1,
+        ]
+        trackers_out = [
+            block.conv1x1_2.conv1x1.tracker_out,
+            block.conv1x1_2.relu.tracker_out,
+        ]
+
+        # Add labels of the input channel. This code paragraph does not work when a copy module copys channels. 
+        # It neither works if the permutation in the first preprocessing module of the conv expression permutes channels.
+        for tracker in trackers_in:
+            if "channel_labels" not in tracker.data['data']:
+                tracker.data['data']["channel_labels"] = ["" for _ in range(n_channels_layer)]
+            labels = tracker.data['data']["channel_labels"]
+            for channel, label in enumerate(input_names):
+                out_channel_shifted = channel + start_channel
+                labels[out_channel_shifted] = label
+
+        for tracker in trackers_out:
+            if "channel_labels" not in tracker.data['data']:
+                tracker.data['data']["channel_labels"] = ["" for _ in range(n_channels_layer)]
+            labels = tracker.data['data']["channel_labels"]
+            for channel, label in enumerate(output_names):
+                out_channel_shifted = channel + start_channel
+                labels[out_channel_shifted] = label
+
+    def write_weights(self, weights, block, start_channel):
+        # conv1
+        self.write_weights_into_conv(weights[0], block.conv1x1_1, start_channel)
+
+        # Blend module
+        spatialblend_tracker_out = block.blend.tracker_out
+        spatialblend_module_weights = spatialblend_tracker_out.data["data"]["blend_weight"]
+        for out_channel, single_weight in enumerate(weights[1]):
+            out_channel_shifted = out_channel + start_channel
+            spatialblend_module_weights[0, out_channel_shifted, 0, 0] = single_weight
+
+        # conv2
+        self.write_weights_into_conv(weights[2], block.conv1x1_2, start_channel)
+
+
+    def write_weights_into_conv(self, weights, conv_and_relu_layer, start_channel):
         conv_tracker_out = conv_and_relu_layer.conv1x1.tracker_out
-        conv_relu_tracker = conv_and_relu_layer.relu.tracker_out
         conv_module_weights = conv_tracker_out.data["data"]["grouped_conv_weight"]
-        if "colors" not in conv_tracker_out.data["data"]:
-            conv_tracker_out.data["data"]["colors"] = [[255, 255, 255] for i in range(conv_module_weights.shape[0])]
-        colors_conv = conv_tracker_out.data["data"]["colors"]
-        if "colors" not in conv_relu_tracker.data["data"]:
-            conv_relu_tracker.data["data"]["colors"] = [[255, 255, 255] for i in range(conv_module_weights.shape[0])]
-        colors_relu = conv_relu_tracker.data["data"]["colors"] 
         for out_channel, group_weights in enumerate(weights):
+            out_channel_shifted = out_channel + start_channel
             for in_channel, single_weight in enumerate(group_weights):
-                out_channel_shifted = out_channel + start_channel
                 conv_module_weights[out_channel_shifted, in_channel, 0, 0] = single_weight
-                colors_conv[out_channel_shifted] = color
-                colors_relu[out_channel_shifted] = color
+                
 
 
     def get_layering(self, node_ids, precursors):

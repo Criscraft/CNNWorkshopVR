@@ -4,7 +4,7 @@ from collections import defaultdict
 
 
 class TrackerModule(nn.Identity):
-    def __init__(self, module_id, group_id, label="", precursors=[-1], channel_labels=[], ignore_highlight=True, draw_edges=False):
+    def __init__(self, module_id, group_id, label="", precursors=[-1], assign_class_labels=False, ignore_highlight=True, draw_edges=False):
         """
         data accepts:
         input_mapping, [n_channels_out]
@@ -20,6 +20,7 @@ class TrackerModule(nn.Identity):
         weight_per_channel, [n_channels, 1, 1, 1]
         weight_per_channel_limit
         colors, [n_channels, 3], rgb values for each channel
+        channel_labels, [n_channels]
         """
         super().__init__()
         self.module_id = module_id
@@ -33,13 +34,14 @@ class TrackerModule(nn.Identity):
             #'tracked_module' : tracked_module,
             'tags' : [],
             'data' : {}, # should be filled by subclass.
-            'channel_labels' : channel_labels,
             'activation' : None, # filled by ActivationTracker
         }
         if ignore_highlight:
             self.data['tags'].append("ignore_highlight")
         if draw_edges:
             self.data['tags'].append("draw_edges")
+        if assign_class_labels:
+            self.data['tags'].append("assign_class_labels")
 
     def register_data(self, name, data):
         self.data["data"][name] = data

@@ -89,6 +89,5 @@ func create_network_module_resource(network_module_dict, id):
 	network_module_resource.label = network_module_dict["label"]
 	network_module_resource.tags = network_module_dict["tags"]
 	network_module_resource.data = network_module_dict["data"]
-	network_module_resource.channel_labels = network_module_dict["channel_labels"]
 	network_module_resource.size = network_module_dict["size"]
 	return network_module_resource

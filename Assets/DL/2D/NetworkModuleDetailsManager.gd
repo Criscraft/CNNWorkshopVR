@@ -78,10 +78,22 @@ func recreate_channels():
 		channel_container.remove_child(child)
 		child.queue_free()
 	
+	var colors = null
+	if "colors" in network_module_resource.data:
+		colors = network_module_resource.data["colors"]
+	var channel_labels = null
+	if "channel_labels" in network_module_resource.data:
+		channel_labels = network_module_resource.data["channel_labels"]
 	# Create channel nodes
-	for _i in range(network_module_resource.size[1]):
+	for i in range(network_module_resource.size[1]):
 		var new_instance = channel_scene.instance()
 		channel_container.add_child(new_instance)
+		if colors != null:
+			var color = colors[i]
+			if color: # the color might be empty!
+				new_instance.set_color(Color(color[0], color[1], color[2], 1.0))
+		if channel_labels != null:
+			new_instance.set_label(channel_labels[i])
 		# Connect signal such that we get notified when a weight is changed.
 		var _error = new_instance.connect("weight_changed", self, "on_weight_changed")
 	
@@ -455,7 +467,7 @@ func draw_edge(out_channel_ind, out_group_ind, in_channel_ind, color=null):
 	# If out_group_ind==-1 there is no slider
 	var end_node = channel_container.get_child(out_channel_ind)
 	if out_group_ind >= 0:
-		end_node = end_node.get_node("CenterContainer/Details").get_child(0).get_child(out_group_ind)
+		end_node = end_node.get_node("Details").get_child(0).get_child(out_group_ind)
 	
 	var start_pos = previous_node.rect_global_position + Vector2(previous_node.rect_size.x, 0.5*previous_node.rect_size.y)
 	var end_pos = end_node.rect_global_position + Vector2(0.0, 0.5*end_node.rect_size.y)

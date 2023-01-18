@@ -15,7 +15,6 @@ export var size : Array = []
 # Optional properties
 export var data : Dictionary = {}
 var weight_names = ["grouped_conv_weight", "sparse_conv_weight_selection", "sparse_conv_weight_group", "blend_weight", "weight_per_channel", "indices"]
-export var channel_labels : Array = []
 	
 	
 func _init():
@@ -26,7 +25,6 @@ func _init():
 	tags = []
 	size = []
 	data = {}
-	channel_labels = []
 
 
 func get_dict():

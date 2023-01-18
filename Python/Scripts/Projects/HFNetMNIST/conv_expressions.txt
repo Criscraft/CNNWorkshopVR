@@ -4,8 +4,8 @@
         "info" : "Edges in different orientations.",
         "input_conv_expression_ids" : [],
         "pooling_stage" : 0,
-        "input_names" : [],
-        "output_names" : ["white_edge_to_left", "white_edge_to_right", "white_edge_to_top", "white_edge_to_bottom"],
+        "color" : [1.0, 1.0, 1.0],
+        "output_channel_names" : ["edge_left", "edge_right", "edge_top", "edge_bottom"],
         "weights" : [[
             [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]], 
             [1, 1, 1, 1],
@@ -18,8 +18,8 @@
         "info" : "Stripes in different orientations",
         "input_conv_expression_ids" : ["edges_s_0"],
         "pooling_stage" : 0,
-        "input_names" : [],
-        "output_names" : ["white_hor_stripes", "white_ver_stripes", "zero", "zero"],
+        "color" : [1.0, 0.7, 0.7],
+        "output_channel_names" : ["hor_stripes", "ver_stripes", "zero", "zero"],
         "weights" : [[
             [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], 
             [1, 1, 1, 1],

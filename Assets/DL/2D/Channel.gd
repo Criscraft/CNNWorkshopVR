@@ -19,8 +19,17 @@ func set_image_resource(image_resource : ImageResource):
 	channel_ind = $ChannelImageTile.image_resource.channel_id
 	
 	
+func set_color(color_new):
+	$ChannelImageTile.set_color(color_new)
+	$ChannelImageTile.visible = true
+	
+	
+func set_label(text_new):
+	$ChannelImageTile.set_text(text_new)
+	
+	
 func clear_details():
-	for child in $CenterContainer/Details.get_children():
+	for child in $Details.get_children():
 		remove_child(child)
 		child.queue_free()
 
@@ -33,23 +42,33 @@ func draw_PFModule_kernels(kernel):
 	kernel_texture_rect.expand = true
 	kernel_texture.create_from_image(kernel_image, 0)
 	kernel_texture_rect.texture = kernel_texture
-	$CenterContainer/Details.add_child(kernel_texture_rect)
-	#$Details.move_child(kernel_texture_rect, 0)
 	kernel_texture_rect.rect_min_size = Vector2(256, 256)
 	
+	var aspect_ratio_container = AspectRatioContainer.new()
+	aspect_ratio_container.alignment_vertical = AspectRatioContainer.ALIGN_BEGIN
+	aspect_ratio_container.name = "AspectRatioContainer"
+	aspect_ratio_container.add_child(kernel_texture_rect)
+	$Details.add_child(aspect_ratio_container)
 	
 func create_weights(weights, weight_limit, weight_name):
 	var weight_edit = weight_edit_container_scene.instance()
-	$CenterContainer/Details.add_child(weight_edit)
+	$Details.add_child(weight_edit)
 	weight_edit.create_weights(weights, weight_limit, weight_name, self)
 
 
 func create_permutation_buttons(indices, index_name):
+	var center_container = CenterContainer.new()
+	center_container.name = "PermButtonsCenter"
+	$Details.add_child(center_container)
+	var hbox_container = HBoxContainer.new()
+	hbox_container.name = "PermButtonsHBox"
+	center_container.add_child(hbox_container)
+	
 	var button_up = button_up_scene.instance()
-	$CenterContainer/Details.add_child(button_up)
+	hbox_container.add_child(button_up)
 	button_up.connect("pressed", self, "on_permutation_button_up_pressed", [index_name])
 	var button_down = button_down_scene.instance()
-	$CenterContainer/Details.add_child(button_down)
+	hbox_container.add_child(button_down)
 	button_down.connect("pressed", self, "on_permutation_button_down_pressed", [index_name])
 
 

@@ -9,7 +9,7 @@ var highlight : float = 0.0 setget set_highlight
 func set_image_resource(image_resource_):
 	image_resource = image_resource_
 	update_image()
-	update_label()
+	#update_label()
 	
 	
 func update_image() -> void:
@@ -19,14 +19,22 @@ func update_image() -> void:
 	update_highlights()
 	
 	
-func update_label() -> void:
-	label.text = image_resource.label
-	if image_resource.label:
-		label.visible = true
-		$Image.rect_min_size = $Image.rect_min_size - Vector2($Label.rect_min_size.y, $Label.rect_min_size.y)
-	else:
-		label.visible = false
+#func update_label() -> void:
+#	label.text = image_resource.label
+#	if image_resource.label:
+#	#	label.visible = true
+#		$Image.rect_min_size = $Image.rect_min_size - Vector2($Label.rect_min_size.y, $Label.rect_min_size.y)
+#	#else:
+#	#	label.visible = false
 
+func set_color(color_new):
+	$Label/Rect.border_color = color_new
+	$Label/Rect.visible = true
+	
+	
+func set_text(text_new):
+	$Label.text = text_new
+	
 
 func set_size_of_children(size_new):
 	$Image.rect_min_size = Vector2(size_new, size_new)

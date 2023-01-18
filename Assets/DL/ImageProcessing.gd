@@ -7,9 +7,9 @@ static func dict_to_image_resource(dick : Dictionary):
 	#var pool_byte_array = Marshalls.base64_to_raw(dick["data"])
 	image_resource.image = get_image_from_raw(dick["data"])
 	image_resource.id = dick["id"]
+	image_resource.label = dick["label"]
 	image_resource.module_id = dick["module_id"]
 	image_resource.channel_id = dick["channel_id"]
-	image_resource.label = dick["label"]
 	image_resource.value_zero_decoded = dick["value_zero_decoded"]
 	image_resource.value_255_decoded = dick["value_255_decoded"]
 	return image_resource
