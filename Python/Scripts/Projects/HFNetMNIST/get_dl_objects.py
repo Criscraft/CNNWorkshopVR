@@ -25,19 +25,19 @@ def get_network():
         blockconfig_list=[
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0
-            'conv_groups' : 16 // 4,
+            'conv_groups' : 16 // 8,
             'avgpool' : True if i in [3, 6] else False,
             'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
             'spatial_requires_grad' : False,
-            'filter_mode' : "TranslationSharp", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp
-            'n_angles' : 2,
+            'filter_mode' : "TranslationSharp8", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
+            'n_angles' : 4,
             'translation_k' : 5,
             'randomroll' : -1,
             'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["white_stripes_s_0"],
+        conv_expressions = ["edges_diag_st0"],
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
     )
         

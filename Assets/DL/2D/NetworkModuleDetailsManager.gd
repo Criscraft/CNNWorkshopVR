@@ -82,18 +82,24 @@ func recreate_channels():
 	if "colors" in network_module_resource.data:
 		colors = network_module_resource.data["colors"]
 	var channel_labels = null
+	var channel_label = ""
 	if "channel_labels" in network_module_resource.data:
 		channel_labels = network_module_resource.data["channel_labels"]
 	# Create channel nodes
-	for i in range(network_module_resource.size[1]):
+	for channel_ind in range(network_module_resource.size[1]):
 		var new_instance = channel_scene.instance()
 		channel_container.add_child(new_instance)
 		if colors != null:
-			var color = colors[i]
+			var color = colors[channel_ind]
 			if color: # the color might be empty!
 				new_instance.set_color(Color(color[0], color[1], color[2], 1.0))
 		if channel_labels != null:
-			new_instance.set_label(channel_labels[i])
+			channel_label = channel_labels[channel_ind]
+			if not channel_label:
+				channel_label = str(channel_ind)
+		else:
+			channel_label = str(channel_ind)
+		new_instance.set_label(channel_label)
 		# Connect signal such that we get notified when a weight is changed.
 		var _error = new_instance.connect("weight_changed", self, "on_weight_changed")
 	

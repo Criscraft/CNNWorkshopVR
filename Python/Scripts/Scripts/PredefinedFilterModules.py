@@ -325,7 +325,8 @@ class ParameterizedFilterMode(enum.Enum):
    EvenPosOnly = 5
    UnevenPosOnly = 6
    TranslationSmooth = 7
-   TranslationSharp = 8
+   TranslationSharp4 = 8
+   TranslationSharp8 = 8
 
 
 class PredefinedConv(nn.Module):
@@ -336,8 +337,8 @@ class PredefinedConv(nn.Module):
         self.weight: nn.Parameter = None
         self.n_channels_in = n_channels_in
         self.n_channels_out = n_channels_out
-        self.stride = stride
         assert self.n_channels_out >= self.n_channels_in
+        self.stride = stride
         self.internal_weight = None # set by subclass
 
     # Called in init by subclass
@@ -406,7 +407,7 @@ class PredefinedConvnxn(PredefinedConv):
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Even, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
         if filter_mode == ParameterizedFilterMode.TranslationSmooth:
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Uneven, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
-        if filter_mode == ParameterizedFilterMode.TranslationSharp:
+        if filter_mode == ParameterizedFilterMode.TranslationSharp4:
             w.append([
                 [0.,0.,0.],
                 [1.,0.,0.],
@@ -423,6 +424,39 @@ class PredefinedConvnxn(PredefinedConv):
                 [0.,0.,0.],
                 [0.,0.,0.],
                 [0.,1.,0.]]) # top
+        elif filter_mode == ParameterizedFilterMode.TranslationSharp8:
+            w.append([
+                [0.,0.,0.],
+                [1.,0.,0.],
+                [0.,0.,0.]]) # right
+            w.append([
+                [0.,1.,0.],
+                [0.,0.,0.],
+                [0.,0.,0.]]) # bottom
+            w.append([
+                [0.,0.,0.],
+                [0.,0.,1.],
+                [0.,0.,0.]]) # left
+            w.append([
+                [0.,0.,0.],
+                [0.,0.,0.],
+                [0.,1.,0.]]) # top
+            w.append([
+                [1.,0.,0.],
+                [0.,0.,0.],
+                [0.,0.,0.]]) # bottom right
+            w.append([
+                [0.,0.,1.],
+                [0.,0.,0.],
+                [0.,0.,0.]]) # bottom left
+            w.append([
+                [0.,0.,0.],
+                [0.,0.,0.],
+                [0.,0.,1.]]) # top left
+            w.append([
+                [0.,0.,0.],
+                [0.,0.,0.],
+                [1.,0.,0.]]) # top right
         
         if not filter_mode == ParameterizedFilterMode.UnevenPosOnly and not filter_mode == ParameterizedFilterMode.EvenPosOnly and not filter_mode == ParameterizedFilterMode.TranslationSharp:
             #w = [sign*item for item in w for sign in [-1, 1]]

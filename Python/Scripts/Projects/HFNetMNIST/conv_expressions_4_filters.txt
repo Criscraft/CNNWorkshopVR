@@ -1,0 +1,123 @@
+{ 
+    "edges_st0" : 
+        {
+        "info" : "Edges in 4 orientations.",
+        "input_conv_expression_ids" : [],
+        "pooling_stage" : 0,
+        "color" : [1.0, 1.0, 1.0],
+        "output_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d"],
+        "input_channel_labels" : [],
+        "weights" : [
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [1, 1, 1, 1],
+            [[1, 0, -1, 0], [0, 1, 0, -1], [-1, 0, 1, 0], [0, -1, 0, 1]]
+            ]
+        },
+
+    "trans_edge_st0" : 
+        {
+        "info" : "Simply translates the edges without mixing them.",
+        "input_conv_expression_ids" : ["edges_st0"],
+        "pooling_stage" : 0,
+        "color" : [0.1, 0.5, 1.0],
+        "output_channel_labels" : ["edge_l_trans_l", "edge_u_trans_u", "edge_r_trans_r", "edge_d_trans_d"],
+        "input_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d"],
+        "weights" : [
+            [[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]],
+            [1, 1, 1, 1],
+            [[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]]
+            ]
+        },
+
+    "trans_st0" : 
+        {
+        "info" : "Simply translates the inputs without mixing them.",
+        "input_conv_expression_ids" : [],
+        "pooling_stage" : 0,
+        "color" : [1.0, 0.5, 0.5],
+        "output_channel_labels" : ["trans_right", "trans_down", "trans_left", "trans_up"],
+        "input_channel_labels" : [],
+        "weights" : [
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [1, 1, 1, 1],
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+            ]
+        },
+
+    "edges_diag_st0" : 
+        {
+        "info" : "Edges in 4 diagonal orientations.",
+        "input_conv_expression_ids" : ["trans_st0"],
+        "pooling_stage" : 0,
+        "color" : [0.5, 0.7, 0.7],
+        "output_channel_labels" : ["edge_ul", "edge_ur", "edge_dr", "edge_dl"],
+        "input_channel_labels" : ["trans_right", "trans_down", "trans_left", "trans_up"],
+        "weights" : [
+            [[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            [1, 1, 1, 1],
+            [[0, 1, 0, -1], [-1, 0, 1, 0], [0, -1, 0, 1], [1, 0, -1, 0]]
+            ]
+        },
+
+    "trans_edges_diag_st0" : 
+        {
+        "info" : "Simply translates the inputs without mixing them.",
+        "input_conv_expression_ids" : ["edges_diag_st0"],
+        "pooling_stage" : 0,
+        "color" : [1.0, 0.5, 0.5],
+        "output_channel_labels" : ["trans_r_edge_ul", "trans_d_edge_ur", "trans_l_edge_dr", "trans_u_edge_dl"],
+        "input_channel_labels" : ["edge_ul", "edge_ur", "edge_dr", "edge_dl"],
+        "weights" : [
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [1, 1, 1, 1],
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+            ]
+        },
+
+    "stripes_diag_st0" : 
+        {
+        "info" : "Edges in 4 diagonal orientations.",
+        "input_conv_expression_ids" : ["trans_st0"],
+        "pooling_stage" : 0,
+        "color" : [0.5, 0.7, 0.7],
+        "output_channel_labels" : ["edge_ul", "edge_ur", "edge_dr", "edge_dl"],
+        "input_channel_labels" : ["trans_right", "trans_down", "trans_left", "trans_up"],
+        "weights" : [
+            [[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            [1, 1, 1, 1],
+            [[0, 1, 0, -1], [-1, 0, 1, 0], [0, -1, 0, 1], [1, 0, -1, 0]]
+            ]
+        },
+
+    
+    
+    "stripes_st0" : 
+        {
+        "info" : "Hor and ver stripes with thickness up to 3 pixels",
+        "input_conv_expression_ids" : ["edges_st0"],
+        "pooling_stage" : 0,
+        "color" : [1.0, 0.7, 0.7],
+        "output_channel_labels" : ["hor_stripes", "ver_stripes", "zero", "zero"],
+        "input_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d"]
+        "weights" : [
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], 
+            [1, 1, 1, 1],
+            [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]]
+            ]
+        },
+
+    "stripes_3_st0" : 
+        {
+        "info" : "Hor and ver stripes with thickness up to 4 pixels",
+        "input_conv_expression_ids" : ["edges_st0", "trans_edge_st0"],
+        "pooling_stage" : 0,
+        "color" : [0.5, 1.0, 0.7],
+        "output_channel_labels" : ["hor_str_3", "ver_str_3", "zero", "zero"],
+        "input_channel_labels" : ["edge_r_trans_r", "edge_down", "edge_left", "edge_u_trans_u"],
+        "weights" : [
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], 
+            [1, 1, 1, 1],
+            [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]]
+            ]
+        }
+}
