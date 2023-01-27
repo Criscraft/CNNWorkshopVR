@@ -37,7 +37,7 @@ def get_network():
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["edges_diag_st0"],
+        conv_expressions = ["str_w3_st0"],
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
     )
         

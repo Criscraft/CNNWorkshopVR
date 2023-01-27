@@ -488,7 +488,7 @@ class TranslationNet_(nn.Module):
         pfm.initialize_weights(self.modules(), init_mode)
         
         group_size = blockconfig_list[0]['n_channels_in'] // blockconfig_list[0]['conv_groups']
-        conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions.txt"), group_size)
+        conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions_8_filters.txt"), group_size)
         with torch.no_grad():
             conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
 

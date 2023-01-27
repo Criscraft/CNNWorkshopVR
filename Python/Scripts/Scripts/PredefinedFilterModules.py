@@ -458,7 +458,7 @@ class PredefinedConvnxn(PredefinedConv):
                 [0.,0.,0.],
                 [1.,0.,0.]]) # top right
         
-        if not filter_mode == ParameterizedFilterMode.UnevenPosOnly and not filter_mode == ParameterizedFilterMode.EvenPosOnly and not filter_mode == ParameterizedFilterMode.TranslationSharp:
+        if filter_mode in [ParameterizedFilterMode.Even, ParameterizedFilterMode.Uneven, ParameterizedFilterMode.All, ParameterizedFilterMode.TranslationSmooth]:
             #w = [sign*item for item in w for sign in [-1, 1]]
             w.extend([-w_ for w_ in w])
         

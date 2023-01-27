@@ -4,7 +4,7 @@
         "info" : "Edges in 8 orientations.",
         "input_conv_expression_ids" : [],
         "pooling_stage" : 0,
-        "color" : [1.0, 1.0, 1.0],
+        "color" : [0.0, 0.0, 0.0],
         "output_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d", "ed_ul", "ed_ur", "ed_dr", "ed_dl"],
         "input_channel_labels" : [],
         "weights" : [
@@ -37,7 +37,7 @@
         "pooling_stage" : 0,
         "color" : [1.0, 0.5, 1.0],
         "output_channel_labels" : ["ed_l_tr_l", "ed_u_tr_u", "ed_r_tr_r", "ed_d_tr_d", "ed_ul_tr_ul", "ed_ur_tr_ur", "ed_dr_tr_dr", "ed_dl_tr_dl"],
-        "input_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d", "ed_tl", "ed_tr", "ed_br", "ed_bl"],
+        "input_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d", "ed_ul", "ed_ur", "ed_dr", "ed_dl"],
         "weights" : [
             [[0, 0, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0, 0, 0],
@@ -68,7 +68,7 @@
         "pooling_stage" : 0,
         "color" : [1.0, 1.0, 0.5],
         "output_channel_labels" : ["str_w3_lr", "str_w3_ud", "str_w3_uldr", "str_w3_dlur", "zero", "zero", "zero", "zero"],
-        "input_channel_labels" : ["ed_l", "ed_u", "ed_ul", ed_ur", "ed_r_tr_r", "ed_d_tr_d", "ed_dr_tr_dr", "ed_ul_tr_ul"],
+        "input_channel_labels" : ["ed_l", "ed_u", "ed_ul", "ed_ur", "ed_r_tr_r", "ed_d_tr_d", "ed_dr_tr_dr", "ed_ul_tr_ul"],
         "weights" : [
             [[0, 0, 0, 0, 1, 0, 0, 0],
             [0, 0, 0, 0, 0, 1, 0, 0],
@@ -89,5 +89,6 @@
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0]]
-        },
+            ]
+        }
 }
