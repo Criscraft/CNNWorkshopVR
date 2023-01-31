@@ -30,6 +30,7 @@ var queue_draw_edges = [] # Elements look like [out_channel_ind, out_group_ind, 
 var previous_network_module_details_manager : Control setget set_previous_network_module_details_manager # Set by table
 
 signal request_image_data(network_module_resource, feature_visualization_mode)
+signal set_loading()
 
 
 func _ready():
@@ -70,7 +71,7 @@ func set_network_module_resource(new_network_module_resource):
 	update_text()
 	emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 	if feature_visualization_mode:
-		set_loading(true)
+		emit_signal("set_loading")
 
 func recreate_channels():
 	# Delete old channels:
@@ -102,6 +103,7 @@ func recreate_channels():
 		new_instance.set_label(channel_label)
 		# Connect signal such that we get notified when a weight is changed.
 		var _error = new_instance.connect("weight_changed", self, "on_weight_changed")
+		_error = connect("set_loading", new_instance, "on_set_loading")
 	
 # Called by DLManager via group
 func receive_classification_results(_results):
@@ -109,7 +111,7 @@ func receive_classification_results(_results):
 	if not feature_visualization_mode and network_module_resource != null:
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 		if feature_visualization_mode:
-			set_loading(true)
+			emit_signal("set_loading")
 		
 
 func set_feature_visualization_mode(feature_visualization_mode_):
@@ -118,14 +120,14 @@ func set_feature_visualization_mode(feature_visualization_mode_):
 		# If we already have a network module resource we update the images.
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
 		if feature_visualization_mode:
-			set_loading(true)
+			emit_signal("set_loading")
 		
 		
 # Called by DLManager via group
 func set_fv_image_resource(_image_resource):
 	if feature_visualization_mode:
 		emit_signal("request_image_data", network_module_resource, feature_visualization_mode)
-		set_loading(true)
+		emit_signal("set_loading")
 	
 
 """
@@ -218,7 +220,6 @@ func on_pool_task_completed(task):
 		
 
 func update_image_data(image_resources):
-	set_loading(false)
 	
 	if not details_layout:
 		# Delete old channels and add new ones. This allows the number of channels to be dynamic. We do not do this when details layout is active, because it would be too expensive.
@@ -298,11 +299,6 @@ func _on_image_scale_changed():
 		var h_separation = channel_container.get("custom_constants/hseparation")
 		var columns = int(width_of_image_grid / (image_size + h_separation))
 		channel_container.columns = columns
-		
-		
-func set_loading(mode : bool):
-	$LoadingScreen.visible = mode
-	$ImagePanel.visible = not mode
 
 
 """

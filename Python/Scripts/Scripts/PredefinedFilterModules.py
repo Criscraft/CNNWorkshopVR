@@ -229,14 +229,52 @@ class BlendModule(WeightRegularizationModule):
         return out
 
 
-class TrackedAvgPool2d(nn.Module):
-    def __init__(
-        self, kernel_size=2, stride=2, padding=0
-    ) -> None:
+class Interpolate(nn.Module):
+    def __init__(self, antialias=False):
+        super().__init__()
+        self.antialias = antialias
+
+    def forward(self, x):
+        return F.interpolate(x, scale_factor=0.5, mode='bilinear', antialias=self.antialias)
+    
+
+class Subsample(nn.Module):
+    def __init__(self):
         super().__init__()
 
-        self.pool = nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=padding)
+    def forward(self, x):
+        return x[:,:,::2,::2]
+
+
+class TrackedPool(nn.Module):
+    def __init__(self, pool_mode : str = "avgpool"):
+        super().__init__()
+
+        self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
+        self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.interpolate = Interpolate(False)
+        self.interpolate_antialias = Interpolate(True)
+        self.subsample = Subsample()
+        self.pool = None
+        self.set_tracked_pool_mode(pool_mode)
         self.create_trackers()
+
+    def set_tracked_pool_mode(self, pool_mode : str):
+        if pool_mode == "avgpool":
+            self.pool = self.avg_pool
+            print("set to avgpool")
+        elif pool_mode == "maxpool":
+            self.pool = self.max_pool
+            print("set to maxpool")
+        elif pool_mode == "interpolate_antialias":
+            self.pool = self.interpolate_antialias
+            print("set to interpolate_antialias")
+        elif pool_mode == "interpolate":
+            self.pool = self.interpolate
+            print("set to interpolate")
+        elif pool_mode == "subsample":
+            self.pool = self.subsample
+            print("set to subsample")
 
     def create_trackers(self):
         self.tracker_out = tm.instance_tracker_module(label="AvgPool", draw_edges=False, ignore_highlight=True)
@@ -326,7 +364,7 @@ class ParameterizedFilterMode(enum.Enum):
    UnevenPosOnly = 6
    TranslationSmooth = 7
    TranslationSharp4 = 8
-   TranslationSharp8 = 8
+   TranslationSharp8 = 9
 
 
 class PredefinedConv(nn.Module):
@@ -644,7 +682,7 @@ class PreprocessingModule(nn.Module):
         n_channels_in: int,
         n_channels_out: int,
         conv_groups: int = 1,
-        avgpool: bool = True,
+        pool_mode: str = "avgpool",
         norm_module : nn.Module = LayerNorm,
         permutation : str = "shifted" # one of shifted, identity, disabled
     ) -> None:
@@ -656,7 +694,7 @@ class PreprocessingModule(nn.Module):
         self.tracker_in = tm.instance_tracker_module(label="Input")
 
         # Pooling
-        self.avgpool = TrackedAvgPool2d(kernel_size=2, stride=2, padding=0) if avgpool else nn.Identity()
+        self.pool = TrackedPool(pool_mode) if pool_mode else nn.Identity()
 
         # Permutation
         group_size = n_channels_in // conv_groups
@@ -680,7 +718,7 @@ class PreprocessingModule(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_in(x)
-        x = self.avgpool(x)
+        x = self.pool(x)
         x = self.permutation_module(x)
         x = self.copymodule(x)
         x = self.norm_module(x)
@@ -693,7 +731,7 @@ class TranslationBlock(nn.Module):
         n_channels_in: int,
         n_channels_out: int, # n_channels_out % shuffle_conv_groups == 0
         conv_groups: int = 1,
-        avgpool: bool = True,
+        pool_mode: str = "avgpool",
         spatial_mode : str = "predefined_filters", # one of predefined_filters and parameterized_translation
         spatial_requires_grad : bool = True,
         filter_mode: str = "Uneven",
@@ -712,7 +750,7 @@ class TranslationBlock(nn.Module):
         else:
             raise ValueError
 
-        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, avgpool, norm_module, permutation)
+        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, pool_mode, norm_module, permutation)
 
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")

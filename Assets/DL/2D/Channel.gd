@@ -4,6 +4,7 @@ export var weight_edit_container_scene : PackedScene = preload("res://Assets/DL/
 var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/DebouncingTimer.tscn")
 var button_up_scene : PackedScene = preload("res://Assets/DL/2D/ButtonUp.tscn")
 var button_down_scene : PackedScene = preload("res://Assets/DL/2D/ButtonDown.tscn")
+onready var loading_image : StreamTexture = preload("res://Assets/Materials/loading.png")
 var margin = 10
 var weight_slider_height = 60
 var image_height = 256
@@ -88,4 +89,8 @@ func set_size_of_children(size_new):
 # Also called by on_button_up_pressed and on_button_down_pressed
 func on_weight_changed(weight, weight_ind, weight_name):
 	emit_signal("weight_changed", weight, channel_ind, weight_ind, weight_name)
+	
+# Called via signal by NetworkModuleDetailsManager
+func on_set_loading():
+	$ChannelImageTile/Image.texture = loading_image
 	

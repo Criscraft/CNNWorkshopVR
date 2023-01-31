@@ -18,7 +18,7 @@ class TranslationNet(nn.Module):
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0
             'conv_groups' : 16 // 4,
-            'avgpool' : True if i in [3, 6] else False,
+            'pool_mode' : "avgpool" if i in [3, 6] else "",
             'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
             'spatial_requires_grad' : False,
             'filter_mode' : "TranslationSharp8", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
@@ -115,8 +115,8 @@ class ConvExpressionsManager():
             trackers_in=[
                 self.block.preprocessing.tracker_in,
             ]
-            if hasattr(self.block.preprocessing.avgpool, "tracker_out"):
-                trackers_in.append(self.block.preprocessing.avgpool.tracker_out)
+            if hasattr(self.block.preprocessing.pool, "tracker_out"):
+                trackers_in.append(self.block.preprocessing.pool.tracker_out)
 
             trackers_in_permuted = [
                 self.block.preprocessing.permutation_module.tracker_out,
@@ -131,16 +131,14 @@ class ConvExpressionsManager():
 
             # Add labels of the channel. This code paragraph does not work when a copy module copys channels.
             if self.precursors:
-                label_position_dict = {} # stores for each channel label the channel position at the precursor 
                 for precursor in self.precursors:
-                    for i, out_channel_label in enumerate(precursor.output_channel_labels):
-                        label_position_dict[out_channel_label] = precursor.channel_position + i
-                for tracker in trackers_in:
-                    if "channel_labels" not in tracker.data['data']:
-                        tracker.data['data']["channel_labels"] = ["" for _ in range(self.n_channels_out_layer)]
-                    labels = tracker.data['data']["channel_labels"]
-                    for label in self.input_channel_labels:
-                        labels[label_position_dict[label]] = label
+                    for tracker in trackers_in:
+                        if "channel_labels" not in tracker.data['data']:
+                            tracker.data['data']["channel_labels"] = ["" for _ in range(precursor.n_channels_out_layer)]
+                        labels = tracker.data['data']["channel_labels"]
+                        for channel, label in enumerate(precursor.output_channel_labels):
+                            out_channel_shifted = channel + precursor.channel_position
+                            labels[out_channel_shifted] = label
 
                 for tracker in trackers_in_permuted:
                     if "channel_labels" not in tracker.data['data']:
@@ -160,8 +158,13 @@ class ConvExpressionsManager():
         
 
         def write_colors(self):
-            trackers = [
+            trackers_in=[
                 self.block.preprocessing.tracker_in,
+            ]
+            if hasattr(self.block.preprocessing.pool, "tracker_out"):
+                trackers_in.append(self.block.preprocessing.pool.tracker_out)
+
+            trackers = [
                 self.block.preprocessing.permutation_module.tracker_out,
                 self.block.preprocessing.norm_module.tracker_out,
                 self.block.tracker_input_conv_1,
@@ -175,9 +178,18 @@ class ConvExpressionsManager():
                 self.block.conv1x1_2.conv1x1.tracker_out,
                 self.block.conv1x1_2.relu.tracker_out,
             ]
-            if hasattr(self.block.preprocessing.avgpool, "tracker_out"):
-                trackers.append(self.block.preprocessing.avgpool.tracker_out)
+            if hasattr(self.block.preprocessing.pool, "tracker_out"):
+                trackers.append(self.block.preprocessing.pool.tracker_out)
 
+            for precursor in self.precursors:
+                for tracker in trackers_in:
+                    if "colors" not in tracker.data['data']:
+                        tracker.data['data']["colors"] = [[] for _ in range(precursor.n_channels_out_layer)]
+                    colors = tracker.data['data']["colors"]
+                    for channel in range(precursor.n_channels_out):
+                        out_channel_shifted = channel + precursor.channel_position
+                        colors[out_channel_shifted] = precursor.color
+                    
             for tracker in trackers:
                 if "colors" not in tracker.data['data']:
                     tracker.data['data']["colors"] = [[] for _ in range(self.n_channels_out_layer)]
@@ -231,7 +243,7 @@ class ConvExpressionsManager():
         layerings_in_poolstages, blocks_of_layers = self.get_layerings_in_poolstages(conv_expressions_in_poolstages, pool_stage_list)
         # layerings_in_poolstages is a list of shape [n_poolstages, n_layers, n_elements]
         # A layering is a list of shape [n_layers, n_elements]
-        # blocks_of_layers is a list of shape [n_layers, n_blocks_in_this_layer]. It contains the block ids that are contained within each layer.
+        # blocks_of_layers is a list of shape [n_layers]. It contains the block id that is on the layer
 
         # Create a node for each convolutional expression
         block_channel_counts = [0 for i in range(len(blocks))]
@@ -256,7 +268,8 @@ class ConvExpressionsManager():
                     node.input_channel_labels = conv_expression['input_channel_labels']
                     node.output_channel_labels = conv_expression['output_channel_labels']
                     nodes[conv_expression_id] = node
-                layer_id += 1
+                if layer:
+                    layer_id += 1
 
         # For each conv expression check if the precursor ends at the previous block. If not, add linker expressions (they have identity weights) in between.
         self.add_linker_nodes(nodes, blocks, block_channel_counts)
@@ -272,7 +285,7 @@ class ConvExpressionsManager():
 
 
     def get_conv_expressions_in_poolstages(self, target_conv_expressions, blockconfig_list):
-        pool_booleans = [blockconfig["avgpool"] for blockconfig in blockconfig_list]
+        pool_booleans = [bool(blockconfig["pool_mode"]) for blockconfig in blockconfig_list]
         pool_stage_list = [0] # stores for each block the pool stage
         for pool_boolean in pool_booleans[1:]:
             if pool_boolean:
@@ -462,7 +475,7 @@ class TranslationNet_(nn.Module):
                 n_channels_in=config['n_channels_in'],
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],
-                avgpool=config['avgpool'],
+                pool_mode=config['pool_mode'],
                 spatial_mode=config['spatial_mode'],
                 spatial_requires_grad = config['spatial_requires_grad'],
                 filter_mode=config['filter_mode'],

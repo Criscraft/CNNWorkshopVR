@@ -2,6 +2,8 @@ extends Resource
 class_name FVSettingsResource
 
 enum MODE {AVERAGE, CENTERPIXEL, PERCENTILE}
+enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample}
+
 
 export var mode : int = MODE.PERCENTILE
 export var epochs : int = 100
@@ -11,6 +13,7 @@ export var degrees : int = 0
 export var blur_sigma : float = 0
 export var roll : int = 0
 export var fraction_to_maximize : float = 0.25
+export var pool_mode : int = POOLMODE.avgpool
 
 func get_dict():
 	var out = {
@@ -22,6 +25,7 @@ func get_dict():
 		"blur_sigma" : blur_sigma,
 		"roll" : roll,
 		"fraction_to_maximize" : fraction_to_maximize,
+		"pool_mode" : POOLMODE.keys()[pool_mode],
 	}
 	return out
 	

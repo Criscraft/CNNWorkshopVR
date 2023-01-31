@@ -31,6 +31,8 @@ class FeatureVisualizationParams(object):
         blur_sigma=0.5,
         roll=4,
         fraction_to_maximize=0.25,
+        pool_mode="avgpool", # has no effect but is listed here for completeness
+
         ):
 
         self.target_size = target_size

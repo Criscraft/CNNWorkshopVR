@@ -110,9 +110,14 @@ class DLNetwork(object):
 
 
     def set_feature_visualization_params(self, param_dict):
+        # Create new FeatureVisualizationParams instance and attach it to the feature visualizer. 
         fv_settings = FeatureVisualizationParams(**param_dict)
         fv_settings.mode = FeatureVisualizationParams.Mode(param_dict["mode"])
         self.feature_visualizer.fv_settings = fv_settings
+        # Change the pooling mode of the network.
+        for module in self.model.modules():
+            if hasattr(module, "set_tracked_pool_mode"):
+                module.set_tracked_pool_mode(param_dict['pool_mode'])
 
 
     def get_classification_result(self):

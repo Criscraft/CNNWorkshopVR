@@ -26,7 +26,7 @@ def get_network():
             {'n_channels_in' : 1 if i==0 else 16,
             'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0
             'conv_groups' : 16 // 8,
-            'avgpool' : True if i in [3, 6] else False,
+            'pool_mode' : "avgpool" if i in [3, 6] else "",
             'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
             'spatial_requires_grad' : False,
             'filter_mode' : "TranslationSharp8", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
@@ -37,7 +37,7 @@ def get_network():
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["str_w3_st0"],
+        conv_expressions = ["x_str_w3_st1"],
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
     )
         

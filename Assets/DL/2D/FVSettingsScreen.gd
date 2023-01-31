@@ -4,6 +4,7 @@ var fv_settings_resource : FVSettingsResource setget set_fv_settings_resource
 var settings_changed : bool = false
 onready var debouncing_timer = $DebouncingTimer
 onready var option_button_mode = $VBoxContainer/OptionButtonMode
+onready var option_button_pool_mode = $VBoxContainer/OptionButtonPoolMode
 onready var slider_epochs : HSlider = $VBoxContainer/SliderEpochs
 onready var value_epochs : Label = $VBoxContainer/ValueEpochs
 onready var slider_learning_rate : HSlider = $VBoxContainer/SliderLearningRate
@@ -21,11 +22,16 @@ func _ready():
 	option_button_mode.add_item("Average")
 	option_button_mode.add_item("Center pixel")
 	option_button_mode.add_item("Fraction to maximize")
-
+	option_button_pool_mode.add_item("avgpool")
+	option_button_pool_mode.add_item("maxpool")
+	option_button_pool_mode.add_item("interpolate_antialias")
+	option_button_pool_mode.add_item("interpolate")
+	option_button_pool_mode.add_item("subsample")
 
 func set_fv_settings_resource(fv_settings_resource_):
 	fv_settings_resource = fv_settings_resource_
 	option_button_mode.select(fv_settings_resource.mode)
+	option_button_pool_mode.select(fv_settings_resource.pool_mode)
 	slider_epochs.value = fv_settings_resource.epochs
 	value_epochs.text = str(fv_settings_resource.epochs)
 	slider_learning_rate.value = fv_settings_resource.lr
@@ -45,7 +51,12 @@ func _on_OptionButtonMode_item_selected(index):
 	fv_settings_resource.mode = index
 	settings_changed = true
 	debouncing_timer._on_trigger()
-	print("option button selected")
+
+
+func _on_OptionButtonPoolMode_item_selected(index):
+	fv_settings_resource.pool_mode = index
+	settings_changed = true
+	debouncing_timer._on_trigger()
 
 
 func _on_SliderEpochs_value_changed(value):
@@ -97,3 +108,5 @@ func _on_DebouncingTimer_timeout():
 	if settings_changed:
 		DLManager.set_fv_settings(fv_settings_resource.get_dict())
 		settings_changed = false
+
+

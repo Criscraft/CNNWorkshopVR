@@ -50,25 +50,25 @@
 
             [1, 1, 1, 1, 1, 1, 1, 1],
 
-            [[1, 0, -1, 0, 0, 0, 0, 0],
-            [0, 1, 0, -1, 0, 0, 0, 0],
-            [-1, 0, 1, 0, 0, 0, 0, 0],
-            [0, -1, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, -1, 0],
-            [0, 0, 0, 0, 0, 1, 0, -1],
-            [0, 0, 0, 0, -1, 0, 1, 0],
-            [0, 0, 0, 0, 0, -1, 0, 1]]
+            [[0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0]]
             ]
         },
 
     "str_w3_st0" : 
         {
-        "info" : "Stripes in 4 orientations with thickness of about 3 pixels",
+        "info" : "Stripes in 4 orientations with thickness of about 3 pixels. The stripe of str_w3_ver spans two pixels up and one down. The stripe of str_w3_hor spans two pixels left and one right. The stripe of str_w3_ur spans two pixels to the upper left and one down right. The stripe of str_w3_dr spans two pixels to the upper right and one down left.",
         "input_conv_expression_ids" : ["ed_st0", "tra_ed_st0"],
         "pooling_stage" : 0,
         "color" : [1.0, 1.0, 0.5],
         "output_channel_labels" : ["str_w3_lr", "str_w3_ud", "str_w3_uldr", "str_w3_dlur", "zero", "zero", "zero", "zero"],
-        "input_channel_labels" : ["ed_l", "ed_u", "ed_ul", "ed_ur", "ed_r_tr_r", "ed_d_tr_d", "ed_dr_tr_dr", "ed_ul_tr_ul"],
+        "input_channel_labels" : ["ed_l", "ed_u", "ed_ul", "ed_ur", "ed_r_tr_r", "ed_d_tr_d", "ed_dr_tr_dr", "ed_dl_tr_dl"],
         "weights" : [
             [[0, 0, 0, 0, 1, 0, 0, 0],
             [0, 0, 0, 0, 0, 1, 0, 0],
@@ -88,6 +88,37 @@
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]]
+            ]
+        },
+
+    "x_str_w3_st1" : 
+        {
+        "info" : "Stripe combinations",
+        "input_conv_expression_ids" : ["str_w3_st0"],
+        "pooling_stage" : 1,
+        "color" : [1.0, 0.5, 0.5],
+        "output_channel_labels" : ["2_str_w3_lr", "2_str_w3_ud", "2_str_w3_uldr", "2_str_w3_dlur", "cube_w3", "diam_w3", "circ_w3", "zero"],
+        "input_channel_labels" : ["str_w3_lr", "str_w3_ud", "str_w3_uldr", "str_w3_dlur"],
+        "weights" : [
+            [[0, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0]],
+
+            [1, 1, 1, 1, 1, 1, 1, 1],
+
+            [[0, 1, 0, 1, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 1],
+            [0, 0, 0, 0, 1, 0, 1, 0],
+            [1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0, 0, 0]]
             ]
         }
