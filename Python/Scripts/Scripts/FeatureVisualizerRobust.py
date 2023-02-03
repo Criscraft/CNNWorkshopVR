@@ -22,20 +22,19 @@ class FeatureVisualizationParams(object):
         PERCENTILE = "PERCENTILE"
         
     def __init__(self,
-        target_size=(28, 28),
         mode=Mode.CENTERPIXEL,
         epochs=200,
-        epochs_without_robustness_transforms=10,
+        epochs_without_robustness_transforms=0,
         lr=20.,
-        degrees=10,
+        degrees=0,
         blur_sigma=0.5,
-        roll=4,
+        roll=0,
         fraction_to_maximize=0.25,
         pool_mode="avgpool", # has no effect but is listed here for completeness
+        filter_mode=False, # has no effect but is listed here for completeness
 
         ):
 
-        self.target_size = target_size
         self.mode = mode
         self.epochs = epochs
         self.epochs_without_robustness_transforms = epochs_without_robustness_transforms
@@ -58,10 +57,13 @@ class FeatureVisualizer(object):
         self.export = export
         self.export_interval = export_interval
         self.export_path = export_path
-        self.fv_settings = fv_settings
-
-        self.regularizer = self.create_regularizer()
+        self.set_fv_settings(fv_settings)
         self.export_transformation = ExportTransform()
+
+    
+    def set_fv_settings(self, feature_visualization_params):
+        self.fv_settings = feature_visualization_params
+        self.regularizer = self.create_regularizer()
 
 
     def visualize(self, model, module, device, init_image, n_channels, channels=None):
@@ -83,13 +85,16 @@ class FeatureVisualizer(object):
             channels_batch = channels[batchid * BATCHSIZE : (batchid + 1) * BATCHSIZE]
             n_batch_items = len(channels_batch)
             created_image = init_image.detach().clone().repeat(n_batch_items, 1, 1, 1)
+            model.embedded_model.toggle_relus(False)
 
             for epoch in range(self.fv_settings.epochs):
-                if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
-                    with torch.no_grad():
+                if epoch == self.fv_settings.epochs // 2:
+                    model.embedded_model.toggle_relus(True)
+                with torch.no_grad():
+                    if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
                         created_image = self.regularizer(created_image)
-                
-                created_image = created_image.detach()#.clone()
+                    created_image = created_image.clamp(-2., 2.)
+                created_image = created_image.detach()
                 created_image.requires_grad = True
 
                 # Set gradients zero
@@ -152,7 +157,6 @@ class FeatureVisualizer(object):
 
     def create_regularizer(self):
         return Regularizer(
-            self.fv_settings.target_size, 
             self.fv_settings.degrees, 
             self.fv_settings.blur_sigma, 
             self.fv_settings.roll
@@ -175,9 +179,11 @@ class ExportTransform(object):
         return x
 
 
+# TODO Remove the target size. the size of the images should be determined by the init image.
 class Regularizer(object):
 
-    def __init__(self, target_size, degrees, blur_sigma, roll):
+    def __init__(self, degrees, blur_sigma, roll):
+        target_size = (1, 28, 28)
         
         transform_list = []
         if degrees > 0:
@@ -199,8 +205,6 @@ class Regularizer(object):
                 RandomRoll(roll),
                 ]), p=0.3)
             transform_list.append(rolling)
-        
-        transform_list.append(DistributionRegularizer())
 
         self.transformation = transforms.Compose(transform_list)
 

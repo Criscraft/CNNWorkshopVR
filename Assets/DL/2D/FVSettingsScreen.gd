@@ -27,6 +27,8 @@ func _ready():
 	option_button_pool_mode.add_item("interpolate_antialias")
 	option_button_pool_mode.add_item("interpolate")
 	option_button_pool_mode.add_item("subsample")
+	option_button_pool_mode.add_item("identity")
+	option_button_pool_mode.add_item("identity_smooth")
 
 func set_fv_settings_resource(fv_settings_resource_):
 	fv_settings_resource = fv_settings_resource_
@@ -55,6 +57,12 @@ func _on_OptionButtonMode_item_selected(index):
 
 func _on_OptionButtonPoolMode_item_selected(index):
 	fv_settings_resource.pool_mode = index
+	settings_changed = true
+	debouncing_timer._on_trigger()
+
+
+func _on_CheckBoxFilter_toggled(button_pressed):
+	fv_settings_resource.filter_mode = button_pressed
 	settings_changed = true
 	debouncing_timer._on_trigger()
 
@@ -108,5 +116,3 @@ func _on_DebouncingTimer_timeout():
 	if settings_changed:
 		DLManager.set_fv_settings(fv_settings_resource.get_dict())
 		settings_changed = false
-
-

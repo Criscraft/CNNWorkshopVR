@@ -246,6 +246,28 @@ class Subsample(nn.Module):
         return x[:,:,::2,::2]
 
 
+class SmoothConv(nn.Module):
+    def __init__(
+        self,
+        k: int = 3,
+    ) -> None:
+        super().__init__()
+
+        self.padding = k//2
+
+        w = [get_parameterized_filter(k, ParameterizedFilterMode.Smooth)]
+        w = torch.FloatTensor(w)
+        w = w.unsqueeze(1)
+        self.w = nn.Parameter(w, False)
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        n_channels_in = x.shape[1]
+        w_tmp = self.w.repeat((n_channels_in, 1, 1, 1))
+        out = F.conv2d(x, w_tmp, padding=self.padding, groups=n_channels_in)
+        return out
+    
+
 class TrackedPool(nn.Module):
     def __init__(self, pool_mode : str = "avgpool"):
         super().__init__()
@@ -255,6 +277,8 @@ class TrackedPool(nn.Module):
         self.interpolate = Interpolate(False)
         self.interpolate_antialias = Interpolate(True)
         self.subsample = Subsample()
+        self.identity = nn.Identity()
+        self.smooth = SmoothConv()
         self.pool = None
         self.set_tracked_pool_mode(pool_mode)
         self.create_trackers()
@@ -275,9 +299,15 @@ class TrackedPool(nn.Module):
         elif pool_mode == "subsample":
             self.pool = self.subsample
             print("set to subsample")
+        elif pool_mode == "identity":
+            self.pool = self.identity
+            print("set to identity")
+        elif pool_mode == "identity_smooth":
+            self.pool = self.smooth
+            print("set to identity_smooth")
 
     def create_trackers(self):
-        self.tracker_out = tm.instance_tracker_module(label="AvgPool", draw_edges=False, ignore_highlight=True)
+        self.tracker_out = tm.instance_tracker_module(label="Pool", draw_edges=False, ignore_highlight=True)
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.pool(x)
@@ -378,6 +408,7 @@ class PredefinedConv(nn.Module):
         assert self.n_channels_out >= self.n_channels_in
         self.stride = stride
         self.internal_weight = None # set by subclass
+        self.dilation = 1
 
     # Called in init by subclass
     def create_trackers(self):
@@ -387,8 +418,8 @@ class PredefinedConv(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         groups = self.n_channels_in
         if self.padding:
-            x = F.pad(x, (1,1,1,1), "replicate")
-        out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups)
+            x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
+        out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups, dilation=self.dilation)
 
         _ = self.tracker_out(out)
         #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
@@ -412,6 +443,11 @@ def saddle(x, y, phi, sigma, uneven=True):
 
     return out
 
+def smooth(x, y, sigma):
+    r = np.sqrt(x**2 + y**2)
+    out =  np.exp(-0.5*(r/sigma)**2)
+    return out
+
 
 def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None, phi:float=0.):
     border = 0.5*(k-1.)
@@ -424,6 +460,8 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     elif filter_mode==ParameterizedFilterMode.Uneven:
         data = saddle(xx, yy, phi, sigma=0.3*k, uneven=True)
         data = data - data.mean()
+    elif filter_mode==ParameterizedFilterMode.Smooth:
+        data = smooth(xx, yy, sigma=0.25*k)
     
     data = data / np.abs(data).sum()
 
@@ -516,7 +554,21 @@ class PredefinedConvnxn(PredefinedConv):
         self.internal_weight = nn.Parameter(internal_weight, False)
 
         self.create_trackers()
-    
+
+    def resize_filter_to_mimic_poolstage(self, pool_stage):
+        # n_channels_per_kernel = self.n_channels_out // self.n_kernels
+        # if pool_stage == 0:
+        #     weight = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
+        # else:
+        #     expand_factor = 2**pool_stage
+        #     weight = self.weight.data.clone().detach()
+        #     weight = weight.repeat_interleave(expand_factor,1).repeat_interleave(expand_factor,2)
+        # self.internal_weight.data = weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
+        expand_factor = 2**pool_stage
+        self.dilation = expand_factor
+        effective_kernel_size = 1+2*expand_factor
+        self.padding = effective_kernel_size//2
+        
 
 class PredefinedFilterModule3x3Part(nn.Module):
     def __init__(

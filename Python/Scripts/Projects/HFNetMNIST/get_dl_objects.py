@@ -23,9 +23,9 @@ def get_network():
     model = TranslationNet(
         n_classes=10,
         blockconfig_list=[
-            {'n_channels_in' : 1 if i==0 else 16,
-            'n_channels_out' : 16, # n_channels_out % shuffle_conv_groups == 0
-            'conv_groups' : 16 // 8,
+            {'n_channels_in' : 1 if i==0 else 6*8,
+            'n_channels_out' : 6*8, # n_channels_out % shuffle_conv_groups == 0
+            'conv_groups' : 6*8 // 8,
             'pool_mode' : "avgpool" if i in [3, 6] else "",
             'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
             'spatial_requires_grad' : False,
@@ -37,7 +37,7 @@ def get_network():
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["x_str_w3_st1"],
+        conv_expressions = ["digit_parts_1_2_5", "digit_parts_6_8_9", "x_longstr_st1", "x_longstr_st2", "longstr_edges_st1", "longstr_edges_diag_st1"],
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
     )
         

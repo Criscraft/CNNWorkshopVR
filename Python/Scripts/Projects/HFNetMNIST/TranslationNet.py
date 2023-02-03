@@ -271,27 +271,49 @@ class ConvExpressionsManager():
                 if layer:
                     layer_id += 1
 
+        # create output_nodes
+        for conv_expression in target_conv_expressions:
+                node = self.Node()
+                node.id = conv_expression + "_out"
+                node.block_ind = len(blocks)
+                node.block = None
+                node.precursors = [conv_expression]
+                #node.n_channels_out = len(node.weights[2])
+                #node.channel_position = block_channel_counts[block_ind]
+                #node.n_channels_out_layer = blocks[block_ind].conv1x1_1.conv1x1.tracker_out.data["data"]["grouped_conv_weight"].shape[0]
+                #node.color = self.conv_expressions[conv_expression_id]['color']
+                #node.input_channel_labels = conv_expression['input_channel_labels']
+                #node.output_channel_labels = conv_expression['output_channel_labels']
+                nodes[conv_expression_id] = node
+
         # For each conv expression check if the precursor ends at the previous block. If not, add linker expressions (they have identity weights) in between.
         self.add_linker_nodes(nodes, blocks, block_channel_counts)
 
         # Fill the network weights with values according to the conv expressions
         for node in nodes.values():
-            node.write_colors()
-            node.write_weights()
-            node.write_channel_labels()
+            if node.block is not None:
+                node.write_colors()
+                node.write_weights()
+                node.write_channel_labels()
 
         # Plot the block layout.
         self.draw_conv_expressions(nodes)
 
 
-    def get_conv_expressions_in_poolstages(self, target_conv_expressions, blockconfig_list):
+    def get_pool_stage_list(self, blockconfig_list):
+        # pool_stage_list stores for each block the pool stage
         pool_booleans = [bool(blockconfig["pool_mode"]) for blockconfig in blockconfig_list]
-        pool_stage_list = [0] # stores for each block the pool stage
+        pool_stage_list = [0] 
         for pool_boolean in pool_booleans[1:]:
             if pool_boolean:
                 pool_stage_list.append(pool_stage_list[-1] + 1)
             else:
                 pool_stage_list.append(pool_stage_list[-1])
+        return pool_stage_list
+
+
+    def get_conv_expressions_in_poolstages(self, target_conv_expressions, blockconfig_list):
+        pool_stage_list = self.get_pool_stage_list(blockconfig_list)
         n_pool_stages = pool_stage_list[-1] + 1
         
         # For each pool stage get a list of expression ids.
@@ -465,6 +487,8 @@ class TranslationNet_(nn.Module):
         tm = pfm.tm
         tm.reset_ids()
 
+        self.blockconfig_list = blockconfig_list
+
         # Input
         tm.instance_tracker_module_group(label="Input", precursors=[])
         self.tracker_input = tm.instance_tracker_module(label="Input", precursors=[])
@@ -501,9 +525,36 @@ class TranslationNet_(nn.Module):
         pfm.initialize_weights(self.modules(), init_mode)
         
         group_size = blockconfig_list[0]['n_channels_in'] // blockconfig_list[0]['conv_groups']
-        conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions_8_filters.txt"), group_size)
+        self.conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions_8_filters.txt"), group_size)
         with torch.no_grad():
-            conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
+            self.conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
+
+
+    def set_tracked_pool_mode_(self, pool_mode):
+        for module in self.modules():
+            if hasattr(module, "set_tracked_pool_mode"):
+                module.set_tracked_pool_mode(pool_mode)
+
+
+    def toggle_relus(self, mode : bool):
+        for module in self.modules():
+            if isinstance(module, (nn.ReLU, nn.LeakyReLU)):
+                if not hasattr(module, "forward_original"):
+                    module.forward_original = module.forward
+                if mode:
+                    module.forward = module.forward_original
+                else:
+                    module.forward = lambda x : x
+
+    def resize_filter_to_mimic_poolstage_(self, mode : bool):
+        if mode:
+            poolstage_list = self.conv_expression_manager.get_pool_stage_list(self.blockconfig_list)
+            for i, block in enumerate(self.blocks):
+                block.spatial.predev_conv.resize_filter_to_mimic_poolstage(poolstage_list[i])
+        else:
+            for block in self.blocks:
+                block.spatial.predev_conv.resize_filter_to_mimic_poolstage(0)                   
+
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_input(x)
