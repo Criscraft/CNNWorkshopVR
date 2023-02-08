@@ -740,6 +740,9 @@ class PreprocessingModule(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.n_channels_in = n_channels_in # used to determine if the module copies channels afterwards
+        self.n_channels_out = n_channels_out # used to determine if the module copies channels afterwards
+
         tm.instance_tracker_module_group(label="Preprocessing")
 
         # Input tracker
@@ -748,31 +751,31 @@ class PreprocessingModule(nn.Module):
         # Pooling
         self.pool = TrackedPool(pool_mode) if pool_mode else nn.Identity()
 
-        # Permutation
-        group_size = n_channels_in // conv_groups
-        if permutation == "shifted":
-            self.permutation_module = PermutationModule(torch.arange(n_channels_in).roll(group_size // 2))
-        elif permutation == "identity":
-            self.permutation_module = PermutationModule(torch.arange(n_channels_in))
-        elif permutation == "disabled":
-            self.permutation_module = nn.Identity()
-        else:
-            raise ValueError
-
         # Copy channels.
         if n_channels_in != n_channels_out:
             self.copymodule = CopyModuleNonInterleave(n_channels_in, n_channels_out)
         else:
             self.copymodule = nn.Identity()
             
+        # Permutation
+        if permutation == "shifted":
+            group_size = n_channels_in // conv_groups
+            self.permutation_module = PermutationModule(torch.arange(n_channels_out).roll(group_size // 2) % n_channels_in)
+        elif permutation == "identity":
+            self.permutation_module = PermutationModule(torch.arange(n_channels_out) % n_channels_in)
+        elif permutation == "disabled":
+            self.permutation_module = nn.Identity()
+        else:
+            raise ValueError
+        
         # Norm
         self.norm_module = norm_module(n_channels_out)
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_in(x)
         x = self.pool(x)
-        x = self.permutation_module(x)
         x = self.copymodule(x)
+        x = self.permutation_module(x)
         x = self.norm_module(x)
         return x
 

@@ -178,8 +178,6 @@ class ConvExpressionsManager():
                 self.block.conv1x1_2.conv1x1.tracker_out,
                 self.block.conv1x1_2.relu.tracker_out,
             ]
-            if hasattr(self.block.preprocessing.pool, "tracker_out"):
-                trackers.append(self.block.preprocessing.pool.tracker_out)
 
             for precursor in self.precursors:
                 for tracker in trackers_in:
@@ -201,10 +199,10 @@ class ConvExpressionsManager():
         def write_weights(self):
             # Permutation
             if self.precursors:
-                label_position_dict = {} # stores for each channel label the channel position at the precursor 
+                label_position_dict = {} # stores for each channel label the channel position at the precursor
                 for precursor in self.precursors:
                     for i, out_channel_label in enumerate(precursor.output_channel_labels):
-                        label_position_dict[out_channel_label] = precursor.channel_position + i
+                        label_position_dict[out_channel_label] = (precursor.channel_position + i)
                 data = self.block.preprocessing.permutation_module.indices.data
                 for channel_ind, label in enumerate(self.input_channel_labels):
                     data[self.channel_position + channel_ind] = label_position_dict[label]
@@ -263,38 +261,43 @@ class ConvExpressionsManager():
                     node.n_channels_out = len(node.weights[2])
                     node.channel_position = block_channel_counts[block_ind]
                     block_channel_counts[block_ind] += node.n_channels_out
-                    node.n_channels_out_layer = blocks[block_ind].conv1x1_1.conv1x1.tracker_out.data["data"]["grouped_conv_weight"].shape[0]
+                    node.n_channels_out_layer = blocks[block_ind].preprocessing.n_channels_out
                     node.color = self.conv_expressions[conv_expression_id]['color']
                     node.input_channel_labels = conv_expression['input_channel_labels']
                     node.output_channel_labels = conv_expression['output_channel_labels']
-                    nodes[conv_expression_id] = node
+                    nodes[node.id] = node
                 if layer:
                     layer_id += 1
 
         # create output_nodes
+        output_node_ids = []
         for conv_expression in target_conv_expressions:
-                node = self.Node()
-                node.id = conv_expression + "_out"
-                node.block_ind = len(blocks)
-                node.block = None
-                node.precursors = [conv_expression]
-                #node.n_channels_out = len(node.weights[2])
-                #node.channel_position = block_channel_counts[block_ind]
-                #node.n_channels_out_layer = blocks[block_ind].conv1x1_1.conv1x1.tracker_out.data["data"]["grouped_conv_weight"].shape[0]
-                #node.color = self.conv_expressions[conv_expression_id]['color']
-                #node.input_channel_labels = conv_expression['input_channel_labels']
-                #node.output_channel_labels = conv_expression['output_channel_labels']
-                nodes[conv_expression_id] = node
+            precursor = nodes[conv_expression]
+            node = self.Node()
+            node.id = conv_expression + "_out"
+            node.block_ind = len(blocks)
+            node.block = None
+            node.precursors = [precursor]
+            nodes[node.id] = node
+            output_node_ids.append(node.id + f"_{node.block_ind}")
+
+        # Change node ids. They should include the block indices.
+        for node in nodes.values():
+            node.id = node.id + f"_{node.block_ind}"
+        nodes = {node.id : node for node in list(nodes.values())}
 
         # For each conv expression check if the precursor ends at the previous block. If not, add linker expressions (they have identity weights) in between.
         self.add_linker_nodes(nodes, blocks, block_channel_counts)
 
+        # delete superfluous output nodes
+        for output_node_id in output_node_ids:
+            del nodes[output_node_id]
+
         # Fill the network weights with values according to the conv expressions
         for node in nodes.values():
-            if node.block is not None:
-                node.write_colors()
-                node.write_weights()
-                node.write_channel_labels()
+            node.write_colors()
+            node.write_weights()
+            node.write_channel_labels()
 
         # Plot the block layout.
         self.draw_conv_expressions(nodes)
@@ -318,7 +321,7 @@ class ConvExpressionsManager():
         
         # For each pool stage get a list of expression ids.
         conv_expressions_in_poolstages = [[] for i in range(n_pool_stages)] # Holds for each pool stage the ids of the expressions that should be generated.
-        expression_frontier = target_conv_expressions
+        expression_frontier = target_conv_expressions.copy()
         # Traverse the graph and fill conv_expressions_in_poolstages. 
         while expression_frontier:
             conv_expression_id = expression_frontier.pop()
@@ -379,35 +382,40 @@ class ConvExpressionsManager():
                     precursor_new = precursor
                     
                     for block_new_ind in range(precursor.block_ind + 1, node.block_ind):
+                        precursor_new_ind_parts = precursor_new.id.split("_")
+                        node_new_id = "_".join(precursor_new_ind_parts[:-1]) + "_" + str(block_new_ind)
                         
-                        # Create identity node
-                        node_new = self.Node()
-                        node_new.id = f"identity_{identity_counter}"
-                        identity_counter += 1
-                        node_new.n_channels_out = precursor.n_channels_out
-                        node_new.channel_position = block_channel_counts[block_new_ind]
-                        block_channel_counts[block_new_ind] += node_new.n_channels_out
-                        node_new.block_ind = block_new_ind
-                        node_new.block = blocks[block_new_ind]
-                        node_new.precursors = [precursor_new]
-                        node_new.weights = [
-                            [ [1 if channel % precursor_group_size == group_member else 0 for group_member in range(precursor_group_size) ] for channel in range(precursor.n_channels_out) ],
-                            [0 for _ in range(precursor.n_channels_out)],
-                            [ [1 if channel % precursor_group_size == group_member else 0 for group_member in range(precursor_group_size) ] for channel in range(precursor.n_channels_out) ],
-                            ]
-                        node_new.n_channels_out_layer = node_new.block.conv1x1_1.conv1x1.tracker_out.data["data"]["grouped_conv_weight"].shape[0]
-                        node_new.color = precursor.color
-                        node_new.output_channel_labels = precursor.output_channel_labels
-                        node_new.input_channel_labels = precursor.output_channel_labels
+                        if node_new_id not in nodes:
+                            # Create identity node
+                            node_new = self.Node()
+                            node_new.id = node_new_id
+                            node_new.n_channels_out = precursor.n_channels_out
+                            node_new.channel_position = block_channel_counts[block_new_ind]
+                            block_channel_counts[block_new_ind] += node_new.n_channels_out
+                            node_new.block_ind = block_new_ind
+                            node_new.block = blocks[block_new_ind]
+                            node_new.precursors = [precursor_new]
+                            node_new.weights = [
+                                [ [1 if channel % precursor_group_size == group_member else 0 for group_member in range(precursor_group_size) ] for channel in range(precursor.n_channels_out) ],
+                                [0 for _ in range(precursor.n_channels_out)],
+                                [ [1 if channel % precursor_group_size == group_member else 0 for group_member in range(precursor_group_size) ] for channel in range(precursor.n_channels_out) ],
+                                ]
+                            node_new.n_channels_out_layer = node_new.block.preprocessing.n_channels_out
+                            node_new.color = precursor.color
+                            node_new.output_channel_labels = precursor.output_channel_labels
+                            node_new.input_channel_labels = precursor.output_channel_labels
+                            nodes[node_new.id] = node_new
+                        else:
+                            # An identity node for this precursor already exists.
+                            node_new = nodes[node_new_id]
 
-                        nodes[node_new.id] = node_new
                         precursor_new = node_new
 
                     # relink the last node
                     node.precursors[precursor_index] = node_new
 
 
-    def draw_conv_expressions(self, nodes, figsize=(7, 7)):
+    def draw_conv_expressions(self, nodes, figsize=(9, 9)):
         # TODO: Add annotations, e.g. like in https://stackoverflow.com/questions/7908636/how-to-add-hovering-annotations-to-a-plot
         x = []
         y = []
@@ -429,7 +437,7 @@ class ConvExpressionsManager():
         ax.scatter(x, y, s=2000, c=colors, marker='s')
         
         for i, node in enumerate(nodes.values()):
-            ax.annotate(node.id, xy=(x[i],y[i]), xytext=(-30,30),textcoords="offset points",
+            ax.annotate(node.id, xy=(x[i],y[i]), fontsize=8, xytext=(-8*len(node.id)//4,30),textcoords="offset points",
                 bbox=dict(boxstyle="round", fc="w"))
 
 

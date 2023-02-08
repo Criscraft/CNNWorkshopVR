@@ -1,5 +1,5 @@
 { 
-    "ed_st0" : 
+    "edges" : 
         {
         "info" : "Edges in 8 orientations.",
         "input_conv_expression_ids" : [],
@@ -30,12 +30,12 @@
             ]
         },
 
-    "tra_ed_st0" : 
+    "edges_trans" : 
         {
         "info" : "Simply translates the 8 edges in the direction in which the edge (gradient) points.",
-        "input_conv_expression_ids" : ["ed_st0"],
+        "input_conv_expression_ids" : ["edges"],
         "pooling_stage" : 0,
-        "color" : [1.0, 0.5, 1.0],
+        "color" : [0.4, 0.4, 0.4],
         "output_channel_labels" : ["ed_l_tr_l", "ed_u_tr_u", "ed_r_tr_r", "ed_d_tr_d", "ed_ul_tr_ul", "ed_ur_tr_ur", "ed_dr_tr_dr", "ed_dl_tr_dl"],
         "input_channel_labels" : ["ed_l", "ed_u", "ed_r", "ed_d", "ed_ul", "ed_ur", "ed_dr", "ed_dl"],
         "weights" : [
@@ -61,12 +61,12 @@
             ]
         },
 
-    "str_w3_st0" : 
+    "stripes" : 
         {
         "info" : "Stripes in 4 orientations with thickness of about 3 pixels. The stripe of str_w3_ver spans two pixels up and one down. The stripe of str_w3_hor spans two pixels left and one right. The stripe of str_w3_ur spans two pixels to the upper left and one down right. The stripe of str_w3_dr spans two pixels to the upper right and one down left.",
-        "input_conv_expression_ids" : ["ed_st0", "tra_ed_st0"],
+        "input_conv_expression_ids" : ["edges", "edges_trans"],
         "pooling_stage" : 0,
-        "color" : [1.0, 1.0, 0.5],
+        "color" : [1.0, 0.5, 0.5],
         "output_channel_labels" : ["str_w3_ud", "str_w3_lr", "str_w3_dlur", "str_w3_uldr", "zero", "zero", "zero", "zero"],
         "input_channel_labels" : ["ed_l", "ed_u", "ed_ul", "ed_ur", "ed_r_tr_r", "ed_d_tr_d", "ed_dr_tr_dr", "ed_dl_tr_dl"],
         "weights" : [
@@ -92,13 +92,13 @@
             ]
         },
 
-    "longstr_edges_st1" : 
+    "longstr_corn" : 
         {
         "info" : "Combinations of w3 stripes. Long stripes and edges.",
-        "input_conv_expression_ids" : ["str_w3_st0"],
+        "input_conv_expression_ids" : ["stripes"],
         "pooling_stage" : 1,
-        "color" : [0.5, 1.0, 1.0],
-        "output_channel_labels" : ["longstr_ud", "longstr_lr", "zero", "blob", "angle_ul", "angle_ur", "angle_dr", "angle_dl"],
+        "color" : [0.5, 1.0, 0.5],
+        "output_channel_labels" : ["longstr_ud", "longstr_lr", "zero", "blob", "corner_ul", "corner_ur", "corner_dr", "corner_dl"],
         "input_channel_labels" : ["str_w3_ud", "str_w3_lr"],
         "weights" : [
             [[0, 1, 0, 0, 0, 0, 0, 0],
@@ -123,13 +123,13 @@
             ]
         },
 
-    "longstr_edges_diag_st1" : 
+    "longstr_corn_diag" : 
         {
         "info" : "Combinations of w3 stripes. Long stripes and edges. Diagonal",
-        "input_conv_expression_ids" : ["str_w3_st0"],
+        "input_conv_expression_ids" : ["stripes"],
         "pooling_stage" : 1,
-        "color" : [0.5, 1.0, 1.0],
-        "output_channel_labels" : ["longstr_uldr", "longstr_dlur", "zero", "zero", "angle_u", "angle_r", "angle_d", "angle_l"],
+        "color" : [0.25, 0.5, 0.25],
+        "output_channel_labels" : ["longstr_uldr", "longstr_dlur", "zero", "zero", "corner_u", "corner_r", "corner_d", "corner_l"],
         "input_channel_labels" : ["str_w3_dlur", "str_w3_uldr"],
         "weights" : [
             [[0, 0, 0, 0, 0, 0, 0, 0],
@@ -154,13 +154,13 @@
             ]
         },
 
-    "x_longstr_st1" : 
+    "curves" : 
         {
         "info" : "Combinations of long stripes",
-        "input_conv_expression_ids" : ["longstr_edges_st1", "longstr_edges_diag_st1"],
+        "input_conv_expression_ids" : ["longstr_corn", "longstr_corn_diag"],
         "pooling_stage" : 1,
-        "color" : [1.0, 0.5, 0.5],
-        "output_channel_labels" : ["curve_l", "curve_u", "curve_r", "curve_d", "circle", "longstr_ud_tr_l", "longstr_ud_tr_r", "zero"],
+        "color" : [0.5, 0.5, 1.0],
+        "output_channel_labels" : ["curve_l", "curve_u", "curve_r", "curve_d", "circle", "zero", "zero", "zero"],
         "input_channel_labels" : ["longstr_ud", "longstr_lr", "longstr_uldr", "longstr_dlur"],
         "weights" : [
             [[1, 0, 0, 0, 0, 0, 0, 0],
@@ -179,19 +179,19 @@
             [0, 0, 1, 0, 0, 1, 1, 0],
             [0, 0, 0, 1, 0, 0, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0]]
             ]
         },
 
 
-    "x_longstr_st2" : 
+    "big_curves" : 
         {
         "info" : "Combinations of long stripes",
-        "input_conv_expression_ids" : ["longstr_edges_st1", "longstr_edges_diag_st1"],
+        "input_conv_expression_ids" : ["longstr_corn", "longstr_corn_diag"],
         "pooling_stage" : 2,
-        "color" : [1.0, 0.5, 0.5],
+        "color" : [0.25, 0.25, 0.5],
         "output_channel_labels" : ["big_curve_l", "big_curve_u", "big_curve_r", "big_curve_d", "big_circle", "zero", "zero", "zero"],
         "input_channel_labels" : ["longstr_ud", "longstr_lr", "longstr_uldr", "longstr_dlur"],
         "weights" : [
@@ -217,14 +217,14 @@
             ]
         },
 
-    "digit_parts_1_2_5" : 
+    "digits_A" : 
         {
         "info" : "Parts of digits",
-        "input_conv_expression_ids" : ["x_longstr_st2", "longstr_edges_st1", "longstr_edges_diag_st1"],
+        "input_conv_expression_ids" : ["curves", "longstr_corn", "longstr_corn_diag"],
         "pooling_stage" : 2,
-        "color" : [1.0, 0.5, 0.5],
+        "color" : [1.0, 0.5, 1.0],
         "output_channel_labels" : ["one", "two", "five", "zero", "zero", "zero", "zero", "zero"],
-        "input_channel_labels" : ["big_curve_u", "big_curve_r", "longstr_ud", "longstr_lr", "longstr_uldr", "longstr_dlur"],
+        "input_channel_labels" : ["curve_u", "curve_r", "longstr_ud", "longstr_lr", "longstr_uldr", "longstr_dlur"],
         "weights" : [
             [[0, 0, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0, 0, 0],
@@ -232,13 +232,13 @@
             [0, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0],
             [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0]],
 
             [1, 1, 1, 1, 1, 1, 1, 1],
 
             [[1, 0, 0, 0, 1, 0, 0, 1],
-            [0, 0, 1, 0, 0, 1, 1, 0],
+            [0, 0, 1, 0, 0, 1, 0, 0],
             [0, 1, 0, 1, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
@@ -248,12 +248,12 @@
             ]
         },
 
-    "digit_parts_6_8_9" : 
+    "digits_B" : 
         {
         "info" : "Parts of digits",
-        "input_conv_expression_ids" : ["x_longstr_st1", "longstr_edges_diag_st1"],
+        "input_conv_expression_ids" : ["curves", "longstr_corn_diag"],
         "pooling_stage" : 2,
-        "color" : [1.0, 0.5, 0.5],
+        "color" : [1.0, 1.0, 0.5],
         "output_channel_labels" : ["six", "eight", "nine", "zero", "zero", "zero", "zero", "zero"],
         "input_channel_labels" : ["circle", "longstr_dlur"],
         "weights" : [
@@ -275,38 +275,6 @@
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0]]
-            ]
-        },
-
-
-    "x_shortstr_st2" : 
-        {
-        "info" : "Combinations of short stripes",
-        "input_conv_expression_ids" : ["str_w3_st0"],
-        "pooling_stage" : 2,
-        "color" : [1.0, 0.5, 0.5],
-        "output_channel_labels" : ["2_str_w3_lr", "2_str_w3_ud", "2_str_w3_uldr", "2_str_w3_dlur", "cube_w3", "diam_w3", "circ_w3", "zero"],
-        "input_channel_labels" : ["str_w3_lr", "str_w3_ud", "str_w3_uldr", "str_w3_dlur"],
-        "weights" : [
-            [[0, 1, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0]],
-
-            [1, 1, 1, 1, 1, 1, 1, 1],
-
-            [[0, 1, 0, 1, 0, 0, 0, 0],
-            [1, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 1],
-            [0, 0, 0, 0, 1, 0, 1, 0],
-            [1, 1, 1, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0, 0, 0]]
             ]
         }
