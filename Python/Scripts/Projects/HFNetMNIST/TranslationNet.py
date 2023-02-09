@@ -3,7 +3,6 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import json
-import random
 import matplotlib.pyplot as plt
 import os
 
@@ -29,8 +28,10 @@ class TranslationNet(nn.Module):
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["stripes_st1", "edges_diag_st0"],
-        statedict: str = '',
+        pool_mode="maxpool",
+        conv_expressions = [],
+        statedict : str = '',
+        freeze_features : bool = False,
         ):
         super().__init__()
 
@@ -38,7 +39,8 @@ class TranslationNet(nn.Module):
             n_classes=n_classes,
             blockconfig_list=blockconfig_list, 
             init_mode=init_mode,
-            conv_expressions=conv_expressions)
+            conv_expressions=conv_expressions,
+            pool_mode=pool_mode)
 
         self.tracker_module_groups_info = {group.data['group_id'] : {key : group.data[key] for key in ['precursors', 'label']} for group in pfm.tm.tracker_module_groups}
 
@@ -51,6 +53,9 @@ class TranslationNet(nn.Module):
         for m in self.modules():
             if hasattr(m, "add_data_ranges"):
                 m.add_data_ranges()
+
+        if freeze_features:
+            self.freeze_features()
                 
 
     def forward(self, batch):
@@ -80,6 +85,12 @@ class TranslationNet(nn.Module):
             for m in self.modules():
                 if hasattr(m, "regularize_params"):
                     m.regularize_params()
+
+    def freeze_features(self):
+        for param in self.embedded_model.parameters():
+            param.requires_grad = False
+        for param in self.embedded_model.classifier.parameters():
+            param.requires_grad = True
 
 
 class ConvExpressionsManager():
@@ -487,6 +498,7 @@ class TranslationNet_(nn.Module):
         blockconfig_list: list,
         init_mode: str = 'uniform',
         conv_expressions = [],
+        pool_mode = 'avgpool',
     ) -> None:
         super().__init__()
         
@@ -519,10 +531,15 @@ class TranslationNet_(nn.Module):
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 
-        # AdaptiveAvgPool
-        tm.instance_tracker_module_group(label="AvgPool")
-        self.adaptiveavgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.tracker_adaptiveavgpool = tm.instance_tracker_module(label="AvgPool")
+        # AdaptivePool
+        tm.instance_tracker_module_group(label=pool_mode)
+        if pool_mode == "avgpool":
+            self.adaptivepool = nn.AdaptiveAvgPool2d((1, 1))
+        if pool_mode == "maxpool":
+            self.adaptivepool = nn.AdaptiveMaxPool2d((1, 1))
+        if pool_mode == "lppool":
+            self.adaptivepool = pfm.GlobalLPPool(p=4)
+        self.tracker_adaptivepool = tm.instance_tracker_module(label=pool_mode)
 
         # Classifier
         tm.instance_tracker_module_group(label="Classifier")
@@ -568,10 +585,10 @@ class TranslationNet_(nn.Module):
         _ = self.tracker_input(x)
         x = self.blocks(x)
 
-        x = self.adaptiveavgpool(x)
+        x = self.adaptivepool(x)
         #x = x[:,:,x.shape[2]//2,x.shape[3]//2]
         #x = x.unsqueeze(2).unsqueeze(3)
-        _ = self.tracker_adaptiveavgpool(x)
+        _ = self.tracker_adaptivepool(x)
         x = self.classifier(x)
         _ = self.tracker_classifier_softmax(F.softmax(x, 1))
         x = torch.flatten(x, 1)

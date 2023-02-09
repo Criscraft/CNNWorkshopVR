@@ -2,7 +2,7 @@ extends Resource
 class_name FVSettingsResource
 
 enum MODE {AVERAGE, CENTERPIXEL, PERCENTILE}
-enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample, identity, identity_smooth}
+enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample, identity, identity_smooth, lppool}
 
 
 export var mode : int = MODE.PERCENTILE

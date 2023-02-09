@@ -37,8 +37,9 @@ def get_network():
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(6)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
-        conv_expressions = ["digits_A", "digits_B", "big_curves", "curves", "longstr_corn_diag", "longstr_corn"],
-        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'model_mnist_translationnet_predefined_filters_translation_groupedconv_scalereg.pt'),
+        pool_mode="lppool",
+        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "longstr_corn_diag", "longstr_corn"],
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

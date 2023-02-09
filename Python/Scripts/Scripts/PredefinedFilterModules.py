@@ -268,43 +268,49 @@ class SmoothConv(nn.Module):
         return out
     
 
+class GlobalLPPool(nn.Module):
+    def __init__(self, p : int = 2):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x):
+        out = x.pow(self.p).sum((2,3), keepdims=True)
+        out = out.sign() * (F.relu(out.abs()) * x.shape[2] * x.shape[3]).pow(1.0 / self.p)
+        return out
+    
+
 class TrackedPool(nn.Module):
     def __init__(self, pool_mode : str = "avgpool"):
         super().__init__()
-
-        self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
-        self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.interpolate = Interpolate(False)
-        self.interpolate_antialias = Interpolate(True)
-        self.subsample = Subsample()
-        self.identity = nn.Identity()
-        self.smooth = SmoothConv()
         self.pool = None
         self.set_tracked_pool_mode(pool_mode)
         self.create_trackers()
 
     def set_tracked_pool_mode(self, pool_mode : str):
         if pool_mode == "avgpool":
-            self.pool = self.avg_pool
+            self.pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
             print("set to avgpool")
         elif pool_mode == "maxpool":
-            self.pool = self.max_pool
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
             print("set to maxpool")
         elif pool_mode == "interpolate_antialias":
-            self.pool = self.interpolate_antialias
+            self.pool = Interpolate(True)
             print("set to interpolate_antialias")
         elif pool_mode == "interpolate":
-            self.pool = self.interpolate
+            self.pool = Interpolate(False)
             print("set to interpolate")
         elif pool_mode == "subsample":
-            self.pool = self.subsample
+            self.pool = Subsample()
             print("set to subsample")
         elif pool_mode == "identity":
-            self.pool = self.identity
+            self.pool = nn.Identity()
             print("set to identity")
         elif pool_mode == "identity_smooth":
-            self.pool = self.smooth
+            self.pool = SmoothConv()
             print("set to identity_smooth")
+        elif pool_mode == "lppool":
+            self.pool = nn.LPPool2d(kernel_size=2, stride=2, norm_type=2)
+            print("set to lppool")
 
     def create_trackers(self):
         self.tracker_out = tm.instance_tracker_module(label="Pool", draw_edges=False, ignore_highlight=True)

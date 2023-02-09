@@ -29,6 +29,7 @@ func _ready():
 	option_button_pool_mode.add_item("subsample")
 	option_button_pool_mode.add_item("identity")
 	option_button_pool_mode.add_item("identity_smooth")
+	option_button_pool_mode.add_item("lppool")
 
 func set_fv_settings_resource(fv_settings_resource_):
 	fv_settings_resource = fv_settings_resource_
