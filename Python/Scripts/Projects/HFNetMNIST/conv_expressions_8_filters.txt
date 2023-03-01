@@ -217,6 +217,37 @@
             ]
         },
 
+    "big_corners" : 
+        {
+        "info" : "Big corners.",
+        "input_conv_expression_ids" : ["longstr_corn", "longstr_corn_diag"],
+        "pooling_stage" : 2,
+        "color" : [0.5, 1.0, 0.5],
+        "output_channel_labels" : ["big_corner_ul", "big_corner_ur", "big_corner_dr", "big_corner_dl", "big_corner_u", "big_corner_r", "big_corner_d", "big_corner_l"],
+        "input_channel_labels" : ["longstr_dlur", "longstr_uldr", "longstr_ud", "longstr_lr"],
+        "weights" : [
+            [[0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0]],
+
+            [1, 1, 1, 1, 1, 1, 1, 1],
+
+            [[1, 1, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0, 0, 0, 0],
+            [1, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 1, 0, 0, 1]]
+            ]
+        },
+
     "digits_A" : 
         {
         "info" : "Parts of digits",
@@ -224,21 +255,21 @@
         "pooling_stage" : 2,
         "color" : [1.0, 0.5, 1.0],
         "output_channel_labels" : ["one", "two", "five", "zero", "zero", "zero", "zero", "zero"],
-        "input_channel_labels" : ["curve_u", "curve_r", "longstr_ud", "longstr_lr", "longstr_uldr", "longstr_dlur"],
+        "input_channel_labels" : ["curve_u", "curve_r", "longstr_ud", "longstr_dlur"],
         "weights" : [
             [[0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0],
             [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0]],
 
             [1, 1, 1, 1, 1, 1, 1, 1],
 
             [[1, 0, 0, 0, 1, 0, 0, 1],
-            [0, 0, 1, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0],
             [0, 1, 0, 1, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
@@ -251,26 +282,26 @@
     "digits_B" : 
         {
         "info" : "Parts of digits",
-        "input_conv_expression_ids" : ["curves", "longstr_corn_diag"],
+        "input_conv_expression_ids" : ["curves", "longstr_corn", "longstr_corn_diag"],
         "pooling_stage" : 2,
         "color" : [1.0, 1.0, 0.5],
         "output_channel_labels" : ["six", "eight", "nine", "zero", "zero", "zero", "zero", "zero"],
-        "input_channel_labels" : ["circle", "longstr_dlur"],
+        "input_channel_labels" : ["circle", "longstr_ud", "longstr_uldr", "longstr_dlur"],
         "weights" : [
-            [[0, 0, 0, 0, 0, 0, 0, 0],
+            [[0, 0, 0, 1, 0, 0, 0, 0],
             [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0, 0, 0, 0]],
+            [0, 0, 0, 0, 0, 0, 0, 0]],
 
             [1, 1, 1, 1, 1, 1, 1, 1],
 
-            [[0, 0, 0, 0, 1, 0, 0, 1],
+            [[0, 0, 0, 1, 1, 0, 0, 1],
             [0, 1, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 0],
+            [0, 1, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],

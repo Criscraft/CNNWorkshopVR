@@ -30,16 +30,19 @@ class TranslationNet(nn.Module):
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
         pool_mode="maxpool",
         conv_expressions = [],
+        conv_expressions_path = "conv_expressions_8_filters.txt",
         statedict : str = '',
         freeze_features : bool = False,
         ):
         super().__init__()
 
+        conv_expressions_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), conv_expressions_path)
         self.embedded_model = TranslationNet_(
             n_classes=n_classes,
             blockconfig_list=blockconfig_list, 
             init_mode=init_mode,
             conv_expressions=conv_expressions,
+            conv_expressions_path=conv_expressions_path,
             pool_mode=pool_mode)
 
         self.tracker_module_groups_info = {group.data['group_id'] : {key : group.data[key] for key in ['precursors', 'label']} for group in pfm.tm.tracker_module_groups}
@@ -273,6 +276,8 @@ class ConvExpressionsManager():
                     node.channel_position = block_channel_counts[block_ind]
                     block_channel_counts[block_ind] += node.n_channels_out
                     node.n_channels_out_layer = blocks[block_ind].preprocessing.n_channels_out
+                    if block_channel_counts[block_ind] > node.n_channels_out_layer:
+                        raise ValueError
                     node.color = self.conv_expressions[conv_expression_id]['color']
                     node.input_channel_labels = conv_expression['input_channel_labels']
                     node.output_channel_labels = conv_expression['output_channel_labels']
@@ -412,6 +417,8 @@ class ConvExpressionsManager():
                                 [ [1 if channel % precursor_group_size == group_member else 0 for group_member in range(precursor_group_size) ] for channel in range(precursor.n_channels_out) ],
                                 ]
                             node_new.n_channels_out_layer = node_new.block.preprocessing.n_channels_out
+                            if block_channel_counts[block_new_ind] > node_new.n_channels_out_layer:
+                                raise ValueError
                             node_new.color = precursor.color
                             node_new.output_channel_labels = precursor.output_channel_labels
                             node_new.input_channel_labels = precursor.output_channel_labels
@@ -497,8 +504,9 @@ class TranslationNet_(nn.Module):
         n_classes: int,
         blockconfig_list: list,
         init_mode: str = 'uniform',
-        conv_expressions = [],
-        pool_mode = 'avgpool',
+        conv_expressions : list = [],
+        conv_expressions_path : str = '',
+        pool_mode : str = 'avgpool',
     ) -> None:
         super().__init__()
         
@@ -550,9 +558,10 @@ class TranslationNet_(nn.Module):
         pfm.initialize_weights(self.modules(), init_mode)
         
         group_size = blockconfig_list[0]['n_channels_in'] // blockconfig_list[0]['conv_groups']
-        self.conv_expression_manager = ConvExpressionsManager(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conv_expressions_8_filters.txt"), group_size)
-        with torch.no_grad():
-            self.conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
+        if conv_expressions:
+            self.conv_expression_manager = ConvExpressionsManager(conv_expressions_path, group_size)
+            with torch.no_grad():
+                self.conv_expression_manager.create_expressions(conv_expressions, blockconfig_list, self.blocks)
 
 
     def set_tracked_pool_mode_(self, pool_mode):

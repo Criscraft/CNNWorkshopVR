@@ -775,7 +775,10 @@ class PreprocessingModule(nn.Module):
             raise ValueError
         
         # Norm
-        self.norm_module = norm_module(n_channels_out)
+        if norm_module is not None:
+            self.norm_module = norm_module(n_channels_out)
+        else:
+            self.norm_module = nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         _ = self.tracker_in(x)
@@ -808,6 +811,8 @@ class TranslationBlock(nn.Module):
             norm_module = LayerNorm
         elif normalization_mode == "batchnorm":
             norm_module = nn.BatchNorm2d
+        elif normalization_mode == "identity":
+            norm_module = None
         else:
             raise ValueError
 

@@ -2,7 +2,7 @@ import torch
 
 class NoiseGenerator:
 
-    def __init__(self, device, shape, grayscale=False):
+    def __init__(self, device, shape):
         self.device = device
         self.active_noise_image = None
         self.shape = shape

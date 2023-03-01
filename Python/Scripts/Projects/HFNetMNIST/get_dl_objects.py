@@ -19,7 +19,7 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 
 def get_network():
-    n_channels_list = [1*8, 2*8, 2*8, 2*8, 3*8, 6*8]
+    n_channels_list = [1*8, 2*8, 2*8, 2*8, 3*8, 5*8]
     model = TranslationNet(
         n_classes=10,
         blockconfig_list=[
@@ -38,7 +38,8 @@ def get_network():
             } for i in range(6)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
         pool_mode="lppool",
-        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "longstr_corn_diag", "longstr_corn"],
+        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+        conv_expressions_path = "conv_expressions_8_filters.txt",
         statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
     )
         
@@ -69,5 +70,5 @@ def get_dataset():
 
 
 def get_noise_generator():
-    noise_generator = NoiseGenerator(device, IMAGE_SHAPE, grayscale=True)
+    noise_generator = NoiseGenerator(device, IMAGE_SHAPE)
     return noise_generator
