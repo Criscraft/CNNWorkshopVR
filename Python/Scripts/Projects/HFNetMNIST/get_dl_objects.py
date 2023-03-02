@@ -19,7 +19,7 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 
 def get_network():
-    n_channels_list = [1*8, 2*8, 2*8, 2*8, 3*8, 5*8]
+    n_channels_list = [1*8, 2*8, 2*8, 2*8, 4*8, 8*8]
     model = TranslationNet(
         n_classes=10,
         blockconfig_list=[
@@ -40,7 +40,7 @@ def get_network():
         pool_mode="lppool",
         conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
         conv_expressions_path = "conv_expressions_8_filters.txt",
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

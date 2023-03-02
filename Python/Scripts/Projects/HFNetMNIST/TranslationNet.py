@@ -216,7 +216,7 @@ class ConvExpressionsManager():
                 label_position_dict = {} # stores for each channel label the channel position at the precursor
                 for precursor in self.precursors:
                     for i, out_channel_label in enumerate(precursor.output_channel_labels):
-                        label_position_dict[out_channel_label] = (precursor.channel_position + i)
+                        label_position_dict[out_channel_label] = precursor.channel_position + i
                 data = self.block.preprocessing.permutation_module.indices.data
                 for channel_ind, label in enumerate(self.input_channel_labels):
                     data[self.channel_position + channel_ind] = label_position_dict[label]

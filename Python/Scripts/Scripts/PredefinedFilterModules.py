@@ -249,19 +249,21 @@ class Subsample(nn.Module):
 class SmoothConv(nn.Module):
     def __init__(
         self,
-        k: int = 3,
+        k: int = 2,
     ) -> None:
         super().__init__()
 
         self.padding = k//2
 
-        w = [get_parameterized_filter(k, ParameterizedFilterMode.Smooth)]
+        w = [[[[1.,1.],
+            [1.,1.]]]]
         w = torch.FloatTensor(w)
-        w = w.unsqueeze(1)
+        #w = w.unsqueeze(1)
         self.w = nn.Parameter(w, False)
 
 
     def forward(self, x: Tensor) -> Tensor:
+        self.to(x.device)
         n_channels_in = x.shape[1]
         w_tmp = self.w.repeat((n_channels_in, 1, 1, 1))
         out = F.conv2d(x, w_tmp, padding=self.padding, groups=n_channels_in)
@@ -401,6 +403,7 @@ class ParameterizedFilterMode(enum.Enum):
    TranslationSmooth = 7
    TranslationSharp4 = 8
    TranslationSharp8 = 9
+   HardSmooth2x2 = 10
 
 
 class PredefinedConv(nn.Module):
@@ -539,6 +542,10 @@ class PredefinedConvnxn(PredefinedConv):
                 [0.,0.,0.],
                 [0.,0.,0.],
                 [1.,0.,0.]]) # top right
+        elif filter_mode==ParameterizedFilterMode.HardSmooth2x2:
+            w.append([
+                [1.,1.],
+                [1.,1.]])
         
         if filter_mode in [ParameterizedFilterMode.Even, ParameterizedFilterMode.Uneven, ParameterizedFilterMode.All, ParameterizedFilterMode.TranslationSmooth]:
             #w = [sign*item for item in w for sign in [-1, 1]]
