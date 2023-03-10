@@ -41,6 +41,8 @@ class TransformToUint(object):
 
 def tensor_to_string(x):
     # tensor has shape (C, H, W) with channels RGB
+    if x.shape[0] == 3:
+        x = x[[2, 1, 0]] # sort color channels to BGR
     if not isinstance(x, np.ndarray):
         x = x.detach().cpu().numpy()
         x = x * 255
@@ -64,6 +66,8 @@ def decode_image(string_data, n_channels=3):
     decoded = np.frombuffer(decoded, dtype=np.uint8)
     mode = cv2.IMREAD_COLOR if n_channels==3 else cv2.IMREAD_GRAYSCALE
     image = cv2.imdecode(decoded, mode)
+    if n_channels==3:
+        image = image[:, :, [2, 1, 0]] # sort color channels
     return image
 
 

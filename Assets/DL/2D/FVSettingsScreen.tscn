@@ -87,7 +87,6 @@ margin_top = 353.0
 margin_right = 1280.0
 margin_bottom = 393.0
 theme = ExtResource( 2 )
-min_value = 50.0
 max_value = 500.0
 step = 50.0
 value = 200.0

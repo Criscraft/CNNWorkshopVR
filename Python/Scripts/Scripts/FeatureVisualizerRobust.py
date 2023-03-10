@@ -10,7 +10,7 @@ import random
 from enum import Enum
 
 
-BATCHSIZE = 32
+BATCHSIZE = 16
 imagecount = 0
 
 
@@ -30,6 +30,7 @@ class FeatureVisualizationParams(object):
         blur_sigma=0.5,
         roll=0,
         fraction_to_maximize=0.25,
+        target_size=(1,28,28),
         pool_mode="avgpool", # has no effect but is listed here for completeness
         filter_mode=False, # has no effect but is listed here for completeness
 
@@ -43,6 +44,7 @@ class FeatureVisualizationParams(object):
         self.blur_sigma = blur_sigma
         self.roll = roll
         self.fraction_to_maximize = fraction_to_maximize
+        self.target_size = target_size
 
 
 class FeatureVisualizer(object):
@@ -159,7 +161,8 @@ class FeatureVisualizer(object):
         return Regularizer(
             self.fv_settings.degrees, 
             self.fv_settings.blur_sigma, 
-            self.fv_settings.roll
+            self.fv_settings.roll,
+            self.fv_settings.target_size,
         )
 
 
@@ -182,9 +185,7 @@ class ExportTransform(object):
 # TODO Remove the target size. the size of the images should be determined by the init image.
 class Regularizer(object):
 
-    def __init__(self, degrees, blur_sigma, roll):
-        target_size = (1, 28, 28)
-        
+    def __init__(self, degrees, blur_sigma, roll, target_size):
         transform_list = []
         if degrees > 0:
             padding = int((degrees / 45.) * target_size[1] / (2. * np.sqrt(2.))) # approximately the size of the blank spots created by image rotation.

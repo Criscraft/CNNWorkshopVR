@@ -178,6 +178,9 @@ func update_text():
 		add_text("Kernel size:")
 		add_text(get_size_as_string(network_module_resource.data["PFModule_kernels"]))
 		
+	if "display" in network_module_resource.data:
+		add_text(network_module_resource.data["display"])
+		
 		
 func add_text(text):
 	var new_text = text_scene.instance()

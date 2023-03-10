@@ -5,22 +5,24 @@ import json
 import os
 import torch
 import numpy as np
-from torchvision import transforms
 import Scripts.utils as utils
 from Scripts.utils import get_module
 
 # Create global variables. They will be filled inplace.
 network = None
 dataset = None
-to_tensor = transforms.ToTensor()
 input_shape = None
+transform_norm = None
 noise_generator = None
 current_image_resource = None
 current_fv_image_resource = None
+loader_test = None
 
 def prepare_dl_objects(source):
     global dataset
-    dataset, _ = source.get_dataset()
+    global transform_norm
+    global loader_test
+    dataset, transform_norm, loader_test = source.get_dataset()
     global network
     network = source.get_network()
     # Set the class names for the network. This is important if class names should be displayed for some channels.
@@ -29,7 +31,7 @@ def prepare_dl_objects(source):
     noise_generator = source.get_noise_generator()
 
     global input_shape
-    input_shape = dataset.get_data_item(0, True)[0].shape
+    input_shape = dataset.get_data_item(0)[0].shape
     data = torch.zeros(input_shape)
     image_resource = ImageResource(id=0, mode=ImageResource.Mode.DATASET, data=data)
     network.initial_forward_pass(image_resource)
@@ -69,9 +71,7 @@ def request_dataset_images(event):
     if n > 0:
         rand_inds = np.random.randint(len(dataset), size=n)
         for rand_ind in rand_inds:
-            tensor, label = dataset.get_data_item(rand_ind, True)
-            if tensor.shape[0] == 3:
-                tensor = tensor[[2, 1, 0]] # sort color channels
+            tensor, label = dataset.get_data_item(rand_ind)
             image_resources.append(ImageResource(
                 id=int(rand_ind),
                 data=utils.tensor_to_string(tensor),
@@ -102,11 +102,11 @@ def perform_forward_pass(image_resource=None):
     
     # Perform the forward pass
     global network
-    network.forward_pass(image_resource)
+    global transform_norm
+    network.forward_pass(transform_norm(image_resource.data))
     
     # Get network results and make response.
     posteriors, class_indices = network.get_classification_result()
-    print(class_indices)
     response = ""
     if posteriors is not None:
         response = {
@@ -150,7 +150,7 @@ def request_image_data(event):
         if current_fv_image_resource is None:
             print("FV request cannot be served: no fv image resource selected.")
             return ""
-        images = network.get_feature_visualization(module_id, current_fv_image_resource.data)
+        images = network.get_feature_visualization(module_id, transform_norm(current_fv_image_resource.data))
         for channel_id, image in enumerate(images):
             image_resources.append(ImageResource(
                 module_id=module_id,
@@ -207,9 +207,7 @@ def get_image_resource(image_resource_dict):
     image = None
     global input_shape
     if "data" in image_resource_dict:
-        
         image = utils.decode_image(image_resource_dict["data"], input_shape[0])
-        image = to_tensor(image)
     else:
         image = torch.zeros(input_shape)
     image_resource.data = image
@@ -231,13 +229,14 @@ def request_noise_image(event):
 
 
 def request_test_results(event):
-    loader = torch.utils.data.DataLoader(dataset.dataset, batch_size=64)
+    
     targets = []
     preds = []
     n_images = 0
-    
+    global loader_test
+
     with torch.no_grad():
-        for data_ in loader:
+        for data_ in loader_test:
             target = data_['label']
             data = data_['data']
             targets.append(target)
@@ -267,7 +266,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", "HFNetMNIST", "get_dl_objects.py")
+    #project = "HFNetMNIST"
+    project = "Flowers102"
+    source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", project, "get_dl_objects.py")
     get_dl_objects_module = get_module(source_path)
     prepare_dl_objects(get_dl_objects_module)
     print("server running")

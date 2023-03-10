@@ -1,9 +1,8 @@
 import torch
+from torchvision import transforms
 import numpy as np
 import os
-from Projects.HFNetMNIST.TranslationNet import TranslationNet
-from Projects.HFNetMNIST.TransformTestGS import TransformTestGS
-from Projects.HFNetMNIST.TransformToTensor import TransformToTensor
+from Projects.HFNetMNIST.TranslationNetMNIST import TranslationNetMNIST
 from Projects.HFNetMNIST.MNIST import MNIST
 from Scripts.DLData import DLData
 from Scripts.DLNetwork import DLNetwork
@@ -20,7 +19,7 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 def get_network():
     n_channels_list = [1*8, 2*8, 2*8, 2*8, 4*8, 8*8]
-    model = TranslationNet(
+    model = TranslationNetMNIST(
         n_classes=10,
         blockconfig_list=[
             {'n_channels_in' : 1 if i==0 else n_channels_list[i-1],
@@ -36,10 +35,10 @@ def get_network():
             'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
             'permutation' : 'identity', # one of shifted, identity, disabled
             } for i in range(6)],
-        init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
+        init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
         pool_mode="lppool",
-        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
-        conv_expressions_path = "conv_expressions_8_filters.txt",
+        #conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+        #conv_expressions_path = "conv_expressions_8_filters.txt",
         #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
     )
         
@@ -52,21 +51,23 @@ def get_network():
 
 def get_dataset():
 
-    transform_test = TransformTestGS(NORM_MEAN, NORM_STD)
-    transform_to_tensor = TransformToTensor()
+    transform_norm = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=NORM_MEAN, std=NORM_STD),
+        ])
+    transform_test = transforms.Compose([
+            transforms.Resize(IMAGE_SHAPE[1:]),
+            transforms.ToTensor()])
 
     dataset = MNIST(b_train=False, transform='transform_test', root=os.path.dirname(os.path.realpath(__file__)), download=False)
     dataset.prepare({'transform_test' : transform_test})
 
-    dataset_to_tensor = MNIST(b_train=False, transform='transform_to_tensor', root=os.path.dirname(os.path.realpath(__file__)), download=False)
-    dataset_to_tensor.prepare({'transform_to_tensor' : transform_to_tensor})
-
     np.random.seed(SEED)
     data_indices = None
 
-    dldata = DLData(dataset, dataset_to_tensor, data_indices, dataset.class_names, N_CLASSES)
+    dldata = DLData(dataset, data_indices, dataset.class_names, N_CLASSES)
     
-    return dldata, transform_test
+    return dldata, transform_norm
 
 
 def get_noise_generator():

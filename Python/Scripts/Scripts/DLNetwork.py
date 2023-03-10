@@ -54,9 +54,9 @@ class DLNetwork(object):
             self.module_dict = module_dict
 
 
-    def forward_pass(self, image_resource : ImageResource):
+    def forward_pass(self, image):
         with torch.no_grad():
-            image = image_resource.data.to(self.device)
+            image = image.to(self.device)
             image = image.unsqueeze(0)
             out_dict = self.model.forward_features({'data' : image}, append_module_data=False)
             # record info about each tracker module

@@ -10,6 +10,24 @@ from Scripts.TrackingModules import TrackerModuleProvider
 
 tm = TrackerModuleProvider()
 
+class ChannelPadding(nn.Module):
+    def __init__(
+        self,
+        n_channels_in : int,
+        n_channels_out : int,
+    ) -> None:
+        super().__init__()
+
+        self.padding_size = n_channels_out - n_channels_in
+        assert(self.padding_size > 0)
+
+    def forward(self, x):
+        shape = list(x.shape)
+        shape[1] = self.padding_size
+        padding = torch.zeros(shape, device=x.device)
+        return torch.cat((x, padding), 1)
+    
+
 class WeightRegularizationModule(nn.Module):
     def __init__(
         self,
@@ -145,7 +163,7 @@ class TrackedLeakyReLU(nn.Module):
         return out
 
 
-class TrackedConv1x1(WeightRegularizationModule):
+class TrackedConv1x1Regularized(WeightRegularizationModule):
     def __init__(
         self, n_channels_in, n_channels_out, conv_groups,
     ) -> None:
@@ -177,17 +195,42 @@ class TrackedConv1x1(WeightRegularizationModule):
 class Conv1x1AndReLUModule(WeightRegularizationModule):
     def __init__(
         self,
-        n_channels : int,
+        n_channels_in : int,
+        n_channels_out : int,
         conv_groups : int,
     ) -> None:
         super().__init__()
 
-        self.conv1x1 = TrackedConv1x1(n_channels, n_channels, conv_groups)
+        self.conv1x1 = TrackedConv1x1Regularized(n_channels_in, n_channels_out, conv_groups)
         self.relu = TrackedLeakyReLU()
 
     def forward(self, x):
         x = self.conv1x1(x)
         x = self.relu(x)
+        return x
+    
+
+class TrackedConvnxn(nn.Module):
+    def __init__(
+        self,
+        n_channels_in : int,
+        n_channels_out : int,
+        conv_groups : int = 1,
+        k : int = 3,
+        stride : int = 1,
+        padding="same",
+        bias : bool = True
+    ) -> None:
+        super().__init__()
+
+        self.conv = nn.Conv2d(n_channels_in, n_channels_out, k, padding=padding, padding_mode='replicate', stride=stride, groups=conv_groups, bias=bias)
+        self.tracker_out = tm.instance_tracker_module(label="Conv")
+        self.tracker_out.register_data("display", f"weight: {n_channels_out}x{n_channels_in}x{k}x{k}")
+                
+
+    def forward(self, x):
+        x = self.conv(x)
+        _ = self.tracker_out(x)
         return x
 
 
@@ -246,14 +289,13 @@ class Subsample(nn.Module):
         return x[:,:,::2,::2]
 
 
-class SmoothConv(nn.Module):
+class HardSmoothConv(nn.Module):
     def __init__(
         self,
-        k: int = 2,
     ) -> None:
         super().__init__()
 
-        self.padding = k//2
+        self.padding = 1
 
         w = [[[[1.,1.],
             [1.,1.]]]]
@@ -282,18 +324,22 @@ class GlobalLPPool(nn.Module):
     
 
 class TrackedPool(nn.Module):
-    def __init__(self, pool_mode : str = "avgpool"):
+    def __init__(self, 
+        pool_mode : str = "avgpool",
+        k : int = 2,
+    ):
         super().__init__()
+        self.k = k
         self.pool = None
         self.set_tracked_pool_mode(pool_mode)
         self.create_trackers()
 
     def set_tracked_pool_mode(self, pool_mode : str):
         if pool_mode == "avgpool":
-            self.pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
+            self.pool = nn.AvgPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
             print("set to avgpool")
         elif pool_mode == "maxpool":
-            self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+            self.pool = nn.MaxPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
             print("set to maxpool")
         elif pool_mode == "interpolate_antialias":
             self.pool = Interpolate(True)
@@ -308,14 +354,14 @@ class TrackedPool(nn.Module):
             self.pool = nn.Identity()
             print("set to identity")
         elif pool_mode == "identity_smooth":
-            self.pool = SmoothConv()
+            self.pool = HardSmoothConv()
             print("set to identity_smooth")
         elif pool_mode == "lppool":
             self.pool = nn.LPPool2d(kernel_size=2, stride=2, norm_type=2)
             print("set to lppool")
 
     def create_trackers(self):
-        self.tracker_out = tm.instance_tracker_module(label="Pool", draw_edges=False, ignore_highlight=True)
+        self.tracker_out = tm.instance_tracker_module(label="Pooling", draw_edges=False, ignore_highlight=True)
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.pool(x)
@@ -355,7 +401,7 @@ class NormalizationModule(nn.Module):
         return out
 
 
-class LayerNorm(nn.Module):
+class TrackedLayerNorm(nn.Module):
     def __init__(self, _n_channels) -> None:
         super().__init__()
 
@@ -371,6 +417,21 @@ class LayerNorm(nn.Module):
         out = (x - mean) / (std + 1e-6)
         _ = self.tracker_out(out)
         return out
+    
+
+class TrackedBatchNorm(nn.Module):
+    def __init__(self, _n_channels) -> None:
+        super().__init__()
+        self.norm = nn.BatchNorm2d(_n_channels)
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="BatchNorm")
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.norm(x)
+        _ = self.tracker_out(x)
+        return x
     
 
 class PermutationModule(nn.Module):
@@ -395,7 +456,7 @@ class PermutationModule(nn.Module):
 class ParameterizedFilterMode(enum.Enum):
    Even = 0
    Uneven = 1
-   All = 2
+   EvenAndUneven = 2
    Random = 3
    Smooth = 4
    EvenPosOnly = 5
@@ -478,7 +539,7 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     
 
 class PredefinedConvnxn(PredefinedConv):
-    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.All, n_angles: int = 4, requires_grad:bool=False, padding:bool=True) -> None:
+    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, requires_grad:bool=False, padding:bool=True) -> None:
         super().__init__(n_channels_in, n_channels_out, stride, padding)
 
         if requires_grad:
@@ -486,9 +547,9 @@ class PredefinedConvnxn(PredefinedConv):
 
         self.padding = k//2
         w = []
-        if filter_mode == ParameterizedFilterMode.Uneven or filter_mode == ParameterizedFilterMode.All or filter_mode == ParameterizedFilterMode.UnevenPosOnly:
+        if filter_mode == ParameterizedFilterMode.Uneven or filter_mode == ParameterizedFilterMode.EvenAndUneven or filter_mode == ParameterizedFilterMode.UnevenPosOnly:
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Uneven, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
-        if filter_mode == ParameterizedFilterMode.Even or filter_mode == ParameterizedFilterMode.All or filter_mode == ParameterizedFilterMode.EvenPosOnly:
+        if filter_mode == ParameterizedFilterMode.Even or filter_mode == ParameterizedFilterMode.EvenAndUneven or filter_mode == ParameterizedFilterMode.EvenPosOnly:
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Even, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
         if filter_mode == ParameterizedFilterMode.TranslationSmooth:
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Uneven, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
@@ -547,7 +608,7 @@ class PredefinedConvnxn(PredefinedConv):
                 [1.,1.],
                 [1.,1.]])
         
-        if filter_mode in [ParameterizedFilterMode.Even, ParameterizedFilterMode.Uneven, ParameterizedFilterMode.All, ParameterizedFilterMode.TranslationSmooth]:
+        if filter_mode in [ParameterizedFilterMode.Even, ParameterizedFilterMode.Uneven, ParameterizedFilterMode.EvenAndUneven, ParameterizedFilterMode.TranslationSmooth]:
             #w = [sign*item for item in w for sign in [-1, 1]]
             w.extend([-w_ for w_ in w])
         
@@ -581,6 +642,35 @@ class PredefinedConvnxn(PredefinedConv):
         self.dilation = expand_factor
         effective_kernel_size = 1+2*expand_factor
         self.padding = effective_kernel_size//2
+
+
+class TrackedSmoothConv(nn.Module):
+    def __init__(
+        self,
+        k: int = 3,
+    ) -> None:
+        super().__init__()
+
+        self.padding = k//2
+
+        w = [get_parameterized_filter(k, ParameterizedFilterMode.Smooth)]
+        w = torch.FloatTensor(w)
+        w = w.unsqueeze(1)
+        self.w = nn.Parameter(w, False)
+
+        self.create_trackers()
+
+    
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="Blurring")
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        n_channels_in = x.shape[1]
+        w_tmp = self.w.repeat((n_channels_in, 1, 1, 1))
+        out = F.conv2d(x, w_tmp, None, 1, self.padding, groups=n_channels_in)
+        _ = self.tracker_out(out)
+        return out
         
 
 class PredefinedFilterModule3x3Part(nn.Module):
@@ -600,13 +690,12 @@ class PredefinedFilterModule3x3Part(nn.Module):
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
         self.copymodule = CopyModuleInterleave(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
         self.predev_conv = PredefinedConvnxn(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, requires_grad=handcrafted_filters_require_grad, padding=padding)
-        self.activation_layer = TrackedLeakyReLU()
 
 
     def forward(self, x: Tensor) -> Tensor:
+        # This copy module is only decoration. The consecutive module will not be affected by copy.
         _ = self.copymodule(x)
         x = self.predev_conv(x)
-        x = self.activation_layer(x)
         return x
 
 
@@ -630,12 +719,12 @@ class RandomRoll(nn.Module):
         self.create_trackers()
 
     def create_trackers(self):
-        tm.instance_tracker_module_group(label="RandomRoll")
-        self.tracker_in = tm.instance_tracker_module(label="Input")
+        #tm.instance_tracker_module_group(label="RandomRoll")
+        #self.tracker_in = tm.instance_tracker_module(label="Input")
         self.tracker_out = tm.instance_tracker_module(label="RandomRoll")
 
     def forward(self, x):
-        _ = self.tracker_in(x)
+        #_ = self.tracker_in(x)
         # has to match the filter combinations in 3x3 part
         random_roll_array = [self.shift, self.shift, -self.shift, -self.shift]
         random.shuffle(random_roll_array)
@@ -661,6 +750,7 @@ class ParamTranslationModule(WeightRegularizationModule):
 
     ) -> None:
         super().__init__()
+        # TODO: radii
 
         # Initialize trainable internal weights
         weight = torch.ones(n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
@@ -688,6 +778,7 @@ class ParamTranslationModule(WeightRegularizationModule):
 
     def forward(self, x):
         w = - torch.abs(self.weight - self.kernel_positions) / self.radius + 1.
+        w = torch.clamp(w, -1., 2.)
         w = DifferentiableClamp.apply(w, 0., 1.)
         out = F.conv2d(x, w, groups=x.shape[1])
         _ = self.tracker_out(out)
@@ -738,138 +829,6 @@ class ParamTranslationGroup(nn.Module):
         x = F.pad(x, (self.padding, self.padding, self.padding, self.padding), "replicate")
         x = self.roll_v(x)
         x = self.roll_h(x)
-        return x
-        
-
-class PreprocessingModule(nn.Module):
-    def __init__(
-        self,
-        n_channels_in: int,
-        n_channels_out: int,
-        conv_groups: int = 1,
-        pool_mode: str = "avgpool",
-        norm_module : nn.Module = LayerNorm,
-        permutation : str = "shifted" # one of shifted, identity, disabled
-    ) -> None:
-        super().__init__()
-
-        self.n_channels_in = n_channels_in # used to determine if the module copies channels afterwards
-        self.n_channels_out = n_channels_out # used to determine if the module copies channels afterwards
-
-        tm.instance_tracker_module_group(label="Preprocessing")
-
-        # Input tracker
-        self.tracker_in = tm.instance_tracker_module(label="Input")
-
-        # Pooling
-        self.pool = TrackedPool(pool_mode) if pool_mode else nn.Identity()
-
-        # Copy channels.
-        if n_channels_in != n_channels_out:
-            self.copymodule = CopyModuleNonInterleave(n_channels_in, n_channels_out)
-        else:
-            self.copymodule = nn.Identity()
-            
-        # Permutation
-        if permutation == "shifted":
-            group_size = n_channels_in // conv_groups
-            self.permutation_module = PermutationModule(torch.arange(n_channels_out).roll(group_size // 2) % n_channels_in)
-        elif permutation == "identity":
-            self.permutation_module = PermutationModule(torch.arange(n_channels_out) % n_channels_in)
-        elif permutation == "disabled":
-            self.permutation_module = nn.Identity()
-        else:
-            raise ValueError
-        
-        # Norm
-        if norm_module is not None:
-            self.norm_module = norm_module(n_channels_out)
-        else:
-            self.norm_module = nn.Identity()
-
-    def forward(self, x: Tensor) -> Tensor:
-        _ = self.tracker_in(x)
-        x = self.pool(x)
-        x = self.copymodule(x)
-        x = self.permutation_module(x)
-        x = self.norm_module(x)
-        return x
-
-
-class TranslationBlock(nn.Module):
-    def __init__(
-        self,
-        n_channels_in: int,
-        n_channels_out: int, # n_channels_out % shuffle_conv_groups == 0
-        conv_groups: int = 1,
-        pool_mode: str = "avgpool",
-        spatial_mode : str = "predefined_filters", # one of predefined_filters and parameterized_translation
-        spatial_requires_grad : bool = True,
-        filter_mode: str = "Uneven",
-        n_angles : int = 2,
-        translation_k : int = 3,
-        randomroll: int = -1,
-        normalization_mode : str = "layernorm", # one of batchnorm, layernorm
-        permutation : str = "shifted", # one of shifted, identity, disabled
-    ) -> None:
-        super().__init__()
-
-        if normalization_mode == "layernorm":
-            norm_module = LayerNorm
-        elif normalization_mode == "batchnorm":
-            norm_module = nn.BatchNorm2d
-        elif normalization_mode == "identity":
-            norm_module = None
-        else:
-            raise ValueError
-
-        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, pool_mode, norm_module, permutation)
-
-        # 1x1 Conv
-        tm.instance_tracker_module_group(label="1x1 Conv")
-        self.tracker_input_conv_1 = tm.instance_tracker_module(label="Input")
-        self.conv1x1_1 = Conv1x1AndReLUModule(n_channels_out, conv_groups)
-
-        # Random roll (attack)
-        self.randomroll = RandomRoll(randomroll) if randomroll>0 else nn.Identity()
-        
-        # Spatial operation
-        if spatial_mode == "predefined_filters":
-            tm.instance_tracker_module_group(label="3x3 Conv")
-            self.tracker_input_spatial = tm.instance_tracker_module(label="Input")
-            self.spatial = PredefinedFilterModule3x3Part(
-                n_channels_in=n_channels_out,
-                filter_mode=ParameterizedFilterMode[filter_mode],
-                n_angles=n_angles,
-                handcrafted_filters_require_grad=spatial_requires_grad,
-                f=1,
-                k=3,
-                stride=1,
-            )
-        elif spatial_mode == "parameterized_translation":
-            tm.instance_tracker_module_group(label="Translation")
-            self.tracker_input_spatial = tm.instance_tracker_module(label="Input")
-            self.spatial = ParamTranslationGroup(n_channels_out, translation_k, spatial_requires_grad)
-        # Spatial blending (skip)
-        self.blend = BlendModule(n_channels_out, self.tracker_input_spatial.module_id, tm.module_id, monitor_inputs=False)
-
-        # 1x1 Conv
-        tm.instance_tracker_module_group(label="1x1 Conv")
-        self.tracker_input_conv_2 = tm.instance_tracker_module(label="Input")
-        self.conv1x1_2 = Conv1x1AndReLUModule(n_channels_out, conv_groups)
-
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.preprocessing(x)
-        _ = self.tracker_input_conv_1(x)
-        x = self.conv1x1_1(x)
-        x = self.randomroll(x)
-        x_skip = x
-        _ = self.tracker_input_spatial(x)
-        x = self.spatial(x)
-        x = self.blend(x_skip, x)
-        _ = self.tracker_input_conv_2(x)
-        x = self.conv1x1_2(x)
         return x
 
 

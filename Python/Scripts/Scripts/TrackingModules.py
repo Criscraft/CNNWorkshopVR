@@ -21,6 +21,7 @@ class TrackerModule(nn.Identity):
         weight_per_channel_limit
         colors, [n_channels, 3], rgb values for each channel
         channel_labels, [n_channels]
+        display, The string will be printed in the layer info.
         """
         super().__init__()
         self.module_id = module_id

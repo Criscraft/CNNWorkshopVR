@@ -10,7 +10,145 @@ import os
 import Scripts.PredefinedFilterModules as pfm
 from Scripts.TrackingModules import ActivationTracker
 
-class TranslationNet(nn.Module):
+
+class PreprocessingModule(nn.Module):
+    def __init__(
+        self,
+        n_channels_in: int,
+        n_channels_out: int,
+        conv_groups: int = 1,
+        pool_mode: str = "avgpool",
+        norm_module : nn.Module = pfm.LayerNorm,
+        permutation : str = "shifted" # one of shifted, identity, disabled
+    ) -> None:
+        super().__init__()
+
+        self.n_channels_in = n_channels_in # used to determine if the module copies channels afterwards
+        self.n_channels_out = n_channels_out # used to determine if the module copies channels afterwards
+        
+        tm = pfm.tm
+        tm.instance_tracker_module_group(label="Preprocessing")
+
+        # Input tracker
+        self.tracker_in = tm.instance_tracker_module(label="Input")
+
+        # Pooling
+        self.pool = pfm.TrackedPool(pool_mode) if pool_mode else nn.Identity()
+
+        # Copy channels.
+        if n_channels_in != n_channels_out:
+            self.copymodule = pfm.CopyModuleNonInterleave(n_channels_in, n_channels_out)
+        else:
+            self.copymodule = nn.Identity()
+            
+        # Permutation
+        if permutation == "shifted":
+            group_size = n_channels_in // conv_groups
+            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out).roll(group_size // 2) % n_channels_in)
+        elif permutation == "identity":
+            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out) % n_channels_in)
+        elif permutation == "disabled":
+            self.permutation_module = nn.Identity()
+        else:
+            raise ValueError
+        
+        # Norm
+        if norm_module is not None:
+            self.norm_module = norm_module(n_channels_out)
+        else:
+            self.norm_module = nn.Identity()
+
+    def forward(self, x: Tensor) -> Tensor:
+        _ = self.tracker_in(x)
+        x = self.pool(x)
+        x = self.copymodule(x)
+        x = self.permutation_module(x)
+        x = self.norm_module(x)
+        return x
+
+
+class TranslationBlock(nn.Module):
+    def __init__(
+        self,
+        n_channels_in: int,
+        n_channels_out: int, # n_channels_out % shuffle_conv_groups == 0
+        conv_groups: int = 1,
+        pool_mode: str = "avgpool",
+        spatial_mode : str = "predefined_filters", # one of predefined_filters and parameterized_translation
+        spatial_requires_grad : bool = True,
+        filter_mode: str = "Uneven",
+        n_angles : int = 2,
+        translation_k : int = 3,
+        randomroll: int = -1,
+        normalization_mode : str = "layernorm", # one of batchnorm, layernorm
+        permutation : str = "shifted", # one of shifted, identity, disabled
+    ) -> None:
+        super().__init__()
+
+        tm = pfm.tm
+        
+        if normalization_mode == "layernorm":
+            norm_module = pfm.LayerNorm
+        elif normalization_mode == "batchnorm":
+            norm_module = nn.BatchNorm2d
+        elif normalization_mode == "identity":
+            norm_module = None
+        else:
+            raise ValueError
+
+        self.preprocessing = PreprocessingModule(n_channels_in, n_channels_out, conv_groups, pool_mode, norm_module, permutation)
+
+        # 1x1 Conv
+        tm.instance_tracker_module_group(label="1x1 Conv")
+        self.tracker_input_conv_1 = tm.instance_tracker_module(label="Input")
+        self.conv1x1_1 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups)
+
+        # Random roll (attack)
+        self.randomroll = pfm.RandomRoll(randomroll) if randomroll>0 else nn.Identity()
+        
+        # Spatial operation
+        if spatial_mode == "predefined_filters":
+            tm.instance_tracker_module_group(label="3x3 Conv")
+            self.tracker_input_spatial = tm.instance_tracker_module(label="Input")
+            self.spatial = pfm.PredefinedFilterModule3x3Part(
+                n_channels_in=n_channels_out,
+                filter_mode=pfm.ParameterizedFilterMode[filter_mode],
+                n_angles=n_angles,
+                handcrafted_filters_require_grad=spatial_requires_grad,
+                f=1,
+                k=3,
+                stride=1,
+            )
+            self.activation = pfm.TrackedLeakyReLU()
+        elif spatial_mode == "parameterized_translation":
+            tm.instance_tracker_module_group(label="Translation")
+            self.tracker_input_spatial = tm.instance_tracker_module(label="Input")
+            self.spatial = pfm.ParamTranslationGroup(n_channels_out, translation_k, spatial_requires_grad)
+        # Spatial blending (skip)
+        self.blend = pfm.BlendModule(n_channels_out, self.tracker_input_spatial.module_id, tm.module_id, monitor_inputs=False)
+
+        # 1x1 Conv
+        tm.instance_tracker_module_group(label="1x1 Conv")
+        self.tracker_input_conv_2 = tm.instance_tracker_module(label="Input")
+        self.conv1x1_2 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups)
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.preprocessing(x)
+        _ = self.tracker_input_conv_1(x)
+        x = self.conv1x1_1(x)
+        x = self.randomroll(x)
+        x_skip = x
+        _ = self.tracker_input_spatial(x)
+        x = self.spatial(x)
+        x = self.activation(x)
+        x = self.blend(x_skip, x)
+        _ = self.tracker_input_conv_2(x)
+        x = self.conv1x1_2(x)
+        return x
+    
+
+class TranslationNetMNIST(nn.Module):
     def __init__(self,
         n_classes: int = 10,
         blockconfig_list: list = [
@@ -523,7 +661,7 @@ class TranslationNet_(nn.Module):
 
         # Blocks
         blocks = [
-            pfm.TranslationBlock(
+            TranslationBlock(
                 n_channels_in=config['n_channels_in'],
                 n_channels_out=config['n_channels_out'],
                 conv_groups=config['conv_groups'],

@@ -14,8 +14,12 @@ class NoiseGenerator:
         # minimum = self.active_noise_image.min()
         # maximum = self.active_noise_image.max()
         # self.active_noise_image = (self.active_noise_image - minimum) / (maximum - minimum)
+
+        # self.active_noise_image = torch.zeros(*self.shape, device=self.device)
+        # self.active_noise_image[:, self.shape[1]//2, self.shape[2]//2] = 1.
+
         self.active_noise_image = torch.zeros(*self.shape, device=self.device)
-        self.active_noise_image[:, self.shape[1]//2, self.shape[2]//2] = 1.
+        self.active_noise_image[0, :] = 0.5
 
 
     def get_noise_image(self):
