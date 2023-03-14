@@ -12,7 +12,7 @@ N_CLASSES = 102
 SEED = 42
 IMAGE_SHAPE = (3, 224, 224)
 NORM_MEAN = [0.43553507, 0.3777357, 0.28795698]
-NORM_STD = [.26542637, 0.21253887, 0.21966127]
+NORM_STD = [0.26542637, 0.21253887, 0.21966127]
 #NORM_MEAN = [0., 0., 0.]
 #NORM_STD = [1., 1., 1.]
 use_cuda = torch.cuda.is_available()
@@ -95,7 +95,7 @@ def get_network():
         global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
         norm_mode='batchnorm', # one of batchnorm, layernorm
         permutation_mode='disabled', # one of shifted, identity, disabled
-        #statedict=os.path.join('..', 'Projects', 'Flowers102', 'model_predefined_filters.pt'),
+        statedict=os.path.join('..', 'Projects', 'Flowers102', 'flowers102_translationresnet_predefined_filters_17_no_1x1_at_beginning_of_block_long.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
@@ -122,25 +122,25 @@ def get_dataset():
     ])
 
     dataset = Flowers102(
-        datapath='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/flowers102',
-        path_to_splits='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/setid.mat',
-        path_to_labels='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/imagelabels.mat',
+        datapath='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\flowers102',
+        path_to_splits='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\setid.mat',
+        path_to_labels='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\imagelabels.mat',
         mode='test',
         transform='transform_test',
     )
     dataset.prepare({'transform_test' : transform_test})
 
     dataset_test = Flowers102(
-        datapath='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/flowers102',
-        path_to_splits='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/setid.mat',
-        path_to_labels='/nfshome/linse/NO_INB_BACKUP/Data/Flowers102/imagelabels.mat',
+        datapath='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\flowers102',
+        path_to_splits='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\setid.mat',
+        path_to_labels='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\imagelabels.mat',
         mode='test',
         transform='transform_test',
     )
     dataset_test.prepare({'transform_test' : transform_test_norm})
 
     np.random.seed(SEED)
-    data_indices = None
+    data_indices = []
 
     dldata = DLData(dataset, data_indices, dataset.class_names, N_CLASSES)
 

@@ -10,13 +10,12 @@ from Scripts.ImageResource import ImageResource
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, softmax=False, class_names=[], export_path=os.path.join("export", "network")):
+    def __init__(self, model, device, classification, input_size, softmax=False, export_path=os.path.join("export", "network")):
         super().__init__()
         
         self.device = device
         self.classification = classification
         self.softmax = softmax #whether to apply softmax on the classification result
-        self.class_names = class_names
         self.model = model.to(self.device)
         for param in self.model.parameters():
             param.requires_grad = False
