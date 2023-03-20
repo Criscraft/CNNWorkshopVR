@@ -107,11 +107,17 @@ class TranslationResNet(nn.Module):
         torch.save(self.state_dict(), statedict_name)
 
 
-    def regularize(self):
+    def regularize(self): # method name must not be regularize_params because of infinit loop
         with torch.no_grad():
             for m in self.modules():
                 if hasattr(m, "regularize_params"):
                     m.regularize_params()
+
+    def update_internals(self): # method name must not be update_internal_weights because of infinit loop
+        with torch.no_grad():
+            for m in self.modules():
+                if hasattr(m, "update_internal_weights"):
+                    m.update_internal_weights()
 
     def freeze_features(self):
         for param in self.embedded_model.parameters():

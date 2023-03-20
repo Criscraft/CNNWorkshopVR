@@ -64,11 +64,7 @@ def get_network():
         first_pool_mode="maxpool", # one of maxpool, avgpool, lppool
         global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
         permutation_mode='disabled', # one of shifted, identity, disabled
-<<<<<<< HEAD
-        statedict=os.path.join('..', 'Projects', 'Flowers102', 'model_predefined_filters.pt'),
-=======
-        statedict=os.path.join('..', 'Projects', 'Flowers102', 'flowers102_translationresnet_predefined_filters_17_no_1x1_at_beginning_of_block_long.pt'),
->>>>>>> 8d2a4d348bb208125af314c9fce12cd58dd4a713
+        statedict=os.path.join('..', 'Projects', 'Flowers102', 'model_0300.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
@@ -95,18 +91,18 @@ def get_dataset():
     ])
 
     dataset = Flowers102(
-        datapath='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\flowers102',
-        path_to_splits='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\setid.mat',
-        path_to_labels='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\imagelabels.mat',
+        datapath=os.path.join("..", "..", "Datasets", "Flowers102", "flowers102"),
+        path_to_splits=os.path.join("..", "..", "Datasets", "Flowers102", "setid.mat"),
+        path_to_labels=os.path.join("..", "..", "Datasets", "Flowers102", "imagelabels.mat"),
         mode='test',
         transform='transform_test',
     )
     dataset.prepare({'transform_test' : transform_test})
 
     dataset_test = Flowers102(
-        datapath='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\flowers102',
-        path_to_splits='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\setid.mat',
-        path_to_labels='C:\\Users\\chris\\Documents\\CNNWorkshopVR\\Data\\Flowers102\\imagelabels.mat',
+        datapath=os.path.join("..", "..", "Datasets", "Flowers102", "flowers102"),
+        path_to_splits=os.path.join("..", "..", "Datasets", "Flowers102", "setid.mat"),
+        path_to_labels=os.path.join("..", "..", "Datasets", "Flowers102", "imagelabels.mat"),
         mode='test',
         transform='transform_test',
     )
