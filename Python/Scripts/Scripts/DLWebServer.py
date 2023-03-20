@@ -239,17 +239,18 @@ def request_test_results(event):
         for data_ in loader_test:
             target = data_['label']
             data = data_['data']
-            targets.append(target)
+            targets.append(target.cpu().numpy())
             n_images += len(target)
             data = data.to(network.device)
-            target = target.to(network.device)
             outputs = network.model({"data" : data})
             pred = outputs['logits'].argmax(1)
-            preds.append(pred.cpu())
+            preds.append(pred.cpu().numpy())
         
     preds = np.concatenate(preds)
     targets = np.concatenate(targets)
-    accuracy = (preds == targets).mean()
+    print(preds[:10])
+    print(targets[:10])
+    accuracy = (preds == targets).sum() / n_images
     fig, _ = utils.draw_confusion_matrix(targets, preds, dataset.class_names)
     encoded_image = utils.get_image_from_fig(fig)
     
