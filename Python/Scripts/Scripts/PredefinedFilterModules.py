@@ -8,6 +8,10 @@ import random
 
 from Scripts.TrackingModules import TrackerModuleProvider
 
+"""
+PredefinedConv padding is zero padding instead of replicate. This seems to improve test accuracy by about 1%.
+"""
+
 tm = TrackerModuleProvider()
 
 class ChannelPadding(nn.Module):
@@ -151,6 +155,7 @@ class TrackedLeakyReLU(nn.Module):
     ) -> None:
         super().__init__()
 
+        #self.relu = nn.ReLU(inplace=False)
         self.relu = nn.LeakyReLU(inplace=False)
         self.create_trackers()
 
@@ -210,7 +215,7 @@ class Conv1x1AndReLUModule(WeightRegularizationModule):
         return x
     
 
-class TrackedConvnxn(nn.Module):
+class TrackedConv(nn.Module):
     def __init__(
         self,
         n_channels_in : int,
@@ -218,12 +223,16 @@ class TrackedConvnxn(nn.Module):
         conv_groups : int = 1,
         k : int = 3,
         stride : int = 1,
-        padding="same",
+        padding=0,
         bias : bool = True
     ) -> None:
         super().__init__()
 
         self.conv = nn.Conv2d(n_channels_in, n_channels_out, k, padding=padding, padding_mode='replicate', stride=stride, groups=conv_groups, bias=bias)
+        self.create_trackers(n_channels_in, n_channels_out, k)
+
+    
+    def create_trackers(self, n_channels_in, n_channels_out, k):
         self.tracker_out = tm.instance_tracker_module(label="Conv")
         self.tracker_out.register_data("display", f"weight: {n_channels_out}x{n_channels_in}x{k}x{k}")
                 
@@ -231,6 +240,30 @@ class TrackedConvnxn(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         _ = self.tracker_out(x)
+        return x
+    
+
+class TrackedLinear(nn.Module):
+    def __init__(
+        self,
+        n_channels_in : int,
+        n_channels_out : int,
+        k : int = 3,
+    ) -> None:
+        super().__init__()
+
+        self.linear = nn.Linear(n_channels_in, n_channels_out)
+        self.create_trackers(n_channels_in, n_channels_out, k)
+
+    
+    def create_trackers(self, n_channels_in, n_channels_out, k):
+        self.tracker_out = tm.instance_tracker_module(label="Linear")
+        self.tracker_out.register_data("display", f"weight: {n_channels_out}x{n_channels_in}")
+                
+
+    def forward(self, x):
+        x = self.linear(x)
+        _ = self.tracker_out(x.unsqueeze(2).unsqueeze(3))
         return x
 
 
@@ -467,35 +500,6 @@ class ParameterizedFilterMode(enum.Enum):
    HardSmooth2x2 = 10
 
 
-class PredefinedConv(nn.Module):
-    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, padding : bool = True) -> None:
-        super().__init__()
-
-        self.padding = padding
-        self.weight: nn.Parameter = None
-        self.n_channels_in = n_channels_in
-        self.n_channels_out = n_channels_out
-        assert self.n_channels_out >= self.n_channels_in
-        self.stride = stride
-        self.internal_weight = None # set by subclass
-        self.dilation = 1
-
-    # Called in init by subclass
-    def create_trackers(self):
-        self.tracker_out = tm.instance_tracker_module(label="PFModule")
-        self.tracker_out.register_data("PFModule_kernels", self.weight)
-    
-    def forward(self, x: Tensor) -> Tensor:
-        groups = self.n_channels_in
-        if self.padding:
-            x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
-        out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups, dilation=self.dilation)
-
-        _ = self.tracker_out(out)
-        #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
-        return out
-
-
 def saddle(x, y, phi, sigma, uneven=True):
     a = np.arctan2(y, x)
     phi = np.deg2rad(phi)
@@ -512,6 +516,7 @@ def saddle(x, y, phi, sigma, uneven=True):
         out = 2. * np.exp(-0.5*(c/sigma)**2)
 
     return out
+
 
 def smooth(x, y, sigma):
     r = np.sqrt(x**2 + y**2)
@@ -538,14 +543,19 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     return data
     
 
-class PredefinedConvnxn(PredefinedConv):
-    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, requires_grad:bool=False, padding:bool=True) -> None:
-        super().__init__(n_channels_in, n_channels_out, stride, padding)
+class PredefinedConv(nn.Module):
+    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, filters_require_grad:bool=False, padding:bool=True) -> None:
+        super().__init__()
 
-        if requires_grad:
-            raise NotImplementedError
+        assert n_channels_out >= n_channels_in
+        self.n_channels_in = n_channels_in
+        self.n_channels_out = n_channels_out
+        self.stride = stride
+        self.padding = k // 2 if padding else 0
+        self.dilation = 1
 
-        self.padding = k//2
+        self.filters_require_grad = filters_require_grad
+        
         w = []
         if filter_mode == ParameterizedFilterMode.Uneven or filter_mode == ParameterizedFilterMode.EvenAndUneven or filter_mode == ParameterizedFilterMode.UnevenPosOnly:
             w = w + [get_parameterized_filter(k, ParameterizedFilterMode.Uneven, phi) for phi in np.linspace(0, 180, n_angles, endpoint=False)]
@@ -622,12 +632,13 @@ class PredefinedConvnxn(PredefinedConv):
         self.n_kernels = len(w)
         w = torch.FloatTensor(np.array(w))
         w = w.unsqueeze(1)
-        self.weight = nn.Parameter(w, requires_grad)
+        self.weight = nn.Parameter(w, self.filters_require_grad)
         n_channels_per_kernel = self.n_channels_out // self.n_kernels
         internal_weight = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1)) # This involves copying. Here we compute internal weights only once. This means that the filters are not trainable. For trainable version, the internal weights have to be recomputed in the forward function.
         self.internal_weight = nn.Parameter(internal_weight, False)
 
         self.create_trackers()
+
 
     def resize_filter_to_mimic_poolstage(self, pool_stage):
         # n_channels_per_kernel = self.n_channels_out // self.n_kernels
@@ -644,19 +655,43 @@ class PredefinedConvnxn(PredefinedConv):
         self.padding = effective_kernel_size//2
 
 
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="PFModule")
+        self.tracker_out.register_data("PFModule_kernels", self.weight)
+    
+
+    def forward(self, x: Tensor) -> Tensor:
+        groups = self.n_channels_in
+        if self.filters_require_grad and self.training:
+            # The internal weights have to be recomputed, because the weights cound have been changed.
+            n_channels_per_kernel = self.n_channels_out // self.n_kernels
+            self.internal_weight.data = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
+        # if self.padding > 0:
+        #     x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
+        out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
+
+        _ = self.tracker_out(out)
+        #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
+        return out
+
+
 class TrackedSmoothConv(nn.Module):
     def __init__(
         self,
-        k: int = 3,
+        n_channels : int,
+        k : int = 3,
     ) -> None:
         super().__init__()
 
         self.padding = k//2
+        self.n_channels = n_channels
 
         w = [get_parameterized_filter(k, ParameterizedFilterMode.Smooth)]
         w = torch.FloatTensor(w)
         w = w.unsqueeze(1)
-        self.w = nn.Parameter(w, False)
+        
+        internal_weight = w.repeat((n_channels, 1, 1, 1))
+        self.internal_weight = nn.Parameter(internal_weight, False)
 
         self.create_trackers()
 
@@ -666,20 +701,18 @@ class TrackedSmoothConv(nn.Module):
 
 
     def forward(self, x: Tensor) -> Tensor:
-        n_channels_in = x.shape[1]
-        w_tmp = self.w.repeat((n_channels_in, 1, 1, 1))
-        out = F.conv2d(x, w_tmp, None, 1, self.padding, groups=n_channels_in)
+        out = F.conv2d(x, self.internal_weight, None, 1, self.padding, groups=self.n_channels)
         _ = self.tracker_out(out)
         return out
         
 
-class PredefinedFilterModule3x3Part(nn.Module):
+class PredefinedConvWithDecorativeCopy(nn.Module):
     def __init__(
         self,
         n_channels_in: int,
         filter_mode: ParameterizedFilterMode,
         n_angles: int,
-        handcrafted_filters_require_grad: bool = False,
+        filters_require_grad: bool = False,
         f: int = 1,
         k: int = 3,
         stride: int = 1,
@@ -689,7 +722,7 @@ class PredefinedFilterModule3x3Part(nn.Module):
 
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
         self.copymodule = CopyModuleInterleave(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
-        self.predev_conv = PredefinedConvnxn(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, requires_grad=handcrafted_filters_require_grad, padding=padding)
+        self.predev_conv = PredefinedConv(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, filters_require_grad=filters_require_grad, padding=padding)
 
 
     def forward(self, x: Tensor) -> Tensor:
@@ -724,18 +757,16 @@ class RandomRoll(nn.Module):
         self.tracker_out = tm.instance_tracker_module(label="RandomRoll")
 
     def forward(self, x):
-        #_ = self.tracker_in(x)
-        # has to match the filter combinations in 3x3 part
-        random_roll_array = [self.shift, self.shift, -self.shift, -self.shift]
-        random.shuffle(random_roll_array)
-        direction_array = [2,2,3,3]
-        random.shuffle(direction_array)
+        n = x.shape[1]
+        indices = torch.randperm(n, device=x.device)
+        indices_rev = indices.argsort()
 
-        x1 = torch.roll(x[:,0::4], random_roll_array[0], direction_array[0]) # right
-        x2 = torch.roll(x[:,1::4], random_roll_array[1], direction_array[1]) # bottom
-        x3 = torch.roll(x[:,2::4], random_roll_array[2], direction_array[2]) # left
-        x4 = torch.roll(x[:,3::4], random_roll_array[3], direction_array[3]) # top
-        x_stacked = zip_tensors([x1, x2, x3, x4])
+        x1 = torch.roll(x[:, indices[0*n//4 : 1*n//4]], self.shift, 2) # bottom
+        x2 = torch.roll(x[:, indices[1*n//4 : 2*n//4]], -self.shift, 2) # top
+        x3 = torch.roll(x[:, indices[2*n//4 : 3*n//4]], self.shift, 3) # right
+        x4 = torch.roll(x[:, indices[3*n//4 : 4*n//4]], -self.shift, 3) # left
+        x_stacked = torch.cat([x1, x2, x3, x4], 1)
+        x_stacked = x_stacked[:, indices_rev]
         _ = self.tracker_out(x_stacked)
         return x_stacked
 
@@ -744,43 +775,56 @@ class ParamTranslationModule(WeightRegularizationModule):
     def __init__(
         self,
         n_channels : int = 1,
-        k : int = 3,
+        k : int = 3, # needs to be odd
         dim : int = 2,
-        spatial_requires_grad : bool = True,
+        gradient_radius : float = 0.,
+        filters_require_grad : bool = True,
 
     ) -> None:
         super().__init__()
-        # TODO: radii
+        assert k % 2 == 1
+        self.filters_require_grad = filters_require_grad
+        self.gradient_radius = gradient_radius
+        print(f"gr: {gradient_radius}")
 
         # Initialize trainable internal weights
-        weight = torch.ones(n_channels, 1, 1, 1) * 0.49 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
-        self.weight = nn.Parameter(weight, spatial_requires_grad)
-        self.register_param_to_clamp(self.weight, 0., 1.)
+        weight = torch.ones(n_channels, 1, 1, 1) * 0.01 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
+        self.weight = nn.Parameter(weight, filters_require_grad)
+        self.register_param_to_clamp(self.weight, -1., 1.)
 
         # Initialize helpers
+        self.step_size = 2./(k-1.)
         kernel_positions = torch.zeros(1,1,k)
         for i in range(k):
-                kernel_positions[:,:,i] = i/(k-1.)
+                kernel_positions[:,:,i] = - 1. + i * self.step_size
         if dim==2:
             kernel_positions = kernel_positions.unsqueeze(3)
         else:
             kernel_positions = kernel_positions.unsqueeze(2)
         self.kernel_positions = nn.Parameter(kernel_positions, False)
-        self.radius = 1./(k-1.)
 
+        internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
+        internal_weight = torch.clamp(internal_weight, -self.gradient_radius, 2.) # upper bound is not relevant
+        internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
+        self.internal_weight = nn.Parameter(internal_weight, False)
+        
         self.create_trackers(dim)
 
     def create_trackers(self, dim):
         mode = "H" if dim==3 else "V"
         self.tracker_out = tm.instance_tracker_module(label=f"Transl{mode}", ignore_highlight=True)
         self.tracker_out.register_data("weight_per_channel", self.weight)
-        self.tracker_out.register_data("weight_per_channel_limit", [0., 1.])
+        self.tracker_out.register_data("weight_per_channel_limit", [-1., 1.])
 
     def forward(self, x):
-        w = - torch.abs(self.weight - self.kernel_positions) / self.radius + 1.
-        w = torch.clamp(w, -1., 2.)
-        w = DifferentiableClamp.apply(w, 0., 1.)
-        out = F.conv2d(x, w, groups=x.shape[1])
+        if self.filters_require_grad and self.training:
+            # The internal weights have to be recomputed, because the weights cound have been changed.
+            internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
+            internal_weight = torch.clamp(internal_weight, -self.gradient_radius, 2.) # upper bound is not relevant
+            internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
+            self.internal_weight.data = internal_weight
+        
+        out = F.conv2d(x, self.internal_weight, groups=x.shape[1])
         _ = self.tracker_out(out)
         return out
 
@@ -791,9 +835,9 @@ class ParamTranslationModule(WeightRegularizationModule):
             shape = data.shape
             data = data.flatten()
             data [0::4] = item['init_max']
-            data [1::4] = 0.49
+            data [1::4] = 0.01
             data [2::4] = item['init_min']
-            data [3::2] = 0.49
+            data [3::2] = 0.01
             data = data.reshape(shape)
             item['param'].data = data
 
@@ -803,9 +847,9 @@ class ParamTranslationModule(WeightRegularizationModule):
             data = item['param'].data
             shape = data.shape
             data = data.flatten()
-            data [0::4] = 0.49
+            data [0::4] = 0.01
             data [1::4] = item['init_max']
-            data [2::4] = 0.49
+            data [2::4] = 0.01
             data [3::2] = item['init_min']
             data = data.reshape(shape)
             item['param'].data = data
@@ -816,14 +860,15 @@ class ParamTranslationGroup(nn.Module):
         self,
         n_channels : int = 1,
         k : int = 3,
+        gradient_radius : float = 0.,
         spatial_requires_grad : bool = True,
 
     ) -> None:
         super().__init__()
         
         self.padding = k//2
-        self.roll_v = ParamTranslationModule(n_channels, k, 2, spatial_requires_grad)
-        self.roll_h = ParamTranslationModule(n_channels, k, 3, spatial_requires_grad)
+        self.roll_v = ParamTranslationModule(n_channels, k, 2, gradient_radius, spatial_requires_grad)
+        self.roll_h = ParamTranslationModule(n_channels, k, 3, gradient_radius, spatial_requires_grad)
 
     def forward(self, x):
         x = F.pad(x, (self.padding, self.padding, self.padding, self.padding), "replicate")
@@ -835,7 +880,7 @@ class ParamTranslationGroup(nn.Module):
 def initialize_weights(modules, init_mode):
     for m in modules:
         if isinstance(m, WeightRegularizationModule):
-            if init_mode in ['uniform', 'uniform_translation_as_pfm'] :
+            if init_mode in ['uniform', 'uniform_translation_as_pfm']:
                 m.intitialize_weights_uniform()
             elif init_mode == 'zero':
                 m.intitialize_weights_zero()
@@ -847,3 +892,10 @@ def initialize_weights(modules, init_mode):
                     m.intitialize_weights_alternating()
                 else:
                     m.intitialize_weights_antialternating()
+        # kaiming initialization resulted in about 1% less accuracy compared to the default init.
+        # if isinstance(m, nn.Conv2d):
+        #     if init_mode in ['kaiming']:
+        #         nn.init.kaiming_uniform_(m.weight, mode='fan_out', nonlinearity='relu')
+        if isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+            nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)

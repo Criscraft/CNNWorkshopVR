@@ -6,42 +6,53 @@ import torch.nn.functional as F
 import Scripts.PredefinedFilterModules as pfm
 from Scripts.TrackingModules import ActivationTracker
 
+"""
+This implementation of PFMCNNs has small differences to the original implementation: 
+It uses LeakyReLU and it uses a differen filter order (which is irrelevant to the results)
+The 1x1 conv has a bias in this implementation.
+There is an additional 1x1 layer in each basic block such that the nxn conv layers are sandwiched by 1x1 layers.
+
+The implementation of ResNet with dense convolutions is identical to the default one of Pytorch. However, some layers have a bias in this implementation, which is not the case in the Pytorch implementation.
+"""
+
 
 class TranslationResNet(nn.Module):
     def __init__(self,
         n_classes: int = 102,
         first_block_config={
-            'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
+            'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
             'n_channels_in' : 3,
             'n_channels_out' : 64,
-            'k' : 7,
+            'k' : 3,
             'stride' : 2,
-            'padding': 3,
-            #'filter_mode' : "EvenAndUneven", # for predefined_filters only
-            #'n_angles' : 4, # for predefined_filters only
-            #'handcrafted_filters_require_grad' : False, # for predefined_filters only
-            #'f' : 16, # for predefined_filters only
+            'padding': 1,
+            'filter_mode' : "EvenAndUneven", # for predefined_filters only
+            'n_angles' : 4, # for predefined_filters only
+            'filters_require_grad' : False, # for predefined_filters only
+            'f' : 16, # for predefined_filters only
+            'parameterized_translation' : False,
+            'translation_k' : 5, # for parameterized_translation only
+            'translation_gradient_radius' : 0, # for parameterized_translation only
         },
         blockconfig_list: list = [
-            {'n_channels_in' : 64 if i==0 else 64,
+            {'n_channels_in' : 64,
             'n_channels_out' : 64,
             'conv_groups' : 1,
             'pool_mode' : "",
-            'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
-            'parameterized_translation' : False,
-            'random_roll_mode' : False,
-            'spatial_requires_grad' : False, # for predefined_filters only
+            'k' : 3,
+            'stride' : 2 if i in [2, 4, 6] else 1,
+            'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
+            'filters_require_grad' : False, # for predefined_filters only
             'filter_mode' : "EvenAndUneven", # for predefined_filters only; one of Even, Uneven, EvenAndUneven, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
             'n_angles' : 4, # for predefined_filters only
-            'k' : 3,
+            'parameterized_translation' : False,
             'translation_k' : 5, # for parameterized_translation only
-            'randomroll' : -1, # for random_roll_mode only
-            'stride' : 1,
+            'translation_gradient_radius' : 0, # for parameterized_translation only
+            'randomroll' : 0,
             } for i in range(8)],
         init_mode='kaiming', # one of uniform, zero, identity, kaiming
         first_pool_mode="maxpool", # one of maxpool, avgpool, lppool
         global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
-        norm_mode='batchnorm', # one of batchnorm, layernorm
         permutation_mode='disabled', # one of shifted, identity, disabled
         statedict : str = '',
         freeze_features : bool = False,
@@ -55,7 +66,6 @@ class TranslationResNet(nn.Module):
             init_mode=init_mode,
             first_pool_mode=first_pool_mode,
             global_pool_mode=global_pool_mode,
-            norm_mode=norm_mode,
             permutation_mode=permutation_mode,
             )
 
@@ -110,69 +120,77 @@ class TranslationResNet(nn.Module):
             param.requires_grad = True
 
 
-def get_conv_block(
+class BasicModule(nn.Module):
+    def __init__(
+        self,
         n_channels_in,
         n_channels_out,
         conv_groups=1,
-        norm_mode="batchnorm",
         spatial_mode="predefined_filters", 
         parameterized_translation=False,
-        random_roll_mode=False,
-        spatial_requires_grad=False,
-        filter_mode="Uneven",
+        filters_require_grad=False,
+        filter_mode="",
         k=3,
+        f=1,
         stride=1,
-        padding_mode="same",
+        padding=1,
         n_angles=4,
         translation_k=5,
-        randomroll=-1):
-    
-    tm = pfm.tm
+        translation_gradient_radius=0,
+        randomroll=0
+    ) -> None:
+        super().__init__()
 
-    if norm_mode == "layernorm":
-        norm_module = pfm.TrackedLayerNorm
-    elif norm_mode == "batchnorm":
-        norm_module = pfm.TrackedBatchNorm
-    else:
-        raise ValueError
+        tm = pfm.tm
 
-    conv_module_list = []
+        if randomroll > 0:
+            tm.instance_tracker_module_group(label="RandomRoll")
+            self.random_roll = pfm.RandomRoll(randomroll)
+        else:
+            self.random_roll = nn.Identity()
 
-    if random_roll_mode:
-        tm.instance_tracker_module_group(label="RandomRoll")
-        conv_module_list.append(pfm.RandomRoll(randomroll))
+        if parameterized_translation:
+            tm.instance_tracker_module_group(label="Param. transl.")
+            self.param_translation = pfm.ParamTranslationGroup(n_channels_in, translation_k, translation_gradient_radius, True)
+        else:
+            self.param_translation = nn.Identity()
 
-    if spatial_mode == "predefined_filters":
-        tm.instance_tracker_module_group(label="Conv3x3")
-        conv_module_list.append(tm.instance_tracker_module(label="Input"))
-        conv_module_list.append(pfm.PredefinedFilterModule3x3Part(
-            n_channels_in=n_channels_in,
-            filter_mode=pfm.ParameterizedFilterMode[filter_mode],
-            n_angles=n_angles,
-            handcrafted_filters_require_grad=spatial_requires_grad,
-            f=1,
-            k=k,
-            stride=stride))
-        conv_module_list.append(norm_module(n_channels_in))
-        conv_module_list.append(pfm.TrackedLeakyReLU())
-        tm.instance_tracker_module_group(label="Conv1x1")
-        conv_module_list.append(tm.instance_tracker_module(label="Input"))
-        conv_module_list.append(pfm.TrackedConvnxn(n_channels_in, n_channels_out, conv_groups, k=1))
+        module_list = []
+
+        if spatial_mode == "predefined_filters":
+            tm.instance_tracker_module_group(label="Conv3x3")
+            module_list.append(tm.instance_tracker_module(label="Input"))
+            module_list.append(pfm.PredefinedConvWithDecorativeCopy(
+                n_channels_in=n_channels_in,
+                filter_mode=pfm.ParameterizedFilterMode[filter_mode],
+                n_angles=n_angles,
+                filters_require_grad=filters_require_grad,
+                f=f,
+                k=k,
+                stride=stride))
+            module_list.append(pfm.TrackedBatchNorm(n_channels_in * f))
+            module_list.append(pfm.TrackedLeakyReLU())
+            tm.instance_tracker_module_group(label="Conv1x1")
+            module_list.append(tm.instance_tracker_module(label="Input"))
+            module_list.append(pfm.TrackedConv(n_channels_in * f, n_channels_out, conv_groups, k=1, padding=0, bias=True))
+            
+        elif spatial_mode == "dense_convolution":
+            tm.instance_tracker_module_group(label="Conv3x3")
+            module_list.append(tm.instance_tracker_module(label="Input"))
+            module_list.append(pfm.TrackedConv(n_channels_in, n_channels_out, conv_groups=conv_groups, k=k, stride=stride, padding=padding))
         
-    elif spatial_mode == "dense_convolution":
-        tm.instance_tracker_module_group(label="Conv3x3")
-        conv_module_list.append(tm.instance_tracker_module(label="Input"))
-        conv_module_list.append(pfm.TrackedConvnxn(n_channels_in, n_channels_out, conv_groups=conv_groups, k=k, stride=stride, padding=padding_mode))
-    
-    else:
-        raise ValueError
-    
-    if parameterized_translation:
-        conv_module_list.append(pfm.ParamTranslationGroup(n_channels_out, translation_k, spatial_requires_grad))
+        else:
+            raise ValueError
+        
+        module_list.append(pfm.TrackedBatchNorm(n_channels_out))
+        self.conv = nn.Sequential(*module_list)
+        
 
-    conv_module_list.append(norm_module(n_channels_out))
-    
-    return nn.Sequential(*conv_module_list)
+    def forward(self, x):
+        x = self.random_roll(x)
+        x = self.param_translation(x)
+        x = self.conv(x)
+        return x
 
 
 class BasicBlock(nn.Module):
@@ -183,28 +201,20 @@ class BasicBlock(nn.Module):
         conv_groups=1,
         pool_mode="avgpool",
         spatial_mode="predefined_filters", # one of predefined_filters and dense_convolution
-        parameterized_translation=True,
-        random_roll_mode= False,
-        spatial_requires_grad=False, # does not apply for dense_convolution
+        parameterized_translation=False,
+        filters_require_grad=False, # does not apply for dense_convolution
         filter_mode="Uneven", # for predefined_filters only; one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
         k=3,
         stride=1,
         n_angles=4, # for predefined_filters only
         translation_k=5, # for parameterized_translation only
-        randomroll=-1, # for random_roll_mode only
-        norm_mode='batchnorm', # one of batchnorm, layernorm, identity
+        translation_gradient_radius=0,
+        randomroll=0,
         permutation_mode='disabled', # one of shifted, identity, disabled
     ) -> None:
         super().__init__()
 
         tm = pfm.tm
-
-        if norm_mode == "layernorm":
-            norm_module = pfm.TrackedLayerNorm
-        elif norm_mode == "batchnorm":
-            norm_module = pfm.TrackedBatchNorm
-        else:
-            raise ValueError
 
         if permutation_mode != "disabled":
             tm.instance_tracker_module_group(label="Preprocessing")
@@ -222,49 +232,47 @@ class BasicBlock(nn.Module):
         skip_module_id = tm.module_id
 
         convblock_list = []
-        # if spatial_mode == "predefined_filters":
-        #     tm.instance_tracker_module_group(label="Conv1x1")
-        #     convblock_list.append(tm.instance_tracker_module(label="Input"))
-        #     convblock_list.append(pfm.TrackedConvnxn(n_channels_in, n_channels_out, conv_groups, k=1))
-        #     convblock_list.append(norm_module(n_channels_out))
-        #     convblock_list.append(pfm.TrackedLeakyReLU())
+        if spatial_mode == "predefined_filters":
+            tm.instance_tracker_module_group(label="Conv1x1")
+            convblock_list.append(tm.instance_tracker_module(label="Input"))
+            convblock_list.append(pfm.TrackedConv(n_channels_in, n_channels_out, conv_groups, k=1, padding=0, bias=True))
+            convblock_list.append(pfm.TrackedBatchNorm(n_channels_out))
+            convblock_list.append(pfm.TrackedLeakyReLU())
 
-        convblock_list.append(get_conv_block(
-            n_channels_in=n_channels_in,
+        convblock_list.append(BasicModule(
+            n_channels_in=n_channels_out if spatial_mode == "predefined_filters" else n_channels_in,
             n_channels_out=n_channels_out,
             conv_groups=conv_groups,
-            norm_mode=norm_mode,
             spatial_mode=spatial_mode, 
             parameterized_translation=parameterized_translation,
-            random_roll_mode=random_roll_mode,
-            spatial_requires_grad=spatial_requires_grad,
+            filters_require_grad=filters_require_grad,
             filter_mode=filter_mode,
             k=k,
             stride=stride,
-            padding_mode=k//2,
+            padding=k//2,
             n_angles=n_angles,
             translation_k=translation_k,
+            translation_gradient_radius=translation_gradient_radius,
             randomroll=randomroll,
         ))
         convblock_list.append(pfm.TrackedLeakyReLU())
         if pool_mode:
             tm.instance_tracker_module_group(label="Pooling")
             convblock_list.append(pfm.TrackedPool(pool_mode, k=3))
-        convblock_list.append(get_conv_block(
+        convblock_list.append(BasicModule(
             n_channels_in=n_channels_out,
             n_channels_out=n_channels_out,
             conv_groups=conv_groups,
-            norm_mode=norm_mode,
             spatial_mode=spatial_mode, 
             parameterized_translation=parameterized_translation,
-            random_roll_mode=random_roll_mode,
-            spatial_requires_grad=spatial_requires_grad,
+            filters_require_grad=filters_require_grad,
             filter_mode=filter_mode,
             k=k,
             stride=1,
-            padding_mode=k//2,
+            padding=k//2,
             n_angles=n_angles,
             translation_k=translation_k,
+            translation_gradient_radius=translation_gradient_radius,
             randomroll=randomroll,
         ))
         self.convblocks = nn.Sequential(*convblock_list)
@@ -283,15 +291,15 @@ class BasicBlock(nn.Module):
                 skip_module_id = tm.module_id
 
             if stride > 1:
-                skip_module_list.append(pfm.TrackedSmoothConv(k=3))
+                skip_module_list.append(pfm.TrackedSmoothConv(k=3, n_channels=n_channels_in))
                 skip_module_list[-1].tracker_out.precursors = [skip_module_id]
                 skip_module_id = tm.module_id
             
             if n_channels_in != n_channels_out or stride > 1:
                 #skip_module_list.append(pfm.ChannelPadding(n_channels_in, n_channels_out))
-                skip_module_list.append(pfm.TrackedConvnxn(n_channels_in, n_channels_out, conv_groups=conv_groups, k=1, stride=stride, padding=0))
+                skip_module_list.append(pfm.TrackedConv(n_channels_in, n_channels_out, conv_groups=conv_groups, k=1, stride=stride, padding=0, bias=True))
                 skip_module_list[-1].tracker_out.precursors = [skip_module_id]
-                skip_module_list.append(norm_module(n_channels_out))
+                skip_module_list.append(pfm.TrackedBatchNorm(n_channels_out))
                 skip_module_id = tm.module_id
                 
             self.skip = nn.Sequential(*skip_module_list)
@@ -317,8 +325,9 @@ class BasicBlock(nn.Module):
         
         _ = self.input_tracker_1(x1)
         _ = self.input_tracker_2(x_skip)
+
         out = x_skip + x1
-        
+
         _ = self.tracker_sum(out)
         out = self.activation(out)
         return out
@@ -334,7 +343,6 @@ class TranslationNet_(nn.Module):
         init_mode: str = 'uniform',
         first_pool_mode : str = "maxpool", # one of maxpool, avgpool, lppool
         global_pool_mode : str = "avgpool", # one of maxpool, avgpool, lppool
-        norm_mode : str = 'batchnorm', # one of batchnorm, layernorm
         permutation_mode : str = 'disabled', # one of shifted, identity, disabled
     ) -> None:
         super().__init__()
@@ -344,59 +352,24 @@ class TranslationNet_(nn.Module):
         tm = pfm.tm
         tm.reset_ids()
 
-        if norm_mode == "layernorm":
-            norm_module = pfm.TrackedLayerNorm
-        elif norm_mode == "batchnorm":
-            norm_module = pfm.TrackedBatchNorm
-        else:
-            raise ValueError
-
         # Input
         tm.instance_tracker_module_group(label="Input", precursors=[])
         self.tracker_input = tm.instance_tracker_module(label="Input", precursors=[])
 
         # First block
-        tm.instance_tracker_module_group(label="Conv")
         first_block_list = []
-        if first_block_config["spatial_mode"] == "dense_convolution":
-            del first_block_config["spatial_mode"]
-            first_block_list.append(pfm.TrackedConvnxn(
-                n_channels_in=first_block_config["n_channels_in"],
-                n_channels_out=first_block_config["n_channels_out"],
-                k=first_block_config["k"],
-                stride=first_block_config["stride"],
-                padding=first_block_config["padding"],
-                bias=False,
-            ))
-            first_block_list.append(norm_module(first_block_config["n_channels_out"]))
-        elif first_block_config["spatial_mode"] == "predefined_filters":
-            first_block_list.append(pfm.PredefinedFilterModule3x3Part(
-                n_channels_in=first_block_config["n_channels_in"],
-                filter_mode=pfm.ParameterizedFilterMode[first_block_config["filter_mode"]],
-                n_angles=first_block_config["n_angles"],
-                handcrafted_filters_require_grad=first_block_config["handcrafted_filters_require_grad"],
-                f=first_block_config["f"],
-                k=first_block_config["k"],
-                stride=first_block_config["stride"],
-                padding=first_block_config["padding"],
-            ))
-            first_block_list.append(norm_module(first_block_config["n_channels_in"] * first_block_config["f"]))
+        first_block_list.append(BasicModule(**first_block_config))
+        
         first_block_list.append(pfm.TrackedLeakyReLU())
-        if first_block_config["spatial_mode"] == "predefined_filters":
-            first_block_list.append(pfm.TrackedConvnxn(
-                n_channels_in=first_block_config["n_channels_in"] * first_block_config["f"], 
-                n_channels_out=first_block_config["n_channels_out"], 
-                k=1))
-            first_block_list.append(norm_module(first_block_config["n_channels_out"]))
-            first_block_list.append(pfm.TrackedLeakyReLU())
         self.first_block = nn.Sequential(*first_block_list)
+        
         
         tm.instance_tracker_module_group(label="Pooling")
         self.first_pool = pfm.TrackedPool(pool_mode=first_pool_mode, k=3)
 
         # Blocks
         blocks = [
-            BasicBlock(permutation_mode=permutation_mode, norm_mode=norm_mode, **config) for config in blockconfig_list]
+            BasicBlock(permutation_mode=permutation_mode, **config) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 
         # AdaptivePool
@@ -412,7 +385,8 @@ class TranslationNet_(nn.Module):
         # Classifier
         tm.instance_tracker_module_group(label="Classifier")
         n_channels_in = blockconfig_list[-1]['n_channels_out']
-        self.classifier = pfm.TrackedConvnxn(n_channels_in, n_classes, k=1)
+        self.classifier = pfm.TrackedLinear(n_channels_in, n_classes)
+        
         self.tracker_classifier_softmax = tm.instance_tracker_module(label="Class Probabilities", channel_labels="classes")
         
         pfm.initialize_weights(self.modules(), init_mode)
@@ -446,8 +420,8 @@ class TranslationNet_(nn.Module):
 
         x = self.adaptivepool(x)
         _ = self.tracker_adaptivepool(x)
+        x = torch.flatten(x, 1)
         x = self.classifier(x)
         _ = self.tracker_classifier_softmax(F.softmax(x, 1))
-        x = torch.flatten(x, 1)
 
         return x
