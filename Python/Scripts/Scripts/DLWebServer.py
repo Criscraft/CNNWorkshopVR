@@ -16,13 +16,13 @@ transform_norm = None
 noise_generator = None
 current_image_resource = None
 current_fv_image_resource = None
-loader_test = None
+loader_test_norm = None
 
 def prepare_dl_objects(source):
     global dataset
     global transform_norm
-    global loader_test
-    dataset, transform_norm, loader_test = source.get_dataset()
+    global loader_test_norm
+    dataset, transform_norm, loader_test_norm = source.get_dataset()
     global network
     network = source.get_network()
     # Set the class names for the network. This is important if class names should be displayed for some channels.
@@ -103,7 +103,8 @@ def perform_forward_pass(image_resource=None):
     # Perform the forward pass
     global network
     global transform_norm
-    network.forward_pass(transform_norm(image_resource.data))
+    data = transform_norm(image_resource.data)
+    network.forward_pass(data)
     
     # Get network results and make response.
     posteriors, class_indices = network.get_classification_result()
@@ -136,13 +137,17 @@ def request_image_data(event):
     if mode == "activation":
         activations = network.get_activation(module_id)[0]
         activations, minimum, maximum = utils.normalize(activations)
+        if activations.ndim == 1:
+            # activations should have shape [C, H, W]
+            # The activation was flattend. We have to convert it to C, H, W format.
+            activations = activations.unsqueeze(1).unsqueeze(1)
         for channel_id, activation in enumerate(activations):
             image_resources.append(ImageResource(
                 module_id=module_id,
                 channel_id=channel_id,
                 mode=ImageResource.Mode.ACTIVATION,
                 label=channel_labels[channel_id] if channel_labels else "",
-                data=utils.tensor_to_string(activation.unsqueeze(0)),
+                data=utils.tensor_to_string(activation.unsqueeze(0)), # convert activation shape to [C, H, W] with C = 1
                 value_zero_decoded=minimum.item(),
                 value_255_decoded=maximum.item(),
             ).__dict__)
@@ -233,10 +238,10 @@ def request_test_results(event):
     targets = []
     preds = []
     n_images = 0
-    global loader_test
+    global loader_test_norm
 
     with torch.no_grad():
-        for data_ in loader_test:
+        for data_ in loader_test_norm:
             target = data_['label']
             data = data_['data']
             targets.append(target.cpu().numpy())
@@ -248,8 +253,6 @@ def request_test_results(event):
         
     preds = np.concatenate(preds)
     targets = np.concatenate(targets)
-    print(preds[:10])
-    print(targets[:10])
     accuracy = (preds == targets).sum() / n_images
     fig, _ = utils.draw_confusion_matrix(targets, preds, dataset.class_names)
     encoded_image = utils.get_image_from_fig(fig)
@@ -267,8 +270,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    project = "HFNetMNIST"
-    #project = "Flowers102"
+    #project = "HFNetMNIST"
+    project = "Flowers102"
     source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", project, "get_dl_objects.py")
     get_dl_objects_module = get_module(source_path)
     prepare_dl_objects(get_dl_objects_module)

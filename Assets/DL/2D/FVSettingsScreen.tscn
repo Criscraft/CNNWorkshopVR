@@ -26,7 +26,7 @@ wait_time = 3.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 margin_right = 1280.0
-margin_bottom = 1128.0
+margin_bottom = 1363.0
 
 [node name="Header" parent="VBoxContainer" instance=ExtResource( 1 )]
 margin_right = 1280.0
@@ -70,11 +70,12 @@ margin_bottom = 277.0
 text = "Adjust filter size to mimic pooling"
 
 [node name="CheckBoxFilter" type="CheckBox" parent="VBoxContainer"]
+margin_left = 628.0
 margin_top = 281.0
-margin_right = 1280.0
+margin_right = 652.0
 margin_bottom = 305.0
+size_flags_horizontal = 4
 action_mode = 0
-flat = true
 
 [node name="LabelEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
 margin_top = 309.0
@@ -207,6 +208,42 @@ margin_bottom = 1128.0
 text = "0.25"
 align = 1
 
+[node name="LabelSlopeLeakyReLUScheduling" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 1132.0
+margin_right = 1280.0
+margin_bottom = 1172.0
+text = "Schedule slope of leaky relu"
+
+[node name="CheckBoxSlopeLeakyReLUScheduling" type="CheckBox" parent="VBoxContainer"]
+margin_left = 628.0
+margin_top = 1176.0
+margin_right = 652.0
+margin_bottom = 1200.0
+size_flags_horizontal = 4
+
+[node name="LabelFinalLeakyReLUSlope" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 1204.0
+margin_right = 1280.0
+margin_bottom = 1244.0
+text = "Final LeakyReLU slope"
+
+[node name="SliderFinalLeakyReLUSlope" type="HSlider" parent="VBoxContainer"]
+margin_top = 1248.0
+margin_right = 1280.0
+margin_bottom = 1288.0
+theme = ExtResource( 2 )
+max_value = 1.0
+step = 0.01
+value = 0.01
+
+[node name="ValueFinalLeakyReLUSlope" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 1292.0
+margin_right = 1280.0
+margin_bottom = 1363.0
+text = "0.01
+"
+align = 1
+
 [connection signal="timeout" from="DebouncingTimer" to="." method="_on_DebouncingTimer_timeout"]
 [connection signal="item_selected" from="VBoxContainer/OptionButtonMode" to="." method="_on_OptionButtonMode_item_selected"]
 [connection signal="item_selected" from="VBoxContainer/OptionButtonPoolMode" to="." method="_on_OptionButtonPoolMode_item_selected"]
@@ -217,3 +254,5 @@ align = 1
 [connection signal="value_changed" from="VBoxContainer/SliderBlurSigma" to="." method="_on_SliderBlurSigma_value_changed"]
 [connection signal="value_changed" from="VBoxContainer/SliderRoll" to="." method="_on_SliderRoll_value_changed"]
 [connection signal="value_changed" from="VBoxContainer/SliderFractionToMaximize" to="." method="_on_SliderFractionToMaximize_value_changed"]
+[connection signal="toggled" from="VBoxContainer/CheckBoxSlopeLeakyReLUScheduling" to="." method="_on_CheckBoxSlopeLeakyReLUScheduling_toggled"]
+[connection signal="value_changed" from="VBoxContainer/SliderFinalLeakyReLUSlope" to="." method="_on_SliderFinalLeakyReLUSlope_value_changed"]

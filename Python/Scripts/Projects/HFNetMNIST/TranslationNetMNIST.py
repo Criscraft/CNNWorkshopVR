@@ -720,6 +720,13 @@ class TranslationNet_(nn.Module):
                 else:
                     module.forward = lambda x : x
 
+
+    def set_neg_slope_of_leaky_relus(self, slope : float):
+        for module in self.modules():
+            if isinstance(module, nn.LeakyReLU):
+                module.negative_slope = slope
+
+
     def resize_filter_to_mimic_poolstage_(self, mode : bool):
         if mode:
             poolstage_list = self.conv_expression_manager.get_pool_stage_list(self.blockconfig_list)

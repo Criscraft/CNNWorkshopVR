@@ -30,7 +30,8 @@ class FeatureVisualizationParams(object):
         blur_sigma=0.5,
         roll=0,
         fraction_to_maximize=0.25,
-        target_size=(1,28,28),
+        slope_leaky_relu_scheduling=True,
+        final_slope_leaky_relu = 0.01,
         pool_mode="avgpool", # has no effect but is listed here for completeness
         filter_mode=False, # has no effect but is listed here for completeness
 
@@ -44,7 +45,8 @@ class FeatureVisualizationParams(object):
         self.blur_sigma = blur_sigma
         self.roll = roll
         self.fraction_to_maximize = fraction_to_maximize
-        self.target_size = target_size
+        self.slope_leaky_relu_scheduling = slope_leaky_relu_scheduling
+        self.final_slope_leaky_relu = final_slope_leaky_relu
 
 
 class FeatureVisualizer(object):
@@ -65,7 +67,6 @@ class FeatureVisualizer(object):
     
     def set_fv_settings(self, feature_visualization_params):
         self.fv_settings = feature_visualization_params
-        self.regularizer = self.create_regularizer()
 
 
     def visualize(self, model, module, device, init_image, n_channels, channels=None):
@@ -78,24 +79,47 @@ class FeatureVisualizer(object):
         if init_image.ndim==3:
             init_image = init_image.unsqueeze(0)
         
+        regularizer = self.create_regularizer(init_image.shape[2:])
+        
         n_batches = int( np.ceil( n_channels / float(BATCHSIZE) ) )
         
-        print("start gradient ascent on images")
+        print("Start gradient ascent on images")
+        print("Feature visualization parameters:")
+        print(vars(self.fv_settings))
 
         created_image_aggregate = []
         for batchid in range(n_batches):
             channels_batch = channels[batchid * BATCHSIZE : (batchid + 1) * BATCHSIZE]
             n_batch_items = len(channels_batch)
             created_image = init_image.detach().clone().repeat(n_batch_items, 1, 1, 1)
-            model.embedded_model.toggle_relus(False)
+            if self.fv_settings.slope_leaky_relu_scheduling:
+                model.embedded_model.set_neg_slope_of_leaky_relus(1.)
+
+            # LeakyReLU slope scheduling
+            if self.fv_settings.slope_leaky_relu_scheduling:
+                start_epoch = 0.25 * self.fv_settings.epochs
+                start_slope = 1.0
+                end_epoch = 0.75 * self.fv_settings.epochs
+                end_slope = self.fv_settings.final_slope_leaky_relu
 
             for epoch in range(self.fv_settings.epochs):
-                if epoch == self.fv_settings.epochs // 2:
-                    model.embedded_model.toggle_relus(True)
+
+                # LeakyReLU slope scheduling
+                if self.fv_settings.slope_leaky_relu_scheduling:    
+                    if epoch < start_epoch:
+                        slope = 1.0
+                    elif epoch > end_epoch:
+                        slope = self.fv_settings.final_slope_leaky_relu
+                    else:
+                        p = (epoch - start_epoch) / (end_epoch - start_epoch)
+                        slope = p * end_slope + (1 - p) * start_slope
+                        model.embedded_model.set_neg_slope_of_leaky_relus(slope)
+                
                 with torch.no_grad():
                     if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
-                        created_image = self.regularizer(created_image)
+                        created_image = regularizer(created_image)
                     created_image = created_image.clamp(-2., 2.)
+                
                 created_image = created_image.detach()
                 created_image.requires_grad = True
 
@@ -157,12 +181,12 @@ class FeatureVisualizer(object):
         return created_image, export_meta
 
 
-    def create_regularizer(self):
+    def create_regularizer(self, target_size):
         return Regularizer(
             self.fv_settings.degrees, 
             self.fv_settings.blur_sigma, 
             self.fv_settings.roll,
-            self.fv_settings.target_size,
+            target_size,
         )
 
 

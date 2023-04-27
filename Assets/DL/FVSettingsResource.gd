@@ -15,6 +15,8 @@ export var roll : int = 0
 export var fraction_to_maximize : float = 0.25
 export var pool_mode : int = POOLMODE.avgpool
 export var filter_mode : bool = false
+export var slope_leaky_relu_scheduling : bool = true
+export var final_slope_leaky_relu : float = 0.01
 
 func get_dict():
 	var out = {
@@ -28,6 +30,8 @@ func get_dict():
 		"fraction_to_maximize" : fraction_to_maximize,
 		"pool_mode" : POOLMODE.keys()[pool_mode],
 		"filter_mode" : filter_mode,
+		"slope_leaky_relu_scheduling" : slope_leaky_relu_scheduling,
+		"final_slope_leaky_relu" : final_slope_leaky_relu,
 	}
 	return out
 	

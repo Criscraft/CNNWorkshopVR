@@ -5,6 +5,7 @@ var settings_changed : bool = false
 onready var debouncing_timer = $DebouncingTimer
 onready var option_button_mode = $VBoxContainer/OptionButtonMode
 onready var option_button_pool_mode = $VBoxContainer/OptionButtonPoolMode
+onready var checkbox_filter = $VBoxContainer/CheckBoxFilter
 onready var slider_epochs : HSlider = $VBoxContainer/SliderEpochs
 onready var value_epochs : Label = $VBoxContainer/ValueEpochs
 onready var slider_learning_rate : HSlider = $VBoxContainer/SliderLearningRate
@@ -17,6 +18,9 @@ onready var slider_roll : HSlider = $VBoxContainer/SliderRoll
 onready var value_roll : Label = $VBoxContainer/ValueRoll
 onready var slider_fraction_to_maximize : HSlider = $VBoxContainer/SliderFractionToMaximize
 onready var value_fraction_to_maximize : Label = $VBoxContainer/ValueFractionToMaximize
+onready var checkbox_slope_leaky_relu_scheduling : CheckBox = $VBoxContainer/CheckBoxSlopeLeakyReLUScheduling
+onready var slider_final_leaky_relu_slope : HSlider = $VBoxContainer/SliderFinalLeakyReLUSlope
+onready var value_final_leaky_relu_slope : Label = $VBoxContainer/ValueFinalLeakyReLUSlope
 
 func _ready():
 	option_button_mode.add_item("Average")
@@ -31,10 +35,12 @@ func _ready():
 	option_button_pool_mode.add_item("identity_smooth")
 	option_button_pool_mode.add_item("lppool")
 
+
 func set_fv_settings_resource(fv_settings_resource_):
 	fv_settings_resource = fv_settings_resource_
 	option_button_mode.select(fv_settings_resource.mode)
 	option_button_pool_mode.select(fv_settings_resource.pool_mode)
+	checkbox_filter.pressed = fv_settings_resource.filter_mode
 	slider_epochs.value = fv_settings_resource.epochs
 	value_epochs.text = str(fv_settings_resource.epochs)
 	slider_learning_rate.value = fv_settings_resource.lr
@@ -47,6 +53,9 @@ func set_fv_settings_resource(fv_settings_resource_):
 	value_roll.text = str(fv_settings_resource.roll)
 	slider_fraction_to_maximize.value = fv_settings_resource.fraction_to_maximize
 	value_fraction_to_maximize.text = str(fv_settings_resource.fraction_to_maximize)
+	checkbox_slope_leaky_relu_scheduling.pressed = fv_settings_resource.slope_leaky_relu_scheduling
+	slider_final_leaky_relu_slope.value = fv_settings_resource.final_slope_leaky_relu
+	value_final_leaky_relu_slope.text = str(fv_settings_resource.final_slope_leaky_relu)
 	settings_changed = false
 	
 
@@ -110,6 +119,19 @@ func _on_SliderFractionToMaximize_value_changed(value):
 	fv_settings_resource.fraction_to_maximize = value
 	settings_changed = true
 	debouncing_timer._on_trigger()
+	
+	
+func _on_CheckBoxSlopeLeakyReLUScheduling_toggled(button_pressed):
+	fv_settings_resource.slope_leaky_relu_scheduling = button_pressed
+	settings_changed = true
+	debouncing_timer._on_trigger()
+	
+	
+func _on_SliderFinalLeakyReLUSlope_value_changed(value):
+	value_final_leaky_relu_slope.text = str(value)
+	fv_settings_resource.final_slope_leaky_relu = value
+	settings_changed = true
+	debouncing_timer._on_trigger()
 
 
 func _on_DebouncingTimer_timeout():
@@ -117,3 +139,6 @@ func _on_DebouncingTimer_timeout():
 	if settings_changed:
 		DLManager.set_fv_settings(fv_settings_resource.get_dict())
 		settings_changed = false
+		
+
+
