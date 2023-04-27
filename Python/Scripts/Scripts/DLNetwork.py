@@ -162,3 +162,7 @@ class DLNetwork(object):
         module_info = self.module_dict[module_id]
         # Inplace operation injects the change of weights into the network.
         module_info["data"][name][:] = data
+        if hasattr(self.model, "regularize"):
+            self.model.regularize()
+        if hasattr(self.model, "update_internals"):
+            self.model.update_internals()
