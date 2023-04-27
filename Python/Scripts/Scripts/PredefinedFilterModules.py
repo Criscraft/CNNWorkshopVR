@@ -4,9 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import enum
-import random
 
-from Scripts.TrackingModules import TrackerModuleProvider
+from TrackingModules import TrackerModuleProvider
 
 """
 PredefinedConv padding is zero padding instead of replicate. This seems to improve test accuracy by about 1%.
@@ -658,14 +657,16 @@ class PredefinedConv(nn.Module):
     def create_trackers(self):
         self.tracker_out = tm.instance_tracker_module(label="PFModule")
         self.tracker_out.register_data("PFModule_kernels", self.weight)
+
+
+    def update_internal_weights(self):
+        # The internal weights have to be recomputed when the weights have been changed.
+        n_channels_per_kernel = self.n_channels_out // self.n_kernels
+        self.internal_weight.data = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
     
 
     def forward(self, x: Tensor) -> Tensor:
         groups = self.n_channels_in
-        if self.filters_require_grad and self.training:
-            # The internal weights have to be recomputed, because the weights cound have been changed.
-            n_channels_per_kernel = self.n_channels_out // self.n_kernels
-            self.internal_weight.data = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
         # if self.padding > 0:
         #     x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
         out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
@@ -783,12 +784,12 @@ class ParamTranslationModule(WeightRegularizationModule):
     ) -> None:
         super().__init__()
         assert k % 2 == 1
+        self.k = k
         self.filters_require_grad = filters_require_grad
         self.gradient_radius = gradient_radius
-        print(f"gr: {gradient_radius}")
 
         # Initialize trainable internal weights
-        weight = torch.ones(n_channels, 1, 1, 1) * 0.01 # must not be 0.5 because the torch.abs(x) function in forward has no gradient for x=0
+        weight = (torch.rand(n_channels, 1, 1, 1) - 0.5) * 2. # must not be 0.0 because the torch.abs(x) function in forward has no gradient for x=0
         self.weight = nn.Parameter(weight, filters_require_grad)
         self.register_param_to_clamp(self.weight, -1., 1.)
 
@@ -803,9 +804,7 @@ class ParamTranslationModule(WeightRegularizationModule):
             kernel_positions = kernel_positions.unsqueeze(2)
         self.kernel_positions = nn.Parameter(kernel_positions, False)
 
-        internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
-        internal_weight = torch.clamp(internal_weight, -self.gradient_radius, 2.) # upper bound is not relevant
-        internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
+        internal_weight = self.get_internal_weights()
         self.internal_weight = nn.Parameter(internal_weight, False)
         
         self.create_trackers(dim)
@@ -816,15 +815,22 @@ class ParamTranslationModule(WeightRegularizationModule):
         self.tracker_out.register_data("weight_per_channel", self.weight)
         self.tracker_out.register_data("weight_per_channel_limit", [-1., 1.])
 
+    def get_internal_weights(self):
+        # The internal weights have to be recomputed after any change of the weights
+        internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
+        internal_weight[internal_weight < -self.gradient_radius] = 0.
+        internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
+        return internal_weight
+    
+    def update_internal_weights(self):
+       self.internal_weight.data = self.get_internal_weights()
+
     def forward(self, x):
-        if self.filters_require_grad and self.training:
-            # The internal weights have to be recomputed, because the weights cound have been changed.
-            internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
-            internal_weight = torch.clamp(internal_weight, -self.gradient_radius, 2.) # upper bound is not relevant
-            internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
-            self.internal_weight.data = internal_weight
-        
-        out = F.conv2d(x, self.internal_weight, groups=x.shape[1])
+        if self.training:
+            internal_weight = self.get_internal_weights()
+        else:
+            internal_weight = self.internal_weight
+        out = F.conv2d(x, internal_weight, groups=x.shape[1])
         _ = self.tracker_out(out)
         return out
 
@@ -861,17 +867,17 @@ class ParamTranslationGroup(nn.Module):
         n_channels : int = 1,
         k : int = 3,
         gradient_radius : float = 0.,
-        spatial_requires_grad : bool = True,
+        filters_require_grad : bool = True,
 
     ) -> None:
         super().__init__()
         
         self.padding = k//2
-        self.roll_v = ParamTranslationModule(n_channels, k, 2, gradient_radius, spatial_requires_grad)
-        self.roll_h = ParamTranslationModule(n_channels, k, 3, gradient_radius, spatial_requires_grad)
+        self.roll_v = ParamTranslationModule(n_channels, k, 2, gradient_radius, filters_require_grad)
+        self.roll_h = ParamTranslationModule(n_channels, k, 3, gradient_radius, filters_require_grad)
 
     def forward(self, x):
-        x = F.pad(x, (self.padding, self.padding, self.padding, self.padding), "replicate")
+        x = F.pad(x, (self.padding, self.padding, self.padding, self.padding))
         x = self.roll_v(x)
         x = self.roll_h(x)
         return x

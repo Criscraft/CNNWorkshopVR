@@ -37,9 +37,9 @@ def get_network():
             } for i in range(6)],
         init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
         pool_mode="lppool",
-        #conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
-        #conv_expressions_path = "conv_expressions_8_filters.txt",
-        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_own_features_block_6_lppool.pt'),
+        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+        conv_expressions_path = "conv_expressions_8_filters.txt",
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
@@ -52,22 +52,33 @@ def get_network():
 def get_dataset():
 
     transform_norm = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=NORM_MEAN, std=NORM_STD),
+    ])
+    transform_test = transforms.Compose([
+        transforms.Resize(IMAGE_SHAPE[1:]),
+        transforms.ToTensor()
+    ])
+    transform_test_norm = transforms.Compose([
+            transforms.Resize(IMAGE_SHAPE[1:]),
             transforms.ToTensor(),
             transforms.Normalize(mean=NORM_MEAN, std=NORM_STD),
-        ])
-    transform_test = transforms.Compose([
-            transforms.Resize(IMAGE_SHAPE[1:]),
-            transforms.ToTensor()])
+    ])
 
     dataset = MNIST(b_train=False, transform='transform_test', root=os.path.dirname(os.path.realpath(__file__)), download=False)
     dataset.prepare({'transform_test' : transform_test})
 
+    dataset_test = MNIST(b_train=False, transform='transform_test', root=os.path.dirname(os.path.realpath(__file__)), download=False)
+    dataset_test.prepare({'transform_test' : transform_test_norm})
+
     np.random.seed(SEED)
-    data_indices = None
+    data_indices = []
 
     dldata = DLData(dataset, data_indices, dataset.class_names, N_CLASSES)
+
+    loader_test = torch.utils.data.DataLoader(dataset_test, batch_size=64)
     
-    return dldata, transform_norm
+    return dldata, transform_norm, loader_test
 
 
 def get_noise_generator():

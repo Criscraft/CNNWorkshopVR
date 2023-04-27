@@ -267,8 +267,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    #project = "HFNetMNIST"
-    project = "Flowers102"
+    project = "HFNetMNIST"
+    #project = "Flowers102"
     source_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "Projects", project, "get_dl_objects.py")
     get_dl_objects_module = get_module(source_path)
     prepare_dl_objects(get_dl_objects_module)

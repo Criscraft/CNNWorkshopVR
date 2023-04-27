@@ -18,7 +18,7 @@ class PreprocessingModule(nn.Module):
         n_channels_out: int,
         conv_groups: int = 1,
         pool_mode: str = "avgpool",
-        norm_module : nn.Module = pfm.LayerNorm,
+        norm_module : nn.Module = pfm.TrackedLayerNorm,
         permutation : str = "shifted" # one of shifted, identity, disabled
     ) -> None:
         super().__init__()
@@ -88,7 +88,7 @@ class TranslationBlock(nn.Module):
         tm = pfm.tm
         
         if normalization_mode == "layernorm":
-            norm_module = pfm.LayerNorm
+            norm_module = pfm.TrackedLayerNorm
         elif normalization_mode == "batchnorm":
             norm_module = nn.BatchNorm2d
         elif normalization_mode == "identity":
@@ -110,15 +110,16 @@ class TranslationBlock(nn.Module):
         if spatial_mode == "predefined_filters":
             tm.instance_tracker_module_group(label="3x3 Conv")
             self.tracker_input_spatial = tm.instance_tracker_module(label="Input")
-            self.spatial = pfm.PredefinedFilterModule3x3Part(
+            self.spatial = pfm.PredefinedConvWithDecorativeCopy(
                 n_channels_in=n_channels_out,
                 filter_mode=pfm.ParameterizedFilterMode[filter_mode],
                 n_angles=n_angles,
-                handcrafted_filters_require_grad=spatial_requires_grad,
+                filters_require_grad=spatial_requires_grad,
                 f=1,
                 k=3,
                 stride=1,
             )
+            self.spatial_norm = norm_module(n_channels_out)
             self.activation = pfm.TrackedLeakyReLU()
         elif spatial_mode == "parameterized_translation":
             tm.instance_tracker_module_group(label="Translation")
@@ -141,6 +142,7 @@ class TranslationBlock(nn.Module):
         x_skip = x
         _ = self.tracker_input_spatial(x)
         x = self.spatial(x)
+        x = self.spatial_norm(x)
         x = self.activation(x)
         x = self.blend(x_skip, x)
         _ = self.tracker_input_conv_2(x)
@@ -324,7 +326,7 @@ class ConvExpressionsManager():
                 self.block.conv1x1_1.relu.tracker_out,
                 self.block.tracker_input_spatial,
                 self.block.spatial.predev_conv.tracker_out,
-                self.block.spatial.activation_layer.tracker_out,
+                self.block.spatial_norm.tracker_out,
                 self.block.blend.tracker_out,
                 self.block.tracker_input_conv_2,
                 self.block.conv1x1_2.conv1x1.tracker_out,
@@ -690,7 +692,7 @@ class TranslationNet_(nn.Module):
         # Classifier
         tm.instance_tracker_module_group(label="Classifier")
         n_channels_in = blockconfig_list[-1]['n_channels_out']
-        self.classifier = pfm.TrackedConv1x1(n_channels_in, n_classes, 1)
+        self.classifier = pfm.TrackedConv1x1Regularized(n_channels_in, n_classes, 1)
         self.tracker_classifier_softmax = tm.instance_tracker_module(label="Class Probabilities", channel_labels="classes")
         
         pfm.initialize_weights(self.modules(), init_mode)
