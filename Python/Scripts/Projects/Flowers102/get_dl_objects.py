@@ -29,26 +29,67 @@ def get_network():
         512, 512, # pool stage 4
     ]
 
+    # model = TranslationResNet(
+    #     n_classes=102,
+    #     first_block_config={
+    #         'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
+    #         'n_channels_in' : 3,
+    #         'n_channels_out' : 64,
+    #         'k' : 3,
+    #         'stride' : 2,
+    #         'padding': 1,
+    #         'filter_mode' : "EvenAndUneven", # for predefined_filters only
+    #         'n_angles' : 4, # for predefined_filters only
+    #         'filters_require_grad' : False, # for predefined_filters only
+    #         'f' : 16, # for predefined_filters only
+    #         'parameterized_translation' : False,
+    #         'translation_k' : 5, # for parameterized_translation only
+    #         'translation_gradient_radius' : 0, # for parameterized_translation only
+    #     },
+    #     blockconfig_list=[
+    #         {'n_channels_in' : 64 if i==0 else n_channels_list[i-1],
+    #         'n_channels_out' : n_channels_list[i],
+    #         'conv_groups' : 1,
+    #         'pool_mode' : "",
+    #         'k' : 3,
+    #         'stride' : 2 if i in [2, 4, 6] else 1,
+    #         'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
+    #         'parameterized_translation' : False,
+    #         'filters_require_grad' : False, # for predefined_filters only
+    #         'filter_mode' : "EvenAndUneven", # for predefined_filters only; one of Even, Uneven, EvenAndUneven, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
+    #         'n_angles' : 4, # for predefined_filters only
+    #         'parameterized_translation' : False,
+    #         'translation_k' : 5, # for parameterized_translation only
+    #         'translation_gradient_radius' : 2, # for parameterized_translation only
+    #         'randomroll' : 0,
+    #         } for i in range(8)],
+    #     init_mode='kaiming', # one of uniform, zero, identity, kaiming
+    #     first_pool_mode="maxpool", # one of maxpool, avgpool, lppool
+    #     global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
+    #     permutation_mode='disabled', # one of shifted, identity, disabled
+    #     statedict=os.path.join('..', 'Projects', 'Flowers102', 'pfnet18.pt'),
+    # )
+
     model = TranslationResNet(
         n_classes=102,
         first_block_config={
-            'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
+            'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
             'n_channels_in' : 3,
             'n_channels_out' : 64,
-            'k' : 3,
+            'k' : 7,
             'stride' : 2,
-            'padding': 1,
-            'filter_mode' : "EvenAndUneven", # for predefined_filters only
-            'n_angles' : 4, # for predefined_filters only
-            'filters_require_grad' : False, # for predefined_filters only
-            'f' : 16, # for predefined_filters only
+            'padding': 3,
+            #'filter_mode' : "EvenAndUneven", # for predefined_filters only
+            #'n_angles' : 4, # for predefined_filters only
+            #'filters_require_grad' : False, # for predefined_filters only
+            #'f' : 16, # for predefined_filters only
         },
         blockconfig_list=[
             {'n_channels_in' : 64 if i==0 else n_channels_list[i-1],
             'n_channels_out' : n_channels_list[i],
             'conv_groups' : 1,
             'pool_mode' : "",
-            'spatial_mode' : "predefined_filters", # one of predefined_filters and dense_convolution
+            'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
             'parameterized_translation' : False,
             'filters_require_grad' : False, # for predefined_filters only
             'filter_mode' : "EvenAndUneven", # for predefined_filters only; one of Even, Uneven, EvenAndUneven, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
@@ -62,48 +103,10 @@ def get_network():
         first_pool_mode="maxpool", # one of maxpool, avgpool, lppool
         global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
         permutation_mode='disabled', # one of shifted, identity, disabled
-        statedict=os.path.join('..', 'Projects', 'Flowers102', 'pfnet18.pt'),
+        statedict=os.path.join('..', 'Projects', 'Flowers102', 'resnet18.pt'),
     )
-
-    # model = TranslationResNet(
-    #     n_classes=102,
-    #     first_block_config={
-    #         'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
-    #         'n_channels_in' : 3,
-    #         'n_channels_out' : 64,
-    #         'k' : 7,
-    #         'stride' : 2,
-    #         'padding': 3,
-    #         #'filter_mode' : "EvenAndUneven", # for predefined_filters only
-    #         #'n_angles' : 4, # for predefined_filters only
-    #         #'filters_require_grad' : False, # for predefined_filters only
-    #         #'f' : 16, # for predefined_filters only
-    #     },
-    #     blockconfig_list=[
-    #         {'n_channels_in' : 64 if i==0 else n_channels_list[i-1],
-    #         'n_channels_out' : n_channels_list[i],
-    #         'conv_groups' : 1,
-    #         'pool_mode' : "",
-    #         'spatial_mode' : "dense_convolution", # one of predefined_filters and dense_convolution
-    #         'parameterized_translation' : False,
-    #         'filters_require_grad' : False, # for predefined_filters only
-    #         'filter_mode' : "EvenAndUneven", # for predefined_filters only; one of Even, Uneven, EvenAndUneven, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
-    #         'n_angles' : 4, # for predefined_filters only
-    #         'k' : 3,
-    #         'translation_k' : 5, # for parameterized_translation only
-    #         'randomroll' : 0,
-    #         'stride' : 2 if i in [2, 4, 6] else 1,
-    #         } for i in range(8)],
-    #     init_mode='kaiming', # one of uniform, zero, identity, kaiming
-    #     first_pool_mode="maxpool", # one of maxpool, avgpool, lppool
-    #     global_pool_mode="avgpool", # one of maxpool, avgpool, lppool
-    #     permutation_mode='disabled', # one of shifted, identity, disabled
-    #     statedict=os.path.join('..', 'Projects', 'Flowers102', 'resnet18.pt'),
-    # )
-        
-    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
-    for param in model.embedded_model.parameters():
-        param.requires_grad = False
+    
+    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False, norm_mean=NORM_MEAN, norm_std=NORM_STD)
     
     return dl_network
 

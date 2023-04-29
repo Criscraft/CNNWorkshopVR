@@ -10,7 +10,7 @@ from Scripts.ImageResource import ImageResource
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, softmax=False, export_path=os.path.join("export", "network")):
+    def __init__(self, model, device, classification, input_size, softmax=False, export_path=os.path.join("export", "network"), norm_mean=(0.,), norm_std=(1.,)):
         super().__init__()
         
         self.device = device
@@ -21,8 +21,25 @@ class DLNetwork(object):
             param.requires_grad = False
         self.model.eval()
 
+        # Testing
+        # with torch.no_grad():
+        #     a = torch.eye(224)
+        #     a = a.repeat(3,1,1)
+        #     a = a.to(self.device)
+        #     a = a.unsqueeze(0)
+        #     posteriors = self.model.forward(a)
+        #     print("posteriors:")
+        #     print(posteriors)
+
+        
+        if input_size[0] == 3 and len(norm_mean) == 1:
+            norm_mean = (norm_mean[0], norm_mean[0], norm_mean[0])
+            norm_std = (norm_std[0], norm_std[0], norm_std[0])
+        self.norm_mean = norm_mean
+        self.norm_std = norm_std
         self.feature_visualizer = FeatureVisualizer()
-        self.feature_visualizer.fv_settings.target_size = input_size
+        self.feature_visualizer.fv_settings.norm_mean = self.norm_mean
+        self.feature_visualizer.fv_settings.norm_std = self.norm_std
         self.module_dict = {}
 
         self.output_tracker_module_id = ""
@@ -103,19 +120,21 @@ class DLNetwork(object):
         module = self.module_dict[module_id]["module"]
         n_channels = self.module_dict[module_id]["size"][1]
         created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
-        out_images = self.feature_visualizer.export_transformation(created_images)
 
-        return out_images
+        return created_images
 
 
     def set_feature_visualization_params(self, param_dict):
         # Create new FeatureVisualizationParams instance and attach it to the feature visualizer. 
         fv_settings = FeatureVisualizationParams(**param_dict)
         fv_settings.mode = FeatureVisualizationParams.Mode(param_dict["mode"])
+        fv_settings.norm_mean = self.norm_mean
+        fv_settings.norm_std = self.norm_std
         self.feature_visualizer.set_fv_settings(fv_settings)
         # Change the pooling mode of the network.
-        self.model.embedded_model.set_tracked_pool_mode_(param_dict['pool_mode'])
-        self.model.embedded_model.resize_filter_to_mimic_poolstage_(param_dict['filter_mode'])
+        if param_dict['pool_mode'] != "undefined":
+            self.model.embedded_model.set_tracked_pool_mode_(param_dict['pool_mode'])
+        self.model.embedded_model.resize_filter_to_mimic_poolstage_(param_dict['mimic_poolstage_filter_size'])
 
 
     def get_classification_result(self):

@@ -416,6 +416,38 @@ class DifferentiableClamp(torch.autograd.Function):
         return grad_output, None, None
 
 
+class EliminateNegGradients(torch.autograd.Function):
+    """
+    In the forward pass this operation behaves like identity.
+    But in the backward pass it applies relu on gradients.
+    """
+
+    @staticmethod
+    def forward(ctx, input):
+        return input
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return torch.clamp(grad_output, min=0.)
+
+
+class PrefactorNegGradients(torch.autograd.Function):
+    """
+    In the forward pass this operation behaves like identity.
+    But in the backward pass it applies relu on gradients.
+    """
+
+    @staticmethod
+    def forward(ctx, input):
+        return input
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        mask = grad_output < 0.
+        grad_output[mask] = grad_output[mask] * 0.9
+        return grad_output
+    
+
 class NormalizationModule(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -659,17 +691,27 @@ class PredefinedConv(nn.Module):
         self.tracker_out.register_data("PFModule_kernels", self.weight)
 
 
+    def get_internal_weights(self):
+        n_channels_per_kernel = self.n_channels_out // self.n_kernels
+        return self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
+
     def update_internal_weights(self):
         # The internal weights have to be recomputed when the weights have been changed.
-        n_channels_per_kernel = self.n_channels_out // self.n_kernels
-        self.internal_weight.data = self.weight.data.repeat((n_channels_per_kernel, 1, 1, 1))
+        self.internal_weight.data = self.get_internal_weights()
     
 
     def forward(self, x: Tensor) -> Tensor:
+        if self.training:
+            # recompute the internal weights because we need the gradient to propagate back to the weights
+            internal_weight = self.get_internal_weights()
+            self.internal_weight.data = internal_weight
+        else:
+            internal_weight = self.internal_weight
+            
         groups = self.n_channels_in
         # if self.padding > 0:
         #     x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
-        out = F.conv2d(x, self.internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
+        out = F.conv2d(x, internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
 
         _ = self.tracker_out(out)
         #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
@@ -817,7 +859,10 @@ class ParamTranslationModule(WeightRegularizationModule):
 
     def get_internal_weights(self):
         # The internal weights have to be recomputed after any change of the weights
-        internal_weight = - torch.abs(self.weight - self.kernel_positions) / self.step_size + 1.
+        distances = torch.abs(self.weight - self.kernel_positions) / self.step_size
+        #distances = EliminateNegGradients.apply(distances)
+        distances = PrefactorNegGradients.apply(distances)
+        internal_weight = - distances + 1.0
         internal_weight[internal_weight < -self.gradient_radius] = 0.
         internal_weight = DifferentiableClamp.apply(internal_weight, 0., 1.)
         return internal_weight
@@ -827,9 +872,12 @@ class ParamTranslationModule(WeightRegularizationModule):
 
     def forward(self, x):
         if self.training:
+            # recompute the internal weights because we need the gradient to propagate back to the weights
             internal_weight = self.get_internal_weights()
+            self.internal_weight.data = internal_weight
         else:
             internal_weight = self.internal_weight
+
         out = F.conv2d(x, internal_weight, groups=x.shape[1])
         _ = self.tracker_out(out)
         return out

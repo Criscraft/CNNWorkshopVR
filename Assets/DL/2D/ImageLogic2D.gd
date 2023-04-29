@@ -14,8 +14,12 @@ func set_image_resource(image_resource_):
 	
 func update_image() -> void:
 	var image_texture = ImageTexture.new()
-	image_texture.create_from_image(image_resource.image, 0)
+	var flag = 4
+	if image_resource.mode == ImageResource.MODE.ACTIVATION:
+		flag = 0
+	image_texture.create_from_image(image_resource.image, flag)
 	image.texture = image_texture
+	
 	update_highlights()
 	
 	

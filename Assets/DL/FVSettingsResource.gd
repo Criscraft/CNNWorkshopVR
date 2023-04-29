@@ -2,7 +2,7 @@ extends Resource
 class_name FVSettingsResource
 
 enum MODE {AVERAGE, CENTERPIXEL, PERCENTILE}
-enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample, identity, identity_smooth, lppool}
+enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample, identity, identity_smooth, lppool, undefined}
 
 
 export var mode : int = MODE.PERCENTILE
@@ -13,8 +13,8 @@ export var degrees : int = 0
 export var blur_sigma : float = 0.5
 export var roll : int = 0
 export var fraction_to_maximize : float = 0.25
-export var pool_mode : int = POOLMODE.avgpool
-export var filter_mode : bool = false
+export var pool_mode : int = POOLMODE.undefined
+export var mimic_poolstage_filter_size : bool = false
 export var slope_leaky_relu_scheduling : bool = true
 export var final_slope_leaky_relu : float = 0.01
 
@@ -29,7 +29,7 @@ func get_dict():
 		"roll" : roll,
 		"fraction_to_maximize" : fraction_to_maximize,
 		"pool_mode" : POOLMODE.keys()[pool_mode],
-		"filter_mode" : filter_mode,
+		"mimic_poolstage_filter_size" : mimic_poolstage_filter_size,
 		"slope_leaky_relu_scheduling" : slope_leaky_relu_scheduling,
 		"final_slope_leaky_relu" : final_slope_leaky_relu,
 	}

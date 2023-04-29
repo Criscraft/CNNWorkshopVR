@@ -24,7 +24,7 @@ class FeatureVisualizationParams(object):
     def __init__(self,
         mode=Mode.CENTERPIXEL,
         epochs=200,
-        epochs_without_robustness_transforms=0,
+        epochs_without_robustness_transforms=20,
         lr=20.,
         degrees=0,
         blur_sigma=0.5,
@@ -33,8 +33,9 @@ class FeatureVisualizationParams(object):
         slope_leaky_relu_scheduling=True,
         final_slope_leaky_relu = 0.01,
         pool_mode="avgpool", # has no effect but is listed here for completeness
-        filter_mode=False, # has no effect but is listed here for completeness
-
+        mimic_poolstage_filter_size=False, # has no effect but is listed here for completeness
+        norm_mean = (0.,),
+        norm_std=(1.,),
         ):
 
         self.mode = mode
@@ -47,6 +48,8 @@ class FeatureVisualizationParams(object):
         self.fraction_to_maximize = fraction_to_maximize
         self.slope_leaky_relu_scheduling = slope_leaky_relu_scheduling
         self.final_slope_leaky_relu = final_slope_leaky_relu
+        self.norm_mean = norm_mean
+        self.norm_std = norm_std
 
 
 class FeatureVisualizer(object):
@@ -62,7 +65,6 @@ class FeatureVisualizer(object):
         self.export_interval = export_interval
         self.export_path = export_path
         self.set_fv_settings(fv_settings)
-        self.export_transformation = ExportTransform()
 
     
     def set_fv_settings(self, feature_visualization_params):
@@ -74,14 +76,22 @@ class FeatureVisualizer(object):
         export_meta = []
         if channels is None:
             channels = np.arange(n_channels)
+        n_batches = int( np.ceil( n_channels / float(BATCHSIZE) ) )
         
-        init_image = init_image.to(device)
+        norm_mean = torch.tensor(self.fv_settings.norm_mean)
+        norm_mean = norm_mean.reshape((1, -1, 1, 1))
+        norm_std = torch.tensor(self.fv_settings.norm_std)
+        norm_std = norm_std.reshape((1, -1, 1, 1))
+
         if init_image.ndim==3:
             init_image = init_image.unsqueeze(0)
+        #init_image = (init_image - norm_mean) / norm_std # transform init_image from image space to network input space
+        init_image = init_image.to(device)
         
+        export_transformation = ExportTransform(norm_mean, norm_std)
+        distribution_regularizer = DistributionRegularizer()
         regularizer = self.create_regularizer(init_image.shape[2:])
         
-        n_batches = int( np.ceil( n_channels / float(BATCHSIZE) ) )
         
         print("Start gradient ascent on images")
         print("Feature visualization parameters:")
@@ -92,11 +102,9 @@ class FeatureVisualizer(object):
             channels_batch = channels[batchid * BATCHSIZE : (batchid + 1) * BATCHSIZE]
             n_batch_items = len(channels_batch)
             created_image = init_image.detach().clone().repeat(n_batch_items, 1, 1, 1)
-            if self.fv_settings.slope_leaky_relu_scheduling:
-                model.embedded_model.set_neg_slope_of_leaky_relus(1.)
-
             # LeakyReLU slope scheduling
             if self.fv_settings.slope_leaky_relu_scheduling:
+                model.embedded_model.set_neg_slope_of_leaky_relus(1.)
                 start_epoch = 0.25 * self.fv_settings.epochs
                 start_slope = 1.0
                 end_epoch = 0.75 * self.fv_settings.epochs
@@ -118,7 +126,7 @@ class FeatureVisualizer(object):
                 with torch.no_grad():
                     if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
                         created_image = regularizer(created_image)
-                    created_image = created_image.clamp(-2., 2.)
+                    created_image = distribution_regularizer(created_image)
                 
                 created_image = created_image.detach()
                 created_image.requires_grad = True
@@ -157,7 +165,7 @@ class FeatureVisualizer(object):
 
                 loss.backward()
 
-                gradients = created_image.grad / (torch.sqrt((created_image.grad**2).sum((1,2,3), keepdims=True)) + 1e-6)
+                gradients = created_image.grad / (torch.sqrt((created_image.grad**2).sum((1,2,3), keepdim=True)) + 1e-6)
                 created_image = created_image - gradients * self.fv_settings.lr
 
                 if epoch % 20 == 0:
@@ -165,7 +173,7 @@ class FeatureVisualizer(object):
 
                 if self.export and (epoch % self.export_interval == 0 or epoch == self.epochs - 1):
                     with torch.no_grad():
-                        export_images = self.export_transformation(created_image.detach().cpu())
+                        export_images = export_transformation(created_image.detach())
                         if export_images.shape[1] != 3:
                             export_images = export_images.expand(-1, 3, -1, -1)
                         for i, channel in enumerate(channels_batch):
@@ -176,9 +184,10 @@ class FeatureVisualizer(object):
 
             created_image_aggregate.append(created_image.detach().cpu())
 
-        created_image = torch.cat(created_image_aggregate, 0)
+        created_image_aggregate = torch.cat(created_image_aggregate, 0)
+        created_image_aggregate = export_transformation(created_image_aggregate)
         
-        return created_image, export_meta
+        return created_image_aggregate, export_meta
 
 
     def create_regularizer(self, target_size):
@@ -192,17 +201,21 @@ class FeatureVisualizer(object):
 
 class ExportTransform(object):
 
-    def __call__(self, x):
-        if isinstance(x, torch.Tensor):
-            x = x.cpu().numpy()
+    def __init__(self, norm_mean, norm_std):
+        self.norm_mean = norm_mean
+        self.norm_std = norm_std
 
-        minimum = x.min((1,2,3), keepdims=True)
-        maximum = x.max((1,2,3), keepdims=True)
-        x = x - minimum
-        x = x / (maximum - minimum + 1e-6)
+    def __call__(self, x):
+        # x is on cpu
+        with torch.no_grad():
+            mean = x.mean((1,2,3), keepdim=True)
+            std = x.std((1,2,3), keepdim=True)
+            x = (x - mean) / std
+            x = x * self.norm_std + self.norm_mean
+            x = x.clamp(0., 1.)
+        x = x.numpy()
         x = x * 255
         x = x.astype(np.uint8)
-
         return x
 
 
@@ -215,9 +228,10 @@ class Regularizer(object):
             padding = int((degrees / 45.) * target_size[1] / (2. * np.sqrt(2.))) # approximately the size of the blank spots created by image rotation.
             rotation = transforms.RandomApply(torch.nn.ModuleList([
                 transforms.Pad(padding, padding_mode='edge'),
+                #transforms.Pad(padding, fill=0, padding_mode='constant'),
                 transforms.RandomRotation(degrees=degrees),
                 transforms.CenterCrop(target_size[1:]),
-                ]), p=0.3)
+                ]), p=0.2)
             transform_list.append(rotation)
 
         if blur_sigma > 0.:
@@ -228,7 +242,7 @@ class Regularizer(object):
         if roll > 0:
             rolling = transforms.RandomApply(torch.nn.ModuleList([
                 RandomRoll(roll),
-                ]), p=0.3)
+                ]), p=0.2)
             transform_list.append(rolling)
 
         self.transformation = transforms.Compose(transform_list)
@@ -243,11 +257,18 @@ class DistributionRegularizer(nn.Module):
         super().__init__()
 
     def forward(self, x):
-        # mean = x.mean((1,2,3), keepdims=True)
-        # std = x.std((1,2,3), keepdims=True)
-        # x_reg = (x - mean) / (std + 1e-6)
-        # x_new = ((1. - self.blend) * x) +  self.blend * x_reg
-        x = x.clamp(-2, 2)
+        # Transform to image space
+        # x = x * self.norm_std + self.norm_mean
+        # # x should in the range [0, 1]
+        # minimum = x.min(1, keepdim=True)[0].min(2, keepdim=True)[0].min(3, keepdim=True)[0]
+        # maximum = x.max(1, keepdim=True)[0].max(2, keepdim=True)[0].max(3, keepdim=True)[0]
+        # x = x - minimum
+        # x = x / (maximum - minimum + 1e-6)
+        # # Transform back to network input space
+        # x = (x - self.norm_mean) / self.norm_std
+        mean = x.mean((1,2,3), keepdim=True)
+        std = x.std((1,2,3), keepdim=True)
+        x = (x - mean) / std
         return x
 
 

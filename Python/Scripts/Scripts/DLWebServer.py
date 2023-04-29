@@ -92,6 +92,7 @@ def request_forward_pass(event):
 
 
 def perform_forward_pass(image_resource=None):
+    # Testing end
     global current_image_resource
     if image_resource is None and current_image_resource is not None:
         image_resource = current_image_resource

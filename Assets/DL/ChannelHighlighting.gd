@@ -160,8 +160,9 @@ func perform_standard_mapping(current, current_highlights, precursor_highlights)
 			var in_channel_ind = input_mapping[out_channel_ind]
 			precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
 	else:
-		for out_channel_ind in range(current.size[1]):
-			precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
+		if current_highlights.size[0] == precursor_highlights.size[0]:
+			for out_channel_ind in range(current.size[1]):
+				precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
 			
 # Called via group when a weight is changed.
 func weight_changed(_network_module_resource):

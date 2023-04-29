@@ -5,7 +5,7 @@ var settings_changed : bool = false
 onready var debouncing_timer = $DebouncingTimer
 onready var option_button_mode = $VBoxContainer/OptionButtonMode
 onready var option_button_pool_mode = $VBoxContainer/OptionButtonPoolMode
-onready var checkbox_filter = $VBoxContainer/CheckBoxFilter
+onready var checkbox_mimic_poolstage_filter_size = $VBoxContainer/CheckBoxMimicPoolstageFilterSize
 onready var slider_epochs : HSlider = $VBoxContainer/SliderEpochs
 onready var value_epochs : Label = $VBoxContainer/ValueEpochs
 onready var slider_learning_rate : HSlider = $VBoxContainer/SliderLearningRate
@@ -26,7 +26,7 @@ func _ready():
 	option_button_mode.add_item("Average")
 	option_button_mode.add_item("Center pixel")
 	option_button_mode.add_item("Fraction to maximize")
-	option_button_pool_mode.add_item("avgpool")
+	option_button_pool_mode.add_item("undefined")
 	option_button_pool_mode.add_item("maxpool")
 	option_button_pool_mode.add_item("interpolate_antialias")
 	option_button_pool_mode.add_item("interpolate")
@@ -34,13 +34,14 @@ func _ready():
 	option_button_pool_mode.add_item("identity")
 	option_button_pool_mode.add_item("identity_smooth")
 	option_button_pool_mode.add_item("lppool")
+	option_button_pool_mode.add_item("undefined")
 
 
 func set_fv_settings_resource(fv_settings_resource_):
 	fv_settings_resource = fv_settings_resource_
 	option_button_mode.select(fv_settings_resource.mode)
 	option_button_pool_mode.select(fv_settings_resource.pool_mode)
-	checkbox_filter.pressed = fv_settings_resource.filter_mode
+	checkbox_mimic_poolstage_filter_size.pressed = fv_settings_resource.mimic_poolstage_filter_size
 	slider_epochs.value = fv_settings_resource.epochs
 	value_epochs.text = str(fv_settings_resource.epochs)
 	slider_learning_rate.value = fv_settings_resource.lr

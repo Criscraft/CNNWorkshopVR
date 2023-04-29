@@ -13,6 +13,9 @@ class NoiseGenerator:
         self.active_noise_image = torch.rand(*self.shape, device=self.device)
 
         # self.active_noise_image = torch.zeros(*self.shape, device=self.device)
+        # self.active_noise_image[0, 1::4, 1::4] = 1.
+        # self.active_noise_image[1, 2::4, 2::4] = 1.
+        # self.active_noise_image[2, 3::4, 3::4] = 1.
         # self.active_noise_image[:, self.shape[1]//2, self.shape[2]//2] = 1.
 
         # self.active_noise_image = torch.zeros(*self.shape, device=self.device)
@@ -22,4 +25,4 @@ class NoiseGenerator:
     def get_noise_image(self):
         if self.active_noise_image is None:
             self.generate_noise_image()
-        return self.active_noise_image
+        return self.active_noise_image.clone()
