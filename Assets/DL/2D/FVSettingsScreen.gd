@@ -26,7 +26,7 @@ func _ready():
 	option_button_mode.add_item("Average")
 	option_button_mode.add_item("Center pixel")
 	option_button_mode.add_item("Fraction to maximize")
-	option_button_pool_mode.add_item("undefined")
+	option_button_pool_mode.add_item("avgpool")
 	option_button_pool_mode.add_item("maxpool")
 	option_button_pool_mode.add_item("interpolate_antialias")
 	option_button_pool_mode.add_item("interpolate")

@@ -82,12 +82,6 @@ func on_receive_fv_settings_resource(fv_settings_resource):
 		var new_instance = fv_settings_screen_scene.instance()
 		screen_slot.add_child(new_instance)
 		new_instance.fv_settings_resource = fv_settings_resource
-
-
-func _on_lever_switch_layout_status_change(status_):
-	layout_details_mode = status_
-	if is_inside_tree():
-		update_details_layout()
 		
 		
 func update_details_layout():
@@ -108,12 +102,6 @@ func update_feature_visualization_mode():
 	var network_module_details_manager = get_network_module_details_manager()
 	if network_module_details_manager != null:
 		network_module_details_manager.feature_visualization_mode = feature_visualization_mode
-
-
-func _on_ToggleLayout_pressed(_button):
-	var network_module_details_manager = get_network_module_details_manager()
-	if network_module_details_manager != null:
-		network_module_details_manager.module_notes_panel_visibility = not network_module_details_manager.module_notes_panel_visibility
 		
 		
 func get_network_module_details_manager():
@@ -121,3 +109,29 @@ func get_network_module_details_manager():
 		var network_module_details_manager = screen_slot.get_node("NetworkModuleDetailsScreen2D/NetworkModuleDetailsManager")
 		return network_module_details_manager
 	return null
+
+
+func _on_ExportButton_pressed(at):
+	var network_module_details_manager = get_network_module_details_manager()
+	if network_module_details_manager != null:
+		
+		# Prepare export directory.
+		var network_module_resource = network_module_details_manager.network_module_resource
+		var module_id = network_module_resource.module_id
+		var module_label = network_module_resource.label
+		var first_image_resource = network_module_details_manager.channel_container.get_child(0).channel_image_tile.image_resource
+		var mode = ImageResource.MODE.keys()[first_image_resource.mode]
+		var export_path = "user://export/" + "_".join([mode, module_id, module_label]) 
+		var dir = Directory.new()
+		
+		if dir.dir_exists(export_path):
+			while dir.dir_exists(export_path):
+				export_path = export_path + "_new"
+		dir.make_dir_recursive(export_path)
+		
+		# Export data.
+		for child in network_module_details_manager.channel_container.get_children():
+			var image_resource = child.channel_image_tile.image_resource
+			var save_path = export_path + "/" + str(image_resource.channel_id) + ".png"
+			image_resource.image.save_png(save_path)
+			print(save_path)

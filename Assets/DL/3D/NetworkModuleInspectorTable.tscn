@@ -1,10 +1,11 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Assets/Materials/static_material.tres" type="Material" id=1]
 [ext_resource path="res://Assets/VRInteraction/MySnapTray.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Assets/VRInteraction/LeverSwitch.tscn" type="PackedScene" id=3]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorTable.gd" type="Script" id=4]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleActionSelector.tscn" type="PackedScene" id=5]
+[ext_resource path="res://Assets/VRInteraction/PointablePushButton.tscn" type="PackedScene" id=6]
 [ext_resource path="res://Assets/Stuff/QuickLabel.tscn" type="PackedScene" id=7]
 
 [sub_resource type="CubeMesh" id=1]
@@ -33,31 +34,30 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0 )
 shape = SubResource( 2 )
 
 [node name="ModuleTray" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0623394, 1.009, 0 )
+transform = Transform( 0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, -0.0623394, 1.009, 0 )
 
 [node name="Snap_Zone" parent="ModuleTray" index="1"]
 copies_on_pick_up = false
 
-[node name="LeverSwitchLayout" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.3, 0, 0, 0, -1.31134e-08, 0.3, 0, -0.3, -1.31134e-08, 0.0261238, 1, 0 )
-
-[node name="QuickLabel" parent="." instance=ExtResource( 7 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.026467, 1.02, -0.079 )
-text = "Grid"
-
 [node name="QuickLabel2" parent="." instance=ExtResource( 7 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.026467, 1.02, 0.0774358 )
-text = "Row"
+transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.0291765, 1.02, 0.0739522 )
+text = "Export"
+
+[node name="ExportButton" parent="." instance=ExtResource( 6 )]
+transform = Transform( 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0.0284807, 1.0001, -0.000105664 )
 
 [node name="LeverSwitchActivationFV" parent="." instance=ExtResource( 3 )]
-transform = Transform( 0.3, 0, 0, 0, -1.31134e-08, 0.3, 0, -0.3, -1.31134e-08, 0.0916058, 1, 0 )
+transform = Transform( 0.3, 0, 0, 0, 0.212132, 0.212132, 0, -0.212132, 0.212132, 0.0916058, 1.05152, 0 )
+
+[node name="MeshInstance" parent="LeverSwitchActivationFV/Frame" index="1"]
+transform = Transform( 1, 0, 0, 0, 1, -3.55271e-15, 0, 3.55271e-15, 1, 0, 0, 0 )
 
 [node name="QuickLabel3" parent="." instance=ExtResource( 7 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.0919119, 1.02, 0.074 )
+transform = Transform( 2, 0, 0, 0, 1.41421, 1.41421, 0, -1.41421, 1.41421, 0.0919119, 1.01781, 0.0647129 )
 text = "F-map"
 
 [node name="QuickLabel4" parent="." instance=ExtResource( 7 )]
-transform = Transform( 2, 0, 0, 0, -8.74228e-08, 2, 0, -2, -8.74228e-08, 0.0919119, 1.02, -0.0791513 )
+transform = Transform( 2, 0, 0, 0, 1.41421, 1.41421, 0, -1.41421, 1.41421, 0.0919119, 1.11178, -0.0316233 )
 text = "F-Vis"
 
 [node name="NetworkModuleActionSelector" parent="." instance=ExtResource( 5 )]
@@ -74,14 +74,14 @@ shape = SubResource( 4 )
 
 [connection signal="has_dropped" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_dropped"]
 [connection signal="has_picked_up" from="ModuleTray/Snap_Zone" to="." method="_on_Snap_Zone_has_picked_up"]
-[connection signal="hinge_moved" from="LeverSwitchLayout/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_layout_status_change"]
+[connection signal="pointer_pressed" from="ExportButton/Button" to="." method="_on_ExportButton_pressed"]
+[connection signal="button_pressed" from="ExportButton/InteractableAreaButton" to="." method="_on_ExportButton_pressed"]
 [connection signal="hinge_moved" from="LeverSwitchActivationFV/LeverOrigin/InteractableLever" to="." method="_on_lever_switch_activation_fv_status_change"]
 
 [editable path="ModuleTray"]
 [editable path="ModuleTray/Snap_Zone"]
-[editable path="LeverSwitchLayout"]
-[editable path="QuickLabel"]
 [editable path="QuickLabel2"]
+[editable path="ExportButton"]
 [editable path="LeverSwitchActivationFV"]
 [editable path="QuickLabel3"]
 [editable path="QuickLabel4"]

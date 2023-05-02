@@ -5,6 +5,7 @@ var debouncing_timer_scene : PackedScene = preload("res://Assets/Stuff/Debouncin
 var button_up_scene : PackedScene = preload("res://Assets/DL/2D/ButtonUp.tscn")
 var button_down_scene : PackedScene = preload("res://Assets/DL/2D/ButtonDown.tscn")
 onready var loading_image : StreamTexture = preload("res://Assets/Materials/loading.png")
+onready var channel_image_tile = $ChannelImageTile
 var margin = 10
 var weight_slider_height = 60
 var image_height = 256
@@ -16,17 +17,17 @@ signal weight_changed(weight, channel_ind, weight_ind)
 
 
 func set_image_resource(image_resource : ImageResource):
-	$ChannelImageTile.image_resource = image_resource
-	channel_ind = $ChannelImageTile.image_resource.channel_id
+	channel_image_tile.image_resource = image_resource
+	channel_ind = channel_image_tile.image_resource.channel_id
 	
 	
 func set_color(color_new):
-	$ChannelImageTile.set_color(color_new)
-	$ChannelImageTile.visible = true
+	channel_image_tile.set_color(color_new)
+	channel_image_tile.visible = true
 	
 	
 func set_label(text_new):
-	$ChannelImageTile.set_text(text_new)
+	channel_image_tile.set_text(text_new)
 	
 	
 func clear_details():
@@ -82,7 +83,7 @@ func on_permutation_button_down_pressed(index_name):
 
 
 func set_size_of_children(size_new):
-	$ChannelImageTile.set_size_of_children(size_new)
+	channel_image_tile.set_size_of_children(size_new)
 
 
 # Called by WeightEditContainer via signal. 

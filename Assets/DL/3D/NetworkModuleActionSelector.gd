@@ -87,6 +87,6 @@ func decrement_action(_collided_at=null):
 	
 	
 func perform_action(_collided_at=null):
-	if available_actions[active_action_ind].action:
+	if available_actions and available_actions[active_action_ind].action:
 		emit_signal(available_actions[active_action_ind].action)
 	
