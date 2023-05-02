@@ -160,7 +160,7 @@ func perform_standard_mapping(current, current_highlights, precursor_highlights)
 			var in_channel_ind = input_mapping[out_channel_ind]
 			precursor_highlights[in_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
 	else:
-		if current_highlights.size[0] == precursor_highlights.size[0]:
+		if current_highlights.size() == precursor_highlights.size():
 			for out_channel_ind in range(current.size[1]):
 				precursor_highlights[out_channel_ind] += max(current_highlights[out_channel_ind], -0.1)
 			

@@ -24,7 +24,7 @@ class FeatureVisualizationParams(object):
     def __init__(self,
         mode=Mode.CENTERPIXEL,
         epochs=200,
-        epochs_without_robustness_transforms=20,
+        epochs_without_robustness_transforms=10,
         lr=20.,
         degrees=0,
         blur_sigma=0.5,
@@ -89,7 +89,7 @@ class FeatureVisualizer(object):
         init_image = init_image.to(device)
         
         export_transformation = ExportTransform(norm_mean, norm_std)
-        distribution_regularizer = DistributionRegularizer()
+        distribution_regularizer = DistributionRegularizer(norm_mean.to(init_image.device), norm_std.to(init_image.device))
         regularizer = self.create_regularizer(init_image.shape[2:])
         
         
@@ -122,7 +122,7 @@ class FeatureVisualizer(object):
                         p = (epoch - start_epoch) / (end_epoch - start_epoch)
                         slope = p * end_slope + (1 - p) * start_slope
                         model.embedded_model.set_neg_slope_of_leaky_relus(slope)
-                
+
                 with torch.no_grad():
                     if epoch < self.fv_settings.epochs - self.fv_settings.epochs_without_robustness_transforms:
                         created_image = regularizer(created_image)
@@ -208,9 +208,10 @@ class ExportTransform(object):
     def __call__(self, x):
         # x is on cpu
         with torch.no_grad():
-            mean = x.mean((1,2,3), keepdim=True)
-            std = x.std((1,2,3), keepdim=True)
-            x = (x - mean) / std
+            #mean = x.mean((1,2,3), keepdim=True)
+            #std = x.std((1,2,3), keepdim=True)
+            #std = 1.
+            #x = (x - mean) / std
             x = x * self.norm_std + self.norm_mean
             x = x.clamp(0., 1.)
         x = x.numpy()
@@ -253,8 +254,12 @@ class Regularizer(object):
 
 class DistributionRegularizer(nn.Module):
 
-    def __init__(self):
+    def __init__(self, norm_mean, norm_std):
         super().__init__()
+
+        self.norm_mean = norm_mean
+        self.norm_std = norm_std
+
 
     def forward(self, x):
         # Transform to image space
@@ -266,9 +271,14 @@ class DistributionRegularizer(nn.Module):
         # x = x / (maximum - minimum + 1e-6)
         # # Transform back to network input space
         # x = (x - self.norm_mean) / self.norm_std
-        mean = x.mean((1,2,3), keepdim=True)
-        std = x.std((1,2,3), keepdim=True)
-        x = (x - mean) / std
+        x = x * self.norm_std + self.norm_mean
+        x = x * 0.95
+        x = x.clamp(0., 1.)
+        x = (x - self.norm_mean) / self.norm_std
+        #mean = x.mean((1,2,3), keepdim=True)
+        #std = x.std((1,2,3), keepdim=True)
+        #std = 1.
+        #x = (x - mean) / std
         return x
 
 

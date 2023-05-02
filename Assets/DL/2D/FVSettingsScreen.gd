@@ -73,7 +73,7 @@ func _on_OptionButtonPoolMode_item_selected(index):
 
 
 func _on_CheckBoxFilter_toggled(button_pressed):
-	fv_settings_resource.filter_mode = button_pressed
+	fv_settings_resource.mimic_poolstage_filter_size = button_pressed
 	settings_changed = true
 	debouncing_timer._on_trigger()
 
