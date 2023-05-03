@@ -14,7 +14,7 @@ func set_image_resource(image_resource_):
 	
 func update_image() -> void:
 	var image_texture = ImageTexture.new()
-	var flag = 4
+	var flag = 4+16
 	if image_resource.mode == ImageResource.MODE.ACTIVATION:
 		flag = 0
 	image_texture.create_from_image(image_resource.image, flag)

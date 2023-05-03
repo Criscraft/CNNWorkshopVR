@@ -56,8 +56,8 @@ class FeatureVisualizer(object):
     
     def __init__(self,
         export = False,
-        export_path = '',
-        export_interval=50,
+        export_path = '../export',
+        export_interval=1e6,
         fv_settings=FeatureVisualizationParams()):
         
         super().__init__()
@@ -171,15 +171,19 @@ class FeatureVisualizer(object):
                 if epoch % 20 == 0:
                     print(epoch, loss.item())
 
-                if self.export and (epoch % self.export_interval == 0 or epoch == self.epochs - 1):
+                if self.export and (epoch % self.export_interval == 0 or epoch == self.fv_settings.epochs - 1):
                     with torch.no_grad():
-                        export_images = export_transformation(created_image.detach())
+                        export_images = export_transformation(created_image.detach().cpu())
                         if export_images.shape[1] != 3:
                             export_images = export_images.expand(-1, 3, -1, -1)
                         for i, channel in enumerate(channels_batch):
-                            path = os.path.join(self.export_path, "_".join([str(channel), str(epoch), str(imagecount) + ".jpg"]))
+                            path = os.path.join(self.export_path, "_".join([str(channel), str(epoch), str(imagecount) + ".png"]))
                             export_meta.append({'path' : path, 'channel' : int(channel), 'epoch' : epoch})
-                            cv2.imwrite(path, export_images[i].transpose((1,2,0)))
+                            image = export_images[i]
+                            if image.shape[0] == 3:
+                                image = image[[2, 1, 0]] # sort color channels to BGR
+                            image = image.transpose((1,2,0)) # sort dims to H, W, C
+                            cv2.imwrite(path, image)
                             imagecount += 1
 
             created_image_aggregate.append(created_image.detach().cpu())
@@ -272,7 +276,7 @@ class DistributionRegularizer(nn.Module):
         # # Transform back to network input space
         # x = (x - self.norm_mean) / self.norm_std
         x = x * self.norm_std + self.norm_mean
-        x = x * 0.95
+        x = x * 0.9975
         x = x.clamp(0., 1.)
         x = (x - self.norm_mean) / self.norm_std
         #mean = x.mean((1,2,3), keepdim=True)
