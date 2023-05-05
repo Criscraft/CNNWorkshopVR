@@ -8,7 +8,7 @@ import torchgeometry as tgm
 import numpy as np
 import random
 from enum import Enum
-
+import asyncio
 
 BATCHSIZE = 16
 imagecount = 0
@@ -55,12 +55,14 @@ class FeatureVisualizationParams(object):
 class FeatureVisualizer(object):
     
     def __init__(self,
+        report_result_fn = None,
         export = False,
         export_path = '../export',
         export_interval=1e6,
         fv_settings=FeatureVisualizationParams()):
         
         super().__init__()
+        self.report_result_fn = report_result_fn
         self.export = export
         self.export_interval = export_interval
         self.export_path = export_path
@@ -71,7 +73,7 @@ class FeatureVisualizer(object):
         self.fv_settings = feature_visualization_params
 
 
-    def visualize(self, model, module, device, init_image, n_channels, channels=None):
+    async def visualize(self, model, module, device, init_image, n_channels, module_id, channels=None):
         global imagecount
         export_meta = []
         if channels is None:
@@ -194,6 +196,9 @@ class FeatureVisualizer(object):
                             imagecount += 1
 
             created_image_aggregate.append(created_image.detach().cpu())
+            if self.report_result_fn is not None:
+                report_images = export_transformation(created_image_aggregate[-1])
+                await self.report_result_fn(report_images, channels_batch, module_id)
 
         created_image_aggregate = torch.cat(created_image_aggregate, 0)
         created_image_aggregate = export_transformation(created_image_aggregate)
@@ -234,7 +239,7 @@ class ExportTransform(object):
 # TODO Remove the target size. the size of the images should be determined by the init image.
 class Regularizer(object):
 
-    def __init__(self, degrees, blur_sigma, roll, target_size, color_jitter=True):
+    def __init__(self, degrees, blur_sigma, roll, target_size, color_jitter=False):
         transform_list = []
         if degrees > 0:
             padding = int((degrees / 45.) * target_size[1] / (2. * np.sqrt(2.))) # approximately the size of the blank spots created by image rotation.
@@ -290,7 +295,7 @@ class DistributionRegularizer(nn.Module):
         # # Transform back to network input space
         # x = (x - self.norm_mean) / self.norm_std
         x = x * self.norm_std + self.norm_mean
-        x = x * 0.999
+        #x = x * 0.999
         x = x.clamp(0., 1.)
         x = (x - self.norm_mean) / self.norm_std
         #mean = x.mean((1,2,3), keepdim=True)

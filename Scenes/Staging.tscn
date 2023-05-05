@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://Scenes/staging.gd" type="Script" id=1]
 [ext_resource path="res://Assets/DL/3D/ImageShelf.tscn" type="PackedScene" id=2]
@@ -12,6 +12,14 @@
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStation.tscn" type="PackedScene" id=10]
 [ext_resource path="res://Assets/DL/3D/NetworkModuleInspectorStationCurved.tscn" type="PackedScene" id=11]
 [ext_resource path="res://Assets/Stuff/Elevator.tscn" type="PackedScene" id=12]
+
+[sub_resource type="SpatialMaterial" id=1]
+resource_local_to_scene = true
+albedo_color = Color( 1, 0.72549, 0.356863, 1 )
+
+[sub_resource type="SpatialMaterial" id=2]
+resource_local_to_scene = true
+albedo_color = Color( 1, 0.72549, 0.356863, 1 )
 
 [node name="Staging" type="Spatial"]
 script = ExtResource( 1 )
@@ -59,6 +67,12 @@ transform = Transform( 0.887462, 0, -0.460881, 0, 1, 0, 0.460881, 0, 0.887462, 0
 
 [node name="Controls" parent="Environment/Elevator" index="1"]
 transform = Transform( -0.709054, 0, -0.705154, 0, 1, 0, 0.705154, 0, -0.709054, 0.237288, 0, 0.261937 )
+
+[node name="MeshInstance" parent="Environment/Elevator/Controls/ButtonUp/Button" index="1"]
+material/0 = SubResource( 1 )
+
+[node name="MeshInstance" parent="Environment/Elevator/Controls/ButtonDown/Button" index="1"]
+material/0 = SubResource( 2 )
 
 [node name="SpawnedItems" type="Spatial" parent="."]
 

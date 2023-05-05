@@ -17,6 +17,8 @@ noise_generator = None
 current_image_resource = None
 current_fv_image_resource = None
 loader_test_norm = None
+pending_data_to_send = []
+lock = asyncio.Lock()
 
 def prepare_dl_objects(source):
     global dataset
@@ -24,7 +26,7 @@ def prepare_dl_objects(source):
     global loader_test_norm
     dataset, transform_norm, loader_test_norm = source.get_dataset()
     global network
-    network = source.get_network()
+    network = source.get_network(report_feature_visualization_results)
     # Set the class names for the network. This is important if class names should be displayed for some channels.
     network.class_names = dataset.class_names
     global noise_generator
@@ -38,6 +40,10 @@ def prepare_dl_objects(source):
 
 
 async def handler(websocket):
+
+    # create periodic task:
+    asyncio.create_task(send(websocket))
+
     async for message in websocket:
         response = ""
         event = json.loads(message)
@@ -49,7 +55,7 @@ async def handler(websocket):
         elif event["resource"] == "request_architecture":
             response = request_architecture(event)
         elif event["resource"] == "request_image_data":
-            response = request_image_data(event)
+            response = await request_image_data(event)
         elif event["resource"] == "set_network_weights":
             response = set_network_weights(event)
         elif event["resource"] == "set_fv_image_resource":
@@ -63,6 +69,16 @@ async def handler(websocket):
         
         if response:
             await websocket.send(response)
+
+
+async def send(websocket):
+    while True:
+        async with lock:
+            while pending_data_to_send:
+                item = pending_data_to_send.pop()
+                print("send pending data")
+                await websocket.send(item)
+        await asyncio.sleep(0.5)
 
 
 def request_dataset_images(event):
@@ -128,7 +144,7 @@ def request_architecture(event):
     return response
 
 
-def request_image_data(event):
+async def request_image_data(event):
     print(event)
     image_resources = []
     module_resource = event["network_module_resource"]
@@ -156,15 +172,8 @@ def request_image_data(event):
         if current_fv_image_resource is None:
             print("FV request cannot be served: no fv image resource selected.")
             return ""
-        images = network.get_feature_visualization(module_id, transform_norm(current_fv_image_resource.data))
-        for channel_id, image in enumerate(images):
-            image_resources.append(ImageResource(
-                module_id=module_id,
-                channel_id=channel_id,
-                mode=ImageResource.Mode.FEATURE_VISUALIZATION,
-                label=channel_labels[channel_id] if channel_labels else "",
-                data=utils.tensor_to_string(image),
-            ).__dict__)
+        asyncio.create_task(network.compute_feature_visualization(module_id, transform_norm(current_fv_image_resource.data)))
+        image_resources = []
     else:
         raise ValueError(f"Unknown mode {mode}")
     response = {"resource" : "request_image_data", "image_resources" : image_resources}
@@ -198,6 +207,30 @@ def set_fv_settings(event):
     network.set_feature_visualization_params(fv_settings_dict)
     print("set_fv_settings")
     return ""
+
+
+async def report_feature_visualization_results(images, channels, module_id):
+    channel_labels = network.get_channel_labels(module_id)
+    
+    image_resources = []
+
+    for channel_id, image in zip(channels, images):
+        image_resources.append(ImageResource(
+            module_id=module_id,
+            channel_id=int(channel_id),
+            mode=ImageResource.Mode.FEATURE_VISUALIZATION,
+            label=channel_labels[channel_id] if channel_labels else "",
+            data=utils.tensor_to_string(image),
+        ).__dict__)
+
+    response = {"resource" : "request_image_data", "image_resources" : image_resources}
+    response = json.dumps(response, indent=1, ensure_ascii=True)
+    
+    async with lock:
+        pending_data_to_send.append(response)
+    # Switch to other tasks (sending data)
+    await asyncio.sleep(0.5)
+    
 
 
 def get_image_resource(image_resource_dict):

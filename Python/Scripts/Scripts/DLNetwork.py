@@ -10,7 +10,7 @@ from Scripts.ImageResource import ImageResource
 
 class DLNetwork(object):
     
-    def __init__(self, model, device, classification, input_size, softmax=False, export_path=os.path.join("export", "network"), norm_mean=(0.,), norm_std=(1.,)):
+    def __init__(self, model, device, classification, input_size, report_feature_visualization_result, softmax=False, export_path=os.path.join("export", "network"), norm_mean=(0.,), norm_std=(1.,)):
         super().__init__()
         
         self.device = device
@@ -37,7 +37,7 @@ class DLNetwork(object):
             norm_std = (norm_std[0], norm_std[0], norm_std[0])
         self.norm_mean = norm_mean
         self.norm_std = norm_std
-        self.feature_visualizer = FeatureVisualizer()
+        self.feature_visualizer = FeatureVisualizer(report_result_fn=report_feature_visualization_result)
         self.feature_visualizer.fv_settings.norm_mean = self.norm_mean
         self.feature_visualizer.fv_settings.norm_std = self.norm_std
         self.module_dict = {}
@@ -110,7 +110,7 @@ class DLNetwork(object):
             raise RuntimeError("need to do the initial forward pass first")
 
 
-    def get_feature_visualization(self, module_id, image):
+    async def compute_feature_visualization(self, module_id, image):
         if not self.module_dict:
             raise RuntimeError("need to do the initial forward pass first")
             
@@ -119,9 +119,7 @@ class DLNetwork(object):
         
         module = self.module_dict[module_id]["module"]
         n_channels = self.module_dict[module_id]["size"][1]
-        created_images, _ = self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels)
-
-        return created_images
+        await self.feature_visualizer.visualize(self.model, module, self.device, image, n_channels, module_id)
 
 
     def set_feature_visualization_params(self, param_dict):
