@@ -20,7 +20,7 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 
-def get_network():
+def get_network(report_feature_visualization_results):
     
     n_channels_list = [
         64, 64, # pool stage 1
@@ -106,7 +106,7 @@ def get_network():
         statedict=os.path.join('..', 'Projects', 'Flowers102', 'resnet18.pt'),
     )
     
-    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False, norm_mean=NORM_MEAN, norm_std=NORM_STD)
+    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, report_feature_visualization_results, softmax=False, norm_mean=NORM_MEAN, norm_std=NORM_STD)
     
     return dl_network
 

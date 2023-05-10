@@ -8,10 +8,10 @@ enum POOLMODE {avgpool, maxpool, interpolate_antialias, interpolate, subsample, 
 export var mode : int = MODE.PERCENTILE
 export var epochs : int = 100
 export var lr : float = 20.0
-export var degrees : int = 0
+export var degrees : int = 5
 export var blur_sigma : float = 0.5
-export var roll : int = 0
-export var fraction_to_maximize : float = 0.25
+export var roll : int = 5
+export var fraction_to_maximize : float = 0.3
 export var pool_mode : int = POOLMODE.undefined
 export var mimic_poolstage_filter_size : bool = false
 export var slope_leaky_relu_scheduling : bool = true

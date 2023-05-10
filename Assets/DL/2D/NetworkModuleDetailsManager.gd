@@ -195,7 +195,7 @@ Prepare and display image data
 
 # Called by DLManager when image data is received.
 func receive_image_data(image_resource_data):
-	if image_resource_data[0].module_id != network_module_resource.module_id:
+	if not image_resource_data or image_resource_data[0].module_id != network_module_resource.module_id:
 		return
 	var mode = ImageResource.MODE[image_resource_data[0]["mode"]]
 	if mode == ImageResource.MODE.ACTIVATION and feature_visualization_mode == false or \
@@ -224,13 +224,13 @@ func on_pool_task_completed(task):
 
 func update_image_data(image_resources):
 	
-	if not details_layout:
-		# Delete old channels and add new ones. This allows the number of channels to be dynamic. We do not do this when details layout is active, because it would be too expensive.
-		recreate_channels()
+	# if not details_layout:
+		# Delete old channels and create new ones. This allows the number of channels to be dynamic. We do not do this when details layout is active, because it would be too expensive.
+		# recreate_channels()
 	
 	for i in range(len(image_resources)):
 		var image_resource = image_resources[i]
-		var channel = channel_container.get_child(i)
+		var channel = channel_container.get_child(image_resource.channel_id)
 		channel.set_image_resource(image_resource)
 		
 	# Update the legend
