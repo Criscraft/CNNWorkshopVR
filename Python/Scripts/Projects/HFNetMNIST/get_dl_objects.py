@@ -19,6 +19,30 @@ device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 def get_network():
     n_channels_list = [1*8, 2*8, 2*8, 2*8, 4*8, 8*8]
+    
+    # model = TranslationNetMNIST(
+    #     n_classes=10,
+    #     blockconfig_list=[
+    #         {'n_channels_in' : 1 if i==0 else n_channels_list[i-1],
+    #         'n_channels_out' : n_channels_list[i], # n_channels_out % shuffle_conv_groups == 0
+    #         'conv_groups' : n_channels_list[i] // 8,
+    #         'pool_mode' : "avgpool" if i in [3, 5] else "",
+    #         'spatial_mode' : "predefined_filters", # one of predefined_filters and parameterized_translation
+    #         'spatial_requires_grad' : False,
+    #         'filter_mode' : "TranslationSharp8", # one of Even, Uneven, All, Random, Smooth, EvenPosOnly, UnevenPosOnly, TranslationSmooth, TranslationSharp4, TranslationSharp8
+    #         'n_angles' : 4,
+    #         'translation_k' : 5,
+    #         'randomroll' : -1,
+    #         'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
+    #         'permutation' : 'identity', # one of shifted, identity, disabled
+    #         } for i in range(6)],
+    #     init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
+    #     pool_mode="lppool",
+    #     conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+    #     conv_expressions_path = "conv_expressions_8_filters.txt",
+    #     #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
+    # )
+
     model = TranslationNetMNIST(
         n_classes=10,
         blockconfig_list=[
@@ -37,9 +61,9 @@ def get_network():
             } for i in range(6)],
         init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
         pool_mode="lppool",
-        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+        #conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
         conv_expressions_path = "conv_expressions_8_filters.txt",
-        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
+        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
     )
         
     dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)

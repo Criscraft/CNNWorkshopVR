@@ -9,6 +9,8 @@ from TrackingModules import TrackerModuleProvider
 
 """
 PredefinedConv padding is zero padding instead of replicate. This seems to improve test accuracy by about 1%.
+Reenabled replicate padding
+pooling padding 0. This improves performance on MNIST
 """
 
 tm = TrackerModuleProvider()
@@ -368,10 +370,12 @@ class TrackedPool(nn.Module):
 
     def set_tracked_pool_mode(self, pool_mode : str):
         if pool_mode == "avgpool":
-            self.pool = nn.AvgPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
+            #self.pool = nn.AvgPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
+            self.pool = nn.AvgPool2d(kernel_size=self.k, stride=2, padding=0)
             print("set to avgpool")
         elif pool_mode == "maxpool":
-            self.pool = nn.MaxPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
+            #self.pool = nn.MaxPool2d(kernel_size=self.k, stride=2, padding=self.k//2)
+            self.pool = nn.MaxPool2d(kernel_size=self.k, stride=2, padding=0)
             print("set to maxpool")
         elif pool_mode == "interpolate_antialias":
             self.pool = Interpolate(True)
@@ -575,7 +579,7 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     
 
 class PredefinedConv(nn.Module):
-    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, filters_require_grad:bool=False, padding:bool=True) -> None:
+    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, filters_require_grad:bool=False, padding:bool=True, replicate_padding:bool=False) -> None:
         super().__init__()
 
         assert n_channels_out >= n_channels_in
@@ -583,6 +587,7 @@ class PredefinedConv(nn.Module):
         self.n_channels_out = n_channels_out
         self.stride = stride
         self.padding = k // 2 if padding else 0
+        self.replicate_padding = replicate_padding
         self.dilation = 1
 
         self.filters_require_grad = filters_require_grad
@@ -709,9 +714,11 @@ class PredefinedConv(nn.Module):
             internal_weight = self.internal_weight
             
         groups = self.n_channels_in
-        # if self.padding > 0:
-        #     x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
-        out = F.conv2d(x, internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
+        if self.padding > 0 and self.replicate_padding:
+            x = F.pad(x, (self.padding,self.padding,self.padding,self.padding), "replicate")
+            out = F.conv2d(x, internal_weight, None, self.stride, groups=groups, dilation=self.dilation)
+        else:
+            out = F.conv2d(x, internal_weight, None, self.stride, groups=groups, dilation=self.dilation, padding=self.padding)
 
         _ = self.tracker_out(out)
         #print(f"multadds {x.shape[2]*x.shape[3]*self.n_channels_out*self.weight.shape[1]*self.weight.shape[2]}")
@@ -760,12 +767,13 @@ class PredefinedConvWithDecorativeCopy(nn.Module):
         k: int = 3,
         stride: int = 1,
         padding: bool = True,
+        replicate_padding : bool = False,
     ) -> None:
         super().__init__()
 
         # Copy. This copy module is only decoration. The consecutive module will not be affected by copy.
         self.copymodule = CopyModuleInterleave(n_channels_in, n_channels_in * f) if f>1 else nn.Identity()
-        self.predev_conv = PredefinedConv(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, filters_require_grad=filters_require_grad, padding=padding)
+        self.predev_conv = PredefinedConv(n_channels_in, n_channels_in * f, stride=stride, k=k, filter_mode=filter_mode, n_angles=n_angles, filters_require_grad=filters_require_grad, padding=padding, replicate_padding=replicate_padding)
 
 
     def forward(self, x: Tensor) -> Tensor:

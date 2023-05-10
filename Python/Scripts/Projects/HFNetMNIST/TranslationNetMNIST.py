@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import os
 
 
-import Scripts.PredefinedFilterModules as pfm
-from Scripts.TrackingModules import ActivationTracker
+import PredefinedFilterModules as pfm
+from TrackingModules import ActivationTracker
 
 
 class PreprocessingModule(nn.Module):
@@ -118,8 +118,9 @@ class TranslationBlock(nn.Module):
                 f=1,
                 k=3,
                 stride=1,
+                replicate_padding=True,
             )
-            self.spatial_norm = norm_module(n_channels_out)
+            #self.spatial_norm = norm_module(n_channels_out)
             self.activation = pfm.TrackedLeakyReLU()
         elif spatial_mode == "parameterized_translation":
             tm.instance_tracker_module_group(label="Translation")
@@ -142,7 +143,7 @@ class TranslationBlock(nn.Module):
         x_skip = x
         _ = self.tracker_input_spatial(x)
         x = self.spatial(x)
-        x = self.spatial_norm(x)
+        #x = self.spatial_norm(x)
         x = self.activation(x)
         x = self.blend(x_skip, x)
         _ = self.tracker_input_conv_2(x)
