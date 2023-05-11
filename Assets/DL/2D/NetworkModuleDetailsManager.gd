@@ -575,4 +575,31 @@ func identity_weights():
 		
 	get_tree().call_group("on_weight_changed", "weight_changed", network_module_resource)
 	update_details_layout()
+
+
+func export_imagedata():
+	var module_id = network_module_resource.module_id
+	var module_label = network_module_resource.label
+	var first_image_resource = channel_container.get_child(0).channel_image_tile.image_resource
+	var mode = ImageResource.MODE.keys()[first_image_resource.mode]
+	var export_path = "user://export/" + "_".join([mode, module_id, module_label]).replace(" ", "_")
+	var dir = Directory.new()
 	
+	if dir.dir_exists(export_path):
+		while dir.dir_exists(export_path):
+			export_path = export_path + "_new"
+	dir.make_dir_recursive(export_path)
+	
+	# Export data.
+	var channel_labels = {}
+	for child in channel_container.get_children():
+		var image_resource = child.channel_image_tile.image_resource
+		var file_name = "%04d" % image_resource.channel_id + ".png"
+		var save_path = export_path + "/" + file_name
+		channel_labels[file_name] = image_resource.label
+		image_resource.image.save_png(save_path)
+	var save_game = File.new()
+	save_game.open(export_path + "/channel_labels.json", File.WRITE)
+	save_game.store_line(to_json(channel_labels))
+	save_game.close()
+		

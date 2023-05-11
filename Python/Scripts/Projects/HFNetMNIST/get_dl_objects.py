@@ -116,4 +116,5 @@ def get_dataset():
 
 def get_noise_generator():
     noise_generator = NoiseGenerator(device, IMAGE_SHAPE)
+    #noise_generator = GrayGenerator(device, IMAGE_SHAPE)
     return noise_generator
