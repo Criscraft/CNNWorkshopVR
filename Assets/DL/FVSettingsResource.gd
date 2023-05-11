@@ -16,6 +16,8 @@ export var pool_mode : int = POOLMODE.undefined
 export var mimic_poolstage_filter_size : bool = false
 export var slope_leaky_relu_scheduling : bool = true
 export var final_slope_leaky_relu : float = 0.01
+export var gradient_spectral_norm : bool = true
+
 
 func get_dict():
 	var out = {
@@ -30,6 +32,7 @@ func get_dict():
 		"mimic_poolstage_filter_size" : mimic_poolstage_filter_size,
 		"slope_leaky_relu_scheduling" : slope_leaky_relu_scheduling,
 		"final_slope_leaky_relu" : final_slope_leaky_relu,
+		"gradient_spectral_norm" : gradient_spectral_norm,
 	}
 	return out
 	

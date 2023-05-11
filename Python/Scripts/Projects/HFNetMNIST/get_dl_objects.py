@@ -6,6 +6,7 @@ from Projects.HFNetMNIST.TranslationNetMNIST import TranslationNetMNIST
 from Projects.HFNetMNIST.MNIST import MNIST
 from Scripts.DLData import DLData
 from Scripts.DLNetwork import DLNetwork
+from Scripts.GrayGenerator import GrayGenerator
 from Scripts.NoiseGenerator import NoiseGenerator
 
 N_CLASSES = 10
@@ -17,8 +18,8 @@ use_cuda = torch.cuda.is_available()
 device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
 
-def get_network():
-    n_channels_list = [1*8, 2*8, 2*8, 2*8, 4*8, 8*8]
+def get_network(report_feature_visualization_results):
+    n_channels_list = [1*8, 2*8, 2*8, 2*8, 3*8, 5*8]
     
     # model = TranslationNetMNIST(
     #     n_classes=10,
@@ -34,13 +35,13 @@ def get_network():
     #         'translation_k' : 5,
     #         'randomroll' : -1,
     #         'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
-    #         'permutation' : 'identity', # one of shifted, identity, disabled
+    #         'permutation' : 'shifted', # one of shifted, identity, disabled
     #         } for i in range(6)],
     #     init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
-    #     pool_mode="lppool",
-    #     conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+    #     pool_mode="avgpool",
+    #     #conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
     #     conv_expressions_path = "conv_expressions_8_filters.txt",
-    #     #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
+    #     statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'avgpool_all_layers_trained.pt'),
     # )
 
     model = TranslationNetMNIST(
@@ -57,18 +58,16 @@ def get_network():
             'translation_k' : 5,
             'randomroll' : -1,
             'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
-            'permutation' : 'identity', # one of shifted, identity, disabled
+            'permutation' : 'shifted', # one of shifted, identity, disabled
             } for i in range(6)],
         init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
-        pool_mode="lppool",
-        #conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
+        pool_mode="avgpool",
+        conv_expressions=["digits_A", "digits_B", "big_curves", "curves", "big_corners"],
         conv_expressions_path = "conv_expressions_8_filters.txt",
-        statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'mnist_translationnet_lppool.pt'),
+        #statedict=os.path.join('..', 'Projects', 'HFNetMNIST', 'lppool_block_6_linear_layer_trained.pt'),
     )
-        
-    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, softmax=False)
-    for param in model.embedded_model.parameters():
-        param.requires_grad = False
+    
+    dl_network = DLNetwork(model, device, True, IMAGE_SHAPE, report_feature_visualization_results, softmax=False, norm_mean=NORM_MEAN, norm_std=NORM_STD)
     
     return dl_network
 
@@ -89,20 +88,30 @@ def get_dataset():
             transforms.Normalize(mean=NORM_MEAN, std=NORM_STD),
     ])
 
-    dataset = MNIST(b_train=False, transform='transform_test', root=os.path.dirname(os.path.realpath(__file__)), download=False)
+    dataset = MNIST(
+        b_train=False, 
+        transform='transform_test', 
+        root=os.path.dirname(os.path.realpath(__file__)), 
+        download=False,
+    )
     dataset.prepare({'transform_test' : transform_test})
 
-    dataset_test = MNIST(b_train=False, transform='transform_test', root=os.path.dirname(os.path.realpath(__file__)), download=False)
-    dataset_test.prepare({'transform_test' : transform_test_norm})
+    dataset_test_norm = MNIST(
+        b_train=False, 
+        transform='transform_test_norm', 
+        root=os.path.dirname(os.path.realpath(__file__)), 
+        download=False,
+    )
+    dataset_test_norm.prepare({'transform_test_norm' : transform_test_norm})
 
     np.random.seed(SEED)
     data_indices = []
 
     dldata = DLData(dataset, data_indices, dataset.class_names, N_CLASSES)
 
-    loader_test = torch.utils.data.DataLoader(dataset_test, batch_size=64)
+    loader_test_norm = torch.utils.data.DataLoader(dataset_test_norm, batch_size=64)
     
-    return dldata, transform_norm, loader_test
+    return dldata, transform_norm, loader_test_norm
 
 
 def get_noise_generator():

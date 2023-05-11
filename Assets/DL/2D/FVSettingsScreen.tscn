@@ -26,7 +26,7 @@ wait_time = 3.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 margin_right = 1280.0
-margin_bottom = 1399.0
+margin_bottom = 1567.0
 
 [node name="Header" parent="VBoxContainer" instance=ExtResource( 1 )]
 margin_right = 1280.0
@@ -70,182 +70,197 @@ margin_bottom = 277.0
 text = "Adjust filter size to mimic pooling"
 
 [node name="CheckBoxMimicPoolstageFilterSize" type="CheckBox" parent="VBoxContainer"]
-margin_left = 628.0
+margin_left = 606.0
 margin_top = 281.0
-margin_right = 652.0
-margin_bottom = 323.0
-rect_pivot_offset = Vector2( 0, 15 )
+margin_right = 674.0
+margin_bottom = 349.0
 size_flags_horizontal = 4
+size_flags_vertical = 4
 theme = ExtResource( 6 )
 action_mode = 0
 
 [node name="LabelEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 327.0
+margin_top = 353.0
 margin_right = 1280.0
-margin_bottom = 367.0
+margin_bottom = 393.0
 text = "Epochs"
 
 [node name="SliderEpochs" type="HSlider" parent="VBoxContainer"]
-margin_top = 371.0
+margin_top = 397.0
 margin_right = 1280.0
-margin_bottom = 411.0
+margin_bottom = 437.0
 theme = ExtResource( 2 )
 max_value = 500.0
 step = 50.0
 value = 100.0
 
 [node name="ValueEpochs" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 415.0
+margin_top = 441.0
 margin_right = 1280.0
-margin_bottom = 455.0
+margin_bottom = 481.0
 text = "200"
 align = 1
 
 [node name="LabelLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 459.0
+margin_top = 485.0
 margin_right = 1280.0
-margin_bottom = 499.0
+margin_bottom = 525.0
 text = "Learning rate"
 
 [node name="SliderLearningRate" type="HSlider" parent="VBoxContainer"]
-margin_top = 503.0
+margin_top = 529.0
 margin_right = 1280.0
-margin_bottom = 543.0
+margin_bottom = 569.0
 theme = ExtResource( 2 )
 max_value = 50.0
 value = 20.0
 
 [node name="ValueLearningRate" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 547.0
+margin_top = 573.0
 margin_right = 1280.0
-margin_bottom = 587.0
+margin_bottom = 613.0
 text = "20"
 align = 1
 
 [node name="LabelRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 591.0
+margin_top = 617.0
 margin_right = 1280.0
-margin_bottom = 631.0
+margin_bottom = 657.0
 text = "Rotation in degrees"
 
 [node name="SliderRotation" type="HSlider" parent="VBoxContainer"]
-margin_top = 635.0
+margin_top = 661.0
 margin_right = 1280.0
-margin_bottom = 675.0
+margin_bottom = 701.0
 theme = ExtResource( 2 )
 max_value = 45.0
 value = 10.0
 
 [node name="ValueRotation" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 679.0
+margin_top = 705.0
 margin_right = 1280.0
-margin_bottom = 719.0
+margin_bottom = 745.0
 text = "10"
 align = 1
 
 [node name="LabelBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 723.0
+margin_top = 749.0
 margin_right = 1280.0
-margin_bottom = 763.0
+margin_bottom = 789.0
 text = "Blur sigma"
 
 [node name="SliderBlurSigma" type="HSlider" parent="VBoxContainer"]
-margin_top = 767.0
+margin_top = 793.0
 margin_right = 1280.0
-margin_bottom = 807.0
+margin_bottom = 833.0
 theme = ExtResource( 2 )
 max_value = 2.0
 step = 0.1
 value = 0.5
 
 [node name="ValueBlurSigma" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 811.0
+margin_top = 837.0
 margin_right = 1280.0
-margin_bottom = 851.0
+margin_bottom = 877.0
 text = "0.25"
 align = 1
 
 [node name="LabelRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 855.0
+margin_top = 881.0
 margin_right = 1280.0
-margin_bottom = 895.0
+margin_bottom = 921.0
 text = "Roll"
 
 [node name="SliderRoll" type="HSlider" parent="VBoxContainer"]
-margin_top = 899.0
+margin_top = 925.0
 margin_right = 1280.0
-margin_bottom = 939.0
+margin_bottom = 965.0
 theme = ExtResource( 2 )
 max_value = 10.0
 value = 4.0
 
 [node name="ValueRoll" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 943.0
+margin_top = 969.0
 margin_right = 1280.0
-margin_bottom = 983.0
+margin_bottom = 1009.0
 text = "4"
 align = 1
 
 [node name="LabelFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 987.0
+margin_top = 1013.0
 margin_right = 1280.0
-margin_bottom = 1058.0
+margin_bottom = 1084.0
 text = "Percentile mode: 
 Fraction of pixels to maximize"
 
 [node name="SliderFractionToMaximize" type="HSlider" parent="VBoxContainer"]
-margin_top = 1062.0
+margin_top = 1088.0
 margin_right = 1280.0
-margin_bottom = 1102.0
+margin_bottom = 1128.0
 theme = ExtResource( 2 )
 max_value = 1.0
 step = 0.05
 value = 0.25
 
 [node name="ValueFractionToMaximize" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 1106.0
+margin_top = 1132.0
 margin_right = 1280.0
-margin_bottom = 1146.0
+margin_bottom = 1172.0
 text = "0.25"
 align = 1
 
 [node name="LabelSlopeLeakyReLUScheduling" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 1150.0
+margin_top = 1176.0
 margin_right = 1280.0
-margin_bottom = 1190.0
+margin_bottom = 1216.0
 text = "Schedule slope of leaky relu"
 
 [node name="CheckBoxSlopeLeakyReLUScheduling" type="CheckBox" parent="VBoxContainer"]
-margin_left = 628.0
-margin_top = 1194.0
-margin_right = 652.0
-margin_bottom = 1236.0
+margin_left = 606.0
+margin_top = 1220.0
+margin_right = 674.0
+margin_bottom = 1288.0
 rect_pivot_offset = Vector2( 0, 15 )
 size_flags_horizontal = 4
 theme = ExtResource( 6 )
 
 [node name="LabelFinalLeakyReLUSlope" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 1240.0
+margin_top = 1292.0
 margin_right = 1280.0
-margin_bottom = 1280.0
+margin_bottom = 1332.0
 text = "Final LeakyReLU slope"
 
 [node name="SliderFinalLeakyReLUSlope" type="HSlider" parent="VBoxContainer"]
-margin_top = 1284.0
+margin_top = 1336.0
 margin_right = 1280.0
-margin_bottom = 1324.0
+margin_bottom = 1376.0
 theme = ExtResource( 2 )
 max_value = 1.0
 step = 0.01
 value = 0.01
 
 [node name="ValueFinalLeakyReLUSlope" parent="VBoxContainer" instance=ExtResource( 1 )]
-margin_top = 1328.0
+margin_top = 1380.0
 margin_right = 1280.0
-margin_bottom = 1399.0
+margin_bottom = 1451.0
 text = "0.01
 "
 align = 1
+
+[node name="LabelGradientSpectralNorm" parent="VBoxContainer" instance=ExtResource( 1 )]
+margin_top = 1455.0
+margin_right = 1280.0
+margin_bottom = 1495.0
+text = "Gradient spectral norm"
+
+[node name="CheckBoxGradientSpectralNorm" type="CheckBox" parent="VBoxContainer"]
+margin_left = 606.0
+margin_top = 1499.0
+margin_right = 674.0
+margin_bottom = 1567.0
+rect_pivot_offset = Vector2( 0, 15 )
+size_flags_horizontal = 4
+theme = ExtResource( 6 )
 
 [connection signal="timeout" from="DebouncingTimer" to="." method="_on_DebouncingTimer_timeout"]
 [connection signal="item_selected" from="VBoxContainer/OptionButtonMode" to="." method="_on_OptionButtonMode_item_selected"]
@@ -259,3 +274,4 @@ align = 1
 [connection signal="value_changed" from="VBoxContainer/SliderFractionToMaximize" to="." method="_on_SliderFractionToMaximize_value_changed"]
 [connection signal="toggled" from="VBoxContainer/CheckBoxSlopeLeakyReLUScheduling" to="." method="_on_CheckBoxSlopeLeakyReLUScheduling_toggled"]
 [connection signal="value_changed" from="VBoxContainer/SliderFinalLeakyReLUSlope" to="." method="_on_SliderFinalLeakyReLUSlope_value_changed"]
+[connection signal="toggled" from="VBoxContainer/CheckBoxGradientSpectralNorm" to="." method="_on_CheckBoxGradientSpectralNorm_toggled"]

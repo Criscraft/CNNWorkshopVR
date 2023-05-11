@@ -36,6 +36,7 @@ class FeatureVisualizationParams(object):
         mimic_poolstage_filter_size=False, # has no effect but is listed here for completeness
         norm_mean = (0.,),
         norm_std=(1.,),
+        gradient_spectral_norm=True,
         ):
 
         self.mode = mode
@@ -50,6 +51,7 @@ class FeatureVisualizationParams(object):
         self.final_slope_leaky_relu = final_slope_leaky_relu
         self.norm_mean = norm_mean
         self.norm_std = norm_std
+        self.gradient_spectral_norm = gradient_spectral_norm
 
 
 class FeatureVisualizer(object):
@@ -168,13 +170,14 @@ class FeatureVisualizer(object):
                 loss.backward()
                 
                 gradients = created_image.grad
-                fft = torch.fft.fft2(gradients)
-                fft_mag = torch.abs(fft)
-                fft = fft / (fft_mag + 1e-6)
-                fft_gradients = torch.fft.ifft2(fft)
-                fft_gradients = torch.real(fft_gradients)
-                #gradients = 0.5 * gradients + 0.5 * fft_gradients
-                gradients = fft_gradients / (torch.sqrt((fft_gradients**2).sum((1,2,3), keepdim=True)) + 1e-6)
+                if self.fv_settings.gradient_spectral_norm:
+                    fft = torch.fft.fft2(gradients)
+                    fft_mag = torch.abs(fft)
+                    fft = fft / (fft_mag + 1e-8)
+                    fft_gradients = torch.fft.ifft2(fft)
+                    gradients = torch.real(fft_gradients)
+
+                gradients = gradients / (torch.sqrt((gradients**2).sum((1,2,3), keepdim=True)) + 1e-8)
                 created_image = created_image - gradients * self.fv_settings.lr
 
                 if epoch % 20 == 0:
@@ -184,7 +187,7 @@ class FeatureVisualizer(object):
                     with torch.no_grad():
                         export_images = export_transformation(created_image.detach().cpu())
                         if export_images.shape[1] != 3:
-                            export_images = export_images.expand(-1, 3, -1, -1)
+                            export_images = export_images.repeat(3, 1)
                         for i, channel in enumerate(channels_batch):
                             path = os.path.join(self.export_path, "_".join([str(channel), str(epoch), str(imagecount) + ".png"]))
                             export_meta.append({'path' : path, 'channel' : int(channel), 'epoch' : epoch})

@@ -134,18 +134,23 @@ class CopyModuleNonInterleave(nn.Module):
         super().__init__()
 
         self.factor = n_channels_out // n_channels_in
+        self.additional_channels = n_channels_out - n_channels_in * self.factor
         self.create_trackers(n_channels_in, n_channels_out)
 
     def create_trackers(self, n_channels_in, n_channels_out):
         self.tracker_out = tm.instance_tracker_module(label="Copy", draw_edges=True)
-        out_channel_inds = np.arange(n_channels_out)
+        out_channel_inds = np.arange(n_channels_in * self.factor)
         input_mapping = out_channel_inds % n_channels_in
+        if self.additional_channels > 0:
+            input_mapping = np.concatenate((input_mapping, input_mapping[:self.additional_channels]))
         self.tracker_out.register_data("input_mapping", input_mapping)
 
     def forward(self, x: Tensor) -> Tensor:
         dimensions = [1 for _ in range(x.ndim)]
         dimensions[1] = self.factor
         out =  x.repeat(*dimensions)
+        if self.additional_channels > 0:
+            out = torch.cat((out, out[:,:self.additional_channels]), 1)
         _ = self.tracker_out(out)
         return out
 

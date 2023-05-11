@@ -43,10 +43,10 @@ class PreprocessingModule(nn.Module):
             
         # Permutation
         if permutation == "shifted":
-            group_size = n_channels_in // conv_groups
-            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out).roll(group_size // 2) % n_channels_in)
+            group_size = n_channels_out // conv_groups
+            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out).roll(group_size // 2))
         elif permutation == "identity":
-            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out) % n_channels_in)
+            self.permutation_module = pfm.PermutationModule(torch.arange(n_channels_out))
         elif permutation == "disabled":
             self.permutation_module = nn.Identity()
         else:
@@ -327,7 +327,7 @@ class ConvExpressionsManager():
                 self.block.conv1x1_1.relu.tracker_out,
                 self.block.tracker_input_spatial,
                 self.block.spatial.predev_conv.tracker_out,
-                self.block.spatial_norm.tracker_out,
+                #self.block.spatial_norm.tracker_out,
                 self.block.blend.tracker_out,
                 self.block.tracker_input_conv_2,
                 self.block.conv1x1_2.conv1x1.tracker_out,

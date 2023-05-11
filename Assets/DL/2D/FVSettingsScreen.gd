@@ -21,6 +21,7 @@ onready var value_fraction_to_maximize : Label = $VBoxContainer/ValueFractionToM
 onready var checkbox_slope_leaky_relu_scheduling : CheckBox = $VBoxContainer/CheckBoxSlopeLeakyReLUScheduling
 onready var slider_final_leaky_relu_slope : HSlider = $VBoxContainer/SliderFinalLeakyReLUSlope
 onready var value_final_leaky_relu_slope : Label = $VBoxContainer/ValueFinalLeakyReLUSlope
+onready var checkbox_gradient_spectral_norm : CheckBox = $VBoxContainer/CheckBoxGradientSpectralNorm
 
 func _ready():
 	option_button_mode.add_item("Average")
@@ -57,6 +58,7 @@ func set_fv_settings_resource(fv_settings_resource_):
 	checkbox_slope_leaky_relu_scheduling.pressed = fv_settings_resource.slope_leaky_relu_scheduling
 	slider_final_leaky_relu_slope.value = fv_settings_resource.final_slope_leaky_relu
 	value_final_leaky_relu_slope.text = str(fv_settings_resource.final_slope_leaky_relu)
+	checkbox_gradient_spectral_norm.pressed = fv_settings_resource.gradient_spectral_norm
 	settings_changed = false
 	
 
@@ -135,11 +137,20 @@ func _on_SliderFinalLeakyReLUSlope_value_changed(value):
 	debouncing_timer._on_trigger()
 
 
+func _on_CheckBoxGradientSpectralNorm_toggled(button_pressed):
+	fv_settings_resource.gradient_spectral_norm = button_pressed
+	settings_changed = true
+	debouncing_timer._on_trigger()
+	
+
 func _on_DebouncingTimer_timeout():
 	# Send the new settings to the server.
 	if settings_changed:
 		DLManager.set_fv_settings(fv_settings_resource.get_dict())
 		settings_changed = false
 		
+
+
+
 
 
