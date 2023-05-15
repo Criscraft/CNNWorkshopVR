@@ -10,6 +10,7 @@ class GrayGenerator:
 
     def generate_noise_image(self):
         self.active_noise_image = torch.ones(*self.shape, device=self.device) * 0.5
+        self.active_noise_image[:, self.shape[1]//2, self.shape[2]//2] = 0.5 + 1.1/255.
 
 
     def get_noise_image(self):
