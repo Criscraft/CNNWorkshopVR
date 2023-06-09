@@ -82,6 +82,7 @@ class TranslationBlock(nn.Module):
         randomroll: int = -1,
         normalization_mode : str = "layernorm", # one of batchnorm, layernorm
         permutation : str = "shifted", # one of shifted, identity, disabled
+        neg_weights_allowed : bool = True,
     ) -> None:
         super().__init__()
 
@@ -101,7 +102,7 @@ class TranslationBlock(nn.Module):
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")
         self.tracker_input_conv_1 = tm.instance_tracker_module(label="Input")
-        self.conv1x1_1 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups)
+        self.conv1x1_1 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups, neg_weights_allowed=neg_weights_allowed)
 
         # Random roll (attack)
         self.randomroll = pfm.RandomRoll(randomroll) if randomroll>0 else nn.Identity()
@@ -132,7 +133,7 @@ class TranslationBlock(nn.Module):
         # 1x1 Conv
         tm.instance_tracker_module_group(label="1x1 Conv")
         self.tracker_input_conv_2 = tm.instance_tracker_module(label="Input")
-        self.conv1x1_2 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups)
+        self.conv1x1_2 = pfm.Conv1x1AndReLUModule(n_channels_out, n_channels_out, conv_groups, neg_weights_allowed=neg_weights_allowed)
 
 
     def forward(self, x: Tensor) -> Tensor:
@@ -167,6 +168,7 @@ class TranslationNetMNIST(nn.Module):
             'randomroll' : -1,
             'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
             'permutation' : 'identity', # one of shifted, identity, disabled
+            'neg_weights_allowed' : True,
             } for i in range(9)],
         init_mode='zero', # one of uniform, uniform_translation_as_pfm, zero, identity
         pool_mode="maxpool",
@@ -174,6 +176,7 @@ class TranslationNetMNIST(nn.Module):
         conv_expressions_path = "conv_expressions_8_filters.txt",
         statedict : str = '',
         freeze_features : bool = False,
+        leaky_relu_slope : float = 0.01,
         ):
         super().__init__()
 
@@ -200,6 +203,8 @@ class TranslationNetMNIST(nn.Module):
 
         if freeze_features:
             self.freeze_features()
+
+        self.embedded_model.set_neg_slope_of_leaky_relus(leaky_relu_slope)
                 
 
     def forward(self, batch):
@@ -677,6 +682,7 @@ class TranslationNet_(nn.Module):
                 randomroll=config['randomroll'],
                 normalization_mode=config['normalization_mode'],
                 permutation=config['permutation'],
+                neg_weights_allowed=config['neg_weights_allowed'],
             ) for config in blockconfig_list]
         self.blocks = nn.Sequential(*blocks)
 
@@ -728,9 +734,22 @@ class TranslationNet_(nn.Module):
                 module.negative_slope = slope
 
 
+    def get_pool_stage_list(self, blockconfig_list):
+        # Code duplication (see ConvExpressionManager)
+        # pool_stage_list stores for each block the pool stage
+        pool_booleans = [bool(blockconfig["pool_mode"]) for blockconfig in blockconfig_list]
+        pool_stage_list = [0] 
+        for pool_boolean in pool_booleans[1:]:
+            if pool_boolean:
+                pool_stage_list.append(pool_stage_list[-1] + 1)
+            else:
+                pool_stage_list.append(pool_stage_list[-1])
+        return pool_stage_list
+
+
     def resize_filter_to_mimic_poolstage_(self, mode : bool):
         if mode:
-            poolstage_list = self.conv_expression_manager.get_pool_stage_list(self.blockconfig_list)
+            poolstage_list = self.get_pool_stage_list(self.blockconfig_list)
             for i, block in enumerate(self.blocks):
                 block.spatial.predev_conv.resize_filter_to_mimic_poolstage(poolstage_list[i])
         else:

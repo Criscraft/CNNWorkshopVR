@@ -9,8 +9,9 @@ from TrackingModules import TrackerModuleProvider
 
 """
 PredefinedConv padding is zero padding instead of replicate. This seems to improve test accuracy by about 1%.
-Reenabled replicate padding
+Reenabled replicate padding (for visualization purpose)
 pooling padding 0. This improves performance on MNIST
+Regularized weights use clamp instead of scale.
 """
 
 tm = TrackerModuleProvider()
@@ -45,6 +46,7 @@ class WeightRegularizationModule(nn.Module):
         CLAMP = 0
         CYCLE = 1
         SCALE = 2
+        RANDCLAMP = 3
 
     class ParamToRegularize():
         def __init__(self, param, mode, limit_min, limit_max, init_min=None, init_max=None):
@@ -68,6 +70,9 @@ class WeightRegularizationModule(nn.Module):
     def register_param_to_scale(self, param, limit_min, limit_max, init_min=None, init_max=None):
         self.params.append(self.ParamToRegularize(param, self.Mode.SCALE, limit_min, limit_max, init_min, init_max))
 
+    def register_param_to_randclamp(self, param, limit_min, limit_max, init_min=None, init_max=None):
+        self.params.append(self.ParamToRegularize(param, self.Mode.RANDCLAMP, limit_min, limit_max, init_min, init_max))
+
     def regularize_params(self):
         if hasattr(self, "pre_regularize"):
             self.pre_regularize()
@@ -87,6 +92,9 @@ class WeightRegularizationModule(nn.Module):
                     center = 0.5 * (item.limit_max + item.limit_min)
                     scale_factor = 1. / (max_deviation / half_width + 1)
                     item.param.data = scale_factor * (item.param.data - center) + center
+            elif item.mode == self.Mode.RANDCLAMP:
+                mask = item.param.data < item.limit_min
+                item.param.data[mask] = -(item.param.data[mask] - item.limit_min) + item.limit_min
 
     def intitialize_weights_uniform(self):
         for item in self.params:
@@ -176,19 +184,24 @@ class TrackedLeakyReLU(nn.Module):
 
 class TrackedConv1x1Regularized(WeightRegularizationModule):
     def __init__(
-        self, n_channels_in, n_channels_out, conv_groups,
+        self, 
+        n_channels_in, 
+        n_channels_out, 
+        conv_groups, 
+        neg_weights_allowed : bool = True,
     ) -> None:
         super().__init__()
 
         group_size = n_channels_in // conv_groups
         self.conv1x1 = nn.Conv2d(n_channels_in, n_channels_out, 1, 1, 0, groups=conv_groups, bias=False)
-        self.register_param_to_scale(self.conv1x1.weight, -group_size, group_size, -1., 1.)
-        self.create_trackers(n_channels_in, n_channels_out, conv_groups, group_size)
+        self.register_param_to_clamp(self.conv1x1.weight, -group_size, group_size, -1.0, 1.0)
+        self.create_trackers(n_channels_in, n_channels_out, conv_groups)
+        self.neg_weights_allowed = neg_weights_allowed
 
-    def create_trackers(self, in_channels, out_channels, conv_groups, group_size):
+    def create_trackers(self, in_channels, out_channels, conv_groups):
         self.tracker_out = tm.instance_tracker_module(label="1x1 Conv", draw_edges=True, ignore_highlight=False)
         self.tracker_out.register_data("grouped_conv_weight", self.conv1x1.weight)
-        self.tracker_out.register_data("grouped_conv_weight_limit", [-group_size, group_size])
+        self.tracker_out.register_data("grouped_conv_weight_limit", [-conv_groups, conv_groups])
         in_channels_per_group = in_channels // conv_groups
         out_channels_per_group = out_channels // conv_groups
         input_mapping = []
@@ -198,7 +211,10 @@ class TrackedConv1x1Regularized(WeightRegularizationModule):
         self.tracker_out.register_data("input_mapping", input_mapping)
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.conv1x1(x)
+        if self.neg_weights_allowed:
+            out = self.conv1x1(x)
+        else:
+            out = F.conv2d(x, F.sigmoid(self.conv1x1.weight), None, self.conv1x1.stride, self.conv1x1.padding, self.conv1x1.dilation, self.conv1x1.groups)
         _ = self.tracker_out(out)
         return out
 
@@ -209,10 +225,11 @@ class Conv1x1AndReLUModule(WeightRegularizationModule):
         n_channels_in : int,
         n_channels_out : int,
         conv_groups : int,
+        neg_weights_allowed : bool = True,
     ) -> None:
         super().__init__()
 
-        self.conv1x1 = TrackedConv1x1Regularized(n_channels_in, n_channels_out, conv_groups)
+        self.conv1x1 = TrackedConv1x1Regularized(n_channels_in, n_channels_out, conv_groups, neg_weights_allowed=neg_weights_allowed)
         self.relu = TrackedLeakyReLU()
 
     def forward(self, x):
