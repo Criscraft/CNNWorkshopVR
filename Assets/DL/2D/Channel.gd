@@ -32,7 +32,7 @@ func set_label(text_new):
 	
 func clear_details():
 	for child in $Details.get_children():
-		remove_child(child)
+		$Details.remove_child(child)
 		child.queue_free()
 
 

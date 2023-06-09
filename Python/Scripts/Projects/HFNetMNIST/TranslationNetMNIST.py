@@ -622,7 +622,10 @@ class ConvExpressionsManager():
         while not q==u:
             # Update set of nodes which are still unassigned.
             p = p - u
-            for p_ in p:
+            # Make the algorithm deterministic: In the following for loop we will go through the sorted elements of p.
+            p_sorted = list(p)
+            p_sorted.sort()
+            for p_ in p_sorted:
                 if set(precursors[p_]) <= z:
                     # The node p_ has all of its precursors in z, the set of nodes that are precursors of the current layer.
                     # Add the node to the current layer.
