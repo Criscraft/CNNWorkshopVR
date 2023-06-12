@@ -39,7 +39,7 @@ def get_network(report_feature_visualization_results):
             'randomroll' : -1,
             'normalization_mode' : 'layernorm', # one of batchnorm, layernorm
             'permutation' : 'shifted', # one of shifted, identity, disabled
-            'neg_weights_allowed' : True if i==0 else False,
+            'neg_weights_allowed' : True,# if i==0 else False,
             } for i in range(6)],
         init_mode='uniform', # one of uniform, uniform_translation_as_pfm, zero, identity, kaiming
         pool_mode="avgpool",
