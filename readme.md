@@ -1,21 +1,20 @@
 # CNNWorkshopCNN
 
-This application has no documentation, yet. The goal is to create some kind of editor for CNNs. 
+This application is an interactive visualization of CNNs in 3D. 
 
 ## Set up Python
-The software requires Python because the deep learing part is implemented in Pytorch. While you can use a virtual environment for Python I found it easier to have a local Python installation in the Project that can be easily deployed. The local Python installation should be located at Python/PythonInstallation
+The software consists of a server (Python) and a client (written in Godot). For the server you can set up a virtual environment. In this repository, I use a local Python installation that can be easily deployed. The local Python installation should be located at Python/PythonInstallation
 
 Recommended procedure to install Python:
 
-First install Miniconda [here](https://docs.conda.io/en/latest/miniconda.html)
+Install Miniconda [here](https://docs.conda.io/en/latest/miniconda.html)
 
-Open Miniconda (Windows) or a new terminal (Linux). 
+Open the Miniconda console (Windows) or a new terminal (Linux). 
 Move to the Python/PythonInstallation folder using the cd command. Then type
     conda create -p . python=3.9.16
 Activate the environment using
     conda activate ./
-Follow the instructions and proceed until Python is installed.
-Important: The python executable has to be located directly in Python/PythonInstallation
+The Python executable should be located directly in Python/PythonInstallation
 Upgrade pip.
     pip install --upgrade pip
 Add Script directory to path:
@@ -23,6 +22,7 @@ Add Script directory to path:
     conda develop PathToYourProjectFolder/CNNWorkshopVR/Python/Scripts/Scripts
 Then, install the required packages. If you desire GPU support, visit https://pytorch.org/ to get the correct extra-index-url for your system and install cuda https://developer.nvidia.com/cuda-downloads.
     conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
+    #conda install pytorch torchvision cpuonly -c pytorch
     pip install torchgeometry
     conda install -c conda-forge cudnn
     conda install matplotlib 
