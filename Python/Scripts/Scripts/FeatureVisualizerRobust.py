@@ -8,7 +8,6 @@ import torchgeometry as tgm
 import numpy as np
 import random
 from enum import Enum
-import asyncio
 
 BATCHSIZE = 16
 imagecount = 0

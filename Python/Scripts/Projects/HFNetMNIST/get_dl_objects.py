@@ -8,7 +8,7 @@ from Scripts.DLData import DLData
 from Scripts.DLNetwork import DLNetwork
 from Scripts.GrayGenerator import GrayGenerator
 from Scripts.DiracGenerator import DiracGenerator
-#from Scripts.NoiseGenerator import NoiseGenerator
+from Scripts.NoiseGenerator import NoiseGenerator
 #from Scripts.NoiseGeneratorLight import NoiseGenerator
 
 N_CLASSES = 10
@@ -122,7 +122,7 @@ def get_dataset():
 
 
 def get_noise_generator():
-    #noise_generator = NoiseGenerator(device, IMAGE_SHAPE)
+    noise_generator = NoiseGenerator(device, IMAGE_SHAPE)
     #noise_generator = GrayGenerator(device, IMAGE_SHAPE)
-    noise_generator = DiracGenerator(device, IMAGE_SHAPE)
+    #noise_generator = DiracGenerator(device, IMAGE_SHAPE)
     return noise_generator
