@@ -169,12 +169,29 @@ class TrackedLeakyReLU(nn.Module):
     ) -> None:
         super().__init__()
 
-        #self.relu = nn.ReLU(inplace=False)
         self.relu = nn.LeakyReLU(inplace=False)
         self.create_trackers()
 
     def create_trackers(self):
         self.tracker_out = tm.instance_tracker_module(label="Leaky ReLU")
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self.relu(x)
+        _ = self.tracker_out(out)
+        return out
+    
+
+class TrackedReLU(nn.Module):
+    def __init__(
+        self,
+    ) -> None:
+        super().__init__()
+
+        self.relu = nn.ReLU(inplace=False)
+        self.create_trackers()
+
+    def create_trackers(self):
+        self.tracker_out = tm.instance_tracker_module(label="ReLU")
 
     def forward(self, x: Tensor) -> Tensor:
         out = self.relu(x)
@@ -553,8 +570,9 @@ class ParameterizedFilterMode(enum.Enum):
    UnevenPosOnly = 6
    TranslationSmooth = 7
    TranslationSharp4 = 8
-   TranslationSharp8 = 9
-   HardSmooth2x2 = 10
+   TranslationSharpLarge4 = 9
+   TranslationSharp8 = 10
+   HardSmooth2x2 = 11
 
 
 def saddle(x, y, phi, sigma, uneven=True):
@@ -601,7 +619,18 @@ def get_parameterized_filter(k: int=3, filter_mode: ParameterizedFilterMode=None
     
 
 class PredefinedConv(nn.Module):
-    def __init__(self, n_channels_in: int, n_channels_out: int, stride: int = 1, k: int = 3, filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, n_angles: int = 4, filters_require_grad:bool=False, padding:bool=True, replicate_padding:bool=False) -> None:
+    def __init__(
+            self, 
+            n_channels_in: int, 
+            n_channels_out: int, 
+            stride: int = 1, 
+            k: int = 3, 
+            filter_mode: ParameterizedFilterMode = ParameterizedFilterMode.EvenAndUneven, 
+            n_angles: int = 4, 
+            filters_require_grad:bool=False, 
+            padding:bool=True, 
+            replicate_padding:bool=False
+        ) -> None:
         super().__init__()
 
         assert n_channels_out >= n_channels_in
@@ -638,6 +667,31 @@ class PredefinedConv(nn.Module):
                 [0.,0.,0.],
                 [0.,0.,0.],
                 [0.,1.,0.]]) # top
+        if filter_mode == ParameterizedFilterMode.TranslationSharpLarge4:
+            w.append([
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [1.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.]]) # right
+            w.append([
+                [0.,0.,1.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.]]) # bottom
+            w.append([
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,1.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.]]) # left
+            w.append([
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,0.,0.,0.],
+                [0.,0.,1.,0.,0.]]) # top
         elif filter_mode == ParameterizedFilterMode.TranslationSharp8:
             w.append([
                 [0.,0.,0.],
